@@ -2273,10 +2273,11 @@ Active auth session row visible to the current principal.
 ##### channel?
 
 ```ts
-channel?: "browser" | "clerk" | null;
+channel?: "browser" | "clerk" | "player" | null;
 ```
 
-For a portal session: `browser`, or `clerk` for a clerk's library card.
+For a portal session: `browser`, `clerk` for a clerk's library card, or
+`player` for a player app's card.
 
 ##### client\_label?
 

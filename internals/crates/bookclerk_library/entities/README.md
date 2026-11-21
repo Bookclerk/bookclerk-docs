@@ -87,6 +87,9 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`pending_joins`](pending_joins.md): SeaORM entity for `pending_joins`: on a host joining a library, one sign-in in progress (written by `control_plane::create_pending_join`). The PKCE verifier and the node keys are sealed in `encrypted_secrets`, never stored here.
 - [`playback_progress`](playback_progress.md): SeaORM entity for `playback_progress`: how far one person has listened to one edition. Written by `crate::LibraryStore`'s playback methods (`store::playback`).
 - [`playback_sessions`](playback_sessions.md): SeaORM entity for `playback_sessions`: one stretch of listening by one person on one player. A session is also the leave to stream the edition's files from one destination, checked afresh on every request (`control_plane::copies::authorize_playback`).
+- [`player_card_tokens`](player_card_tokens.md): SeaORM entity for `player_card_tokens`: the access and refresh tokens of player library cards, by SHA-256 (`store::player_cards`).
+- [`player_cards`](player_cards.md): SeaORM entity for `player_cards`: how a player library card (a `player` row of `portal_sessions`) was signed in to (`store::player_cards`).
+- [`player_passwords`](player_passwords.md): SeaORM entity for `player_passwords`: passwords a patron made for one player app each (`store::player_cards`). Only a SHA-256 of each is kept.
 - [`plugin_artifacts`](plugin_artifacts.md): SeaORM entity for `plugin_artifacts`: the header of a version archive stored in the library when no shared artifact location exists.
 - [`plugin_cron_cursors`](plugin_cron_cursors.md): SeaORM entity for `plugin_cron_cursors`: the last claimed fire of each plugin cron schedule.
 - [`plugin_deployment_observations`](plugin_deployment_observations.md): SeaORM entity for observed plugin deployment state.

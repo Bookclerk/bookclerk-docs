@@ -141,6 +141,12 @@ the external guest RPC. This crate owns the greenfield schema
 | [`PlaybackSyncBody`](#playbacksyncbody) | struct | `POST /api/playback/sessions/{id}/sync` and `.../close` body: where the listener is. |
 | [`ProgressEditBody`](#progresseditbody) | struct | `PUT /api/playback/progress/{edition_id}` body: what to set. A field left out keeps its stored value. |
 | [`TrackPath`](#trackpath) | struct | The file a stream request names (`parse_track_path`). |
+| [`NewPlayerCard`](#newplayercard) | struct | A new player card (`LibraryStore::mint_player_card`). |
+| [`PlayerCard`](#playercard) | struct | A live player card, as an access token resolves to it. |
+| [`PlayerCardTokens`](#playercardtokens) | struct | What signing a card in or refreshing it hands out, as digests: the caller holds the tokens themselves. |
+| [`PlayerPassword`](#playerpassword) | struct | A player password as its owner sees it in Account settings. |
+| [`PlayerFacet`](#playerfacet) | struct | One value of the page index on an item: its key and how it is written. |
+| [`PlayerItem`](#playeritem) | struct | What the player API shows of one item (`LibraryStore::player_items`). |
 | [`PluginDatabaseRecord`](#plugindatabaserecord) | struct | One provisioned plugin database binding registry row. |
 | [`KvEntry`](#kventry) | struct | One live key/value row. |
 | [`KvListPage`](#kvlistpage) | struct | One page of `LibraryStore::kv_list`. |
@@ -393,6 +399,11 @@ the external guest RPC. This crate owns the greenfield schema
 | [`MAX_PLAYBACK_SYNC_BYTES`](#max_playback_sync_bytes) | constant | Largest sync body the routes read, in bytes; a real one is under 100. |
 | [`MAX_PLAYBACK_TRACKS`](#max_playback_tracks) | constant | Most tracks a play session lists: a stream path's index is below it. |
 | [`MAX_PROGRESS_CURSOR_BYTES`](#max_progress_cursor_bytes) | constant | Longest progress cursor token the route reads, in bytes; a real one is about 100. |
+| [`MAX_PLAYER_PASSWORDS`](#max_player_passwords) | constant | Most player passwords one patron keeps. |
+| [`MAX_PLAYER_PASSWORD_LABEL_BYTES`](#max_player_password_label_bytes) | constant | Longest player password label, in bytes. |
+| [`PLAYER_ACCESS_TTL_SECS`](#player_access_ttl_secs) | constant | Lifetime of a player card's access token. |
+| [`PLAYER_REFRESH_GRACE_SECS`](#player_refresh_grace_secs) | constant | How long the other refresh tokens of a card keep working after one of them is used: long enough for two refreshes that raced with the same token to both succeed, and for a phone whose refresh answer was lost while it slept to try again (the apps expect ten minutes). |
+| [`PLAYER_REFRESH_TTL_DAYS`](#player_refresh_ttl_days) | constant | Lifetime of a player card's refresh token; each refresh starts it again. |
 | [`KV_LIST_DEFAULT_LIMIT`](#kv_list_default_limit) | constant | Default page size for `LibraryStore::kv_list` when the caller passes 0. |
 | [`AUDIT_RETENTION_DAYS`](#audit_retention_days) | constant | Days `security_audit_events` and `configuration_audit` rows are kept. |
 | [`CONFIGURATION_CHANGE_RETENTION_DAYS`](#configuration_change_retention_days) | constant | Days `configuration_changes` notices are kept. They only signal that a document changed; the document and its audit row hold the content. |
@@ -5579,6 +5590,166 @@ The file a stream request names ([`parse_track_path`](#parse_track_path)).
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### NewPlayerCard
+
+```rust
+pub struct NewPlayerCard<'a> {
+    pub identity_id: i64,
+    pub session_hash: &'a str,
+    pub password_id: Option<&'a str>,
+    pub label: &'a str,
+    pub user_agent: Option<&'a str>,
+    pub device_type: &'a str,
+    pub tokens: PlayerCardTokens<'a>,
+}
+```
+
+A new player card ([`LibraryStore::mint_player_card`](#librarystoremint_player_card)).
+
+**Fields**
+
+- `identity_id`: The portal identity the card signs in as.
+- `session_hash`: SHA-256 hex of random bytes nobody is given: the session row's own
+  token hash, unique per card.
+- `password_id`: The player password it was made with, when it was.
+- `label`: The app's name, shown in the session list.
+- `user_agent`: The app's `User-Agent`, when it sent one.
+- `device_type`: Best-effort device class (`mobile`, `tablet`, `desktop`, `api`).
+- `tokens`: The card's first tokens.
+
+Implements: `Clone`, `Copy`, `Debug`
+
+### PlayerCard
+
+```rust
+pub struct PlayerCard {
+    pub session_id: i64,
+    pub identity: PortalIdentity,
+}
+```
+
+A live player card, as an access token resolves to it.
+
+**Fields**
+
+- `session_id`: The card's `portal_sessions.id`.
+- `identity`: The identity it signs in as.
+
+Implements: `Clone`, `Debug`
+
+### PlayerCardTokens
+
+```rust
+pub struct PlayerCardTokens<'a> {
+    pub access_hash: &'a str,
+    pub refresh_hash: &'a str,
+}
+```
+
+What signing a card in or refreshing it hands out, as digests: the
+caller holds the tokens themselves.
+
+**Fields**
+
+- `access_hash`: SHA-256 hex of the new access token.
+- `refresh_hash`: SHA-256 hex of the new refresh token.
+
+Implements: `Clone`, `Copy`, `Debug`
+
+### PlayerPassword
+
+```rust
+pub struct PlayerPassword {
+    pub id: String,
+    pub user_id: i64,
+    pub label: String,
+    pub created_at: DateTime<Utc>,
+    pub last_used_at: Option<DateTime<Utc>>,
+}
+```
+
+A player password as its owner sees it in Account settings.
+
+**Fields**
+
+- `id`: Password id.
+- `user_id`: The patron it signs in as.
+- `label`: The name the patron gave it.
+- `created_at`: When it was made.
+- `last_used_at`: When it last signed an app in.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### PlayerFacet
+
+```rust
+pub struct PlayerFacet {
+    pub key: String,
+    pub value: String,
+}
+```
+
+One value of the page index on an item: its key and how it is written.
+
+**Fields**
+
+- `key`: The value's key ([`crate::facet_key`](#facet_key)), what a filter matches.
+- `value`: The value as shown.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### PlayerItem
+
+```rust
+pub struct PlayerItem {
+    pub edition_id: String,
+    pub work_id: String,
+    pub title: String,
+    pub subtitle: Option<String>,
+    pub description: Option<String>,
+    pub published_at: Option<String>,
+    pub runtime_minutes: Option<u64>,
+    pub language: Option<String>,
+    pub abridged: bool,
+    pub authors: Vec<PlayerFacet>,
+    pub narrators: Vec<PlayerFacet>,
+    pub series: Vec<PlayerFacet>,
+    pub series_position: Option<String>,
+    pub genres: Vec<String>,
+    pub publishers: Vec<String>,
+    pub isbn: Option<String>,
+    pub asin: Option<String>,
+    pub added_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+```
+
+What the player API shows of one item ([`LibraryStore::player_items`](#librarystoreplayer_items)).
+
+**Fields**
+
+- `edition_id`: The edition: the item id.
+- `work_id`: Its work.
+- `title`: The edition's title.
+- `subtitle`: Its subtitle.
+- `description`: The work's description (may hold markup).
+- `published_at`: The publication date as the store gave it.
+- `runtime_minutes`: The runtime the catalog states, in whole minutes.
+- `language`: The expression's language tag.
+- `abridged`: True when the expression is abridged.
+- `authors`: Authors, in the order the work's row lists them.
+- `narrators`: Narrators.
+- `series`: Series, the work's first series first.
+- `series_position`: The work's place in its first series, as written.
+- `genres`: Genres.
+- `publishers`: Publishers.
+- `isbn`: The edition's ISBN, when known.
+- `asin`: The edition's ASIN, when known.
+- `added_at`: When the library acquired it.
+- `updated_at`: When its record last changed.
+
+Implements: `Clone`, `Debug`, `PartialEq`
+
 ### PluginDatabaseRecord
 
 ```rust
@@ -9276,6 +9447,38 @@ One page of the library's works from the page index.
 Returns [`LibraryError::Invalid`](#libraryerror) when the cursor belongs to another
 order, or [`LibraryError::Orm`](#libraryerror) when the read fails.
 
+#### LibraryStore::library_works_at
+
+```rust
+pub async fn library_works_at(
+    &self,
+    query: &WorkPageQuery,
+    offset: u64,
+    limit: u64,
+    reversed: bool,
+) -> Result<(Vec<LibraryWorkRow>, u64)>
+```
+
+One page of the library's works by position: `limit` rows from
+`offset` in `query`'s order (reversed when `reversed`), and how
+many rows the query matches in all. `query.after` and
+`query.limit` are not read.
+
+For callers that page by number, such as player apps; the library's
+own pages use [`Self::library_works_page`](#librarystorelibrary_works_page), whose cursors hold
+still while rows are added.
+
+##### Arguments
+
+* `query` - Order and filters.
+* `offset` - Rows to skip.
+* `limit` - Most rows to return.
+* `reversed` - True to read the order backwards.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
 #### LibraryStore::owned_work_for
 
 ```rust
@@ -10298,6 +10501,263 @@ True when a bookmark of theirs was removed.
 ##### Errors
 
 Returns the database error.
+
+#### LibraryStore::insert_player_password
+
+```rust
+pub async fn insert_player_password(
+    &self,
+    user_id: i64,
+    label: &str,
+    password_hash: &str,
+) -> Result<Option<PlayerPassword>>
+```
+
+Stores a new player password for `user_id`.
+
+##### Arguments
+
+* `user_id` - The patron.
+* `label` - Its name; trimmed, and at most
+  [`MAX_PLAYER_PASSWORD_LABEL_BYTES`](#max_player_password_label_bytes) bytes are kept.
+* `password_hash` - SHA-256 hex of the generated password.
+
+##### Returns
+
+The password, or `None` when the patron already keeps
+[`MAX_PLAYER_PASSWORDS`](#max_player_passwords).
+
+##### Errors
+
+Returns the database error.
+
+#### LibraryStore::list_player_passwords
+
+```rust
+pub async fn list_player_passwords(&self, user_id: i64) -> Result<Vec<PlayerPassword>>
+```
+
+A patron's player passwords, newest first.
+
+##### Errors
+
+Returns the read error.
+
+#### LibraryStore::delete_player_password
+
+```rust
+pub async fn delete_player_password(&self, user_id: i64, id: &str) -> Result<bool>
+```
+
+Removes one of a patron's player passwords and ends every card it
+signed in.
+
+##### Returns
+
+True when a password of theirs was removed.
+
+##### Errors
+
+Returns the database error.
+
+#### LibraryStore::use_player_password
+
+```rust
+pub async fn use_player_password(
+    &self,
+    password_hash: &str,
+) -> Result<Option<PlayerPassword>>
+```
+
+The player password a sign-in presents, by digest, and its
+patron; marks it used.
+
+##### Returns
+
+The password, or `None` for no such password.
+
+##### Errors
+
+Returns the database error.
+
+#### LibraryStore::mint_player_card
+
+```rust
+pub async fn mint_player_card(&self, card: NewPlayerCard<'_>) -> Result<Option<i64>>
+```
+
+Makes a player card: its session row, its card row and its first
+access and refresh tokens, in one batch.
+
+##### Returns
+
+The card's session id, or `None` when the player password it names
+was removed meanwhile.
+
+##### Errors
+
+Returns the database error.
+
+#### LibraryStore::player_card_by_access
+
+```rust
+pub async fn player_card_by_access(&self, access_hash: &str) -> Result<Option<PlayerCard>>
+```
+
+Resolves a player card's access token to its card and identity,
+touching the session at most once a minute as a browser session is.
+
+##### Arguments
+
+* `access_hash` - SHA-256 hex of the access token.
+
+##### Returns
+
+`None` for an unknown or expired token or an ended card.
+
+##### Errors
+
+Returns the database error.
+
+#### LibraryStore::refresh_player_card
+
+```rust
+pub async fn refresh_player_card(
+    &self,
+    refresh_hash: &str,
+    tokens: PlayerCardTokens<'_>,
+) -> Result<Option<PlayerCard>>
+```
+
+Trades a refresh token for a new access and refresh token, in one
+batch. The presented token and every other refresh token of the
+card keep working for [`PLAYER_REFRESH_GRACE_SECS`](#player_refresh_grace_secs) more, so two
+refreshes racing with one token both succeed; the card's thirty
+days start again.
+
+##### Arguments
+
+* `refresh_hash` - SHA-256 hex of the presented refresh token.
+* `tokens` - Digests of the new pair.
+
+##### Returns
+
+The card, or `None` when the token does not refresh: unknown,
+expired, or its card ended.
+
+##### Errors
+
+Returns the database error.
+
+#### LibraryStore::end_player_card
+
+```rust
+pub async fn end_player_card(&self, token_hash: &str) -> Result<bool>
+```
+
+Ends the card a token (access or refresh) belongs to: the app
+signed out.
+
+##### Returns
+
+True when a live card was ended.
+
+##### Errors
+
+Returns the database error.
+
+#### LibraryStore::player_editions_of_works
+
+```rust
+pub async fn player_editions_of_works(
+    &self,
+    work_ids: &[String],
+) -> Result<HashMap<String, String>>
+```
+
+The edition each work is listed by in the player API: of its audio
+editions this library acquired, the one acquired last. A work with
+none is left out.
+
+##### Arguments
+
+* `work_ids` - Works (top-level works of the page index).
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
+#### LibraryStore::player_items
+
+```rust
+pub async fn player_items(&self, edition_ids: &[String]) -> Result<Vec<PlayerItem>>
+```
+
+The items of `edition_ids`, in the same order: audio editions this
+library acquired. An unknown, unacquired or non-audio edition is
+left out.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
+#### LibraryStore::player_items_page
+
+```rust
+pub async fn player_items_page(
+    &self,
+    query: &WorkPageQuery,
+    offset: u64,
+    limit: u64,
+    reversed: bool,
+) -> Result<(Vec<PlayerItem>, u64)>
+```
+
+The items of one page of works ([`Self::library_works_at`](#librarystorelibrary_works_at)), each
+work by the edition [`Self::player_editions_of_works`](#librarystoreplayer_editions_of_works) picks, and
+how many works the query matches in all. A work with no acquired
+audio edition is left out of the page.
+
+##### Arguments
+
+* `query` - Order and filters of the page index.
+* `offset` - Works to skip.
+* `limit` - Most works to read.
+* `reversed` - True to read the order backwards.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
+#### LibraryStore::list_playback_sessions
+
+```rust
+pub async fn list_playback_sessions(
+    &self,
+    user_id: i64,
+    offset: u64,
+    limit: u64,
+) -> Result<(Vec<PlaybackSession>, u64)>
+```
+
+One person's play sessions, newest first: `limit` from `offset`,
+and how many they have in all.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
+#### LibraryStore::list_user_bookmarks
+
+```rust
+pub async fn list_user_bookmarks(&self, user_id: i64, cap: u64) -> Result<Vec<Bookmark>>
+```
+
+Every bookmark one person made, at most `cap`, oldest first.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
 
 #### LibraryStore::record_plugin_database
 
@@ -16652,19 +17112,24 @@ Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `Part
 pub enum PortalSessionKind {
     Browser,
     Clerk,
+    Player,
 }
 ```
 
 Where a user's session token is presented.
 
 A token works only in its own place: a browser token only as the session
-cookie, a library card only as `Authorization: Bookclerk-Clerk`.
+cookie, a library card only as `Authorization: Bookclerk-Clerk`, and a
+player card's tokens only on the `/player` API.
 
 **Variants**
 
 - `Browser`: A browser's session cookie.
 - `Clerk`: A library card: a clerk that shows the user's books from this
   library without joining it as a node.
+- `Player`: A player library card: an audiobook player app signed in to the
+  `/player` API. Its tokens live in `player_card_tokens`; the row's
+  own token hash is never handed out.
 
 #### PortalSessionKind::as_str
 
@@ -19878,6 +20343,49 @@ pub const MAX_PROGRESS_CURSOR_BYTES: usize = 256;
 
 Longest progress cursor token the route reads, in bytes; a real one is
 about 100.
+
+### MAX_PLAYER_PASSWORDS
+
+```rust
+pub const MAX_PLAYER_PASSWORDS: u64 = 20;
+```
+
+Most player passwords one patron keeps.
+
+### MAX_PLAYER_PASSWORD_LABEL_BYTES
+
+```rust
+pub const MAX_PLAYER_PASSWORD_LABEL_BYTES: usize = 64;
+```
+
+Longest player password label, in bytes.
+
+### PLAYER_ACCESS_TTL_SECS
+
+```rust
+pub const PLAYER_ACCESS_TTL_SECS: i64 = _;
+```
+
+Lifetime of a player card's access token.
+
+### PLAYER_REFRESH_GRACE_SECS
+
+```rust
+pub const PLAYER_REFRESH_GRACE_SECS: i64 = _;
+```
+
+How long the other refresh tokens of a card keep working after one of
+them is used: long enough for two refreshes that raced with the same
+token to both succeed, and for a phone whose refresh answer was lost
+while it slept to try again (the apps expect ten minutes).
+
+### PLAYER_REFRESH_TTL_DAYS
+
+```rust
+pub const PLAYER_REFRESH_TTL_DAYS: i64 = 30;
+```
+
+Lifetime of a player card's refresh token; each refresh starts it again.
 
 ### KV_LIST_DEFAULT_LIMIT
 

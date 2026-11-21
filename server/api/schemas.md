@@ -123,6 +123,56 @@ handler never decodes caller JSON itself.
 - `challenge_id` *string*, **required** — Server-issued challenge id (consumed once; 5-minute TTL).
 - `credential` *any JSON*, **required** — W3C PublicKeyCredential as the browser serializes it: a registration attestation (`response.attestationObject`) or an authentication assertion (`response.authenticatorData`, `signature`, `userHandle`), binary fields base64url-encoded.
 
+## AudioFile
+
+An audio file of a book.
+
+- `index` *integer (int64)*, **required** — The file's place in play order, from 1. At least 0.
+- `ino` *string*, **required** — The file's `ino` ([`crate::ids::file_ino`]).
+- `metadata` *[`FileMetadata`](#filemetadata)*, **required** — The file's name, size and times.
+- `addedAt` *integer (int64)*, **required** — When the file was stored, in epoch milliseconds.
+- `updatedAt` *integer (int64)*, **required** — When the file was stored, in epoch milliseconds.
+- `trackNumFromMeta` *integer (int64) or null* — The track number the file's tags state: not read. At least 0.
+- `discNumFromMeta` *integer (int64) or null* — The disc number the file's tags state: not read. At least 0.
+- `trackNumFromFilename` *integer (int64) or null* — The track number in the file name: not read. At least 0.
+- `discNumFromFilename` *integer (int64) or null* — The disc number in the file name: not read. At least 0.
+- `manuallyVerified` *boolean*, **required** — Always false.
+- `exclude` *boolean*, **required** — Always false.
+- `error` *string or null* — Always null.
+- `format` *string or null* — The container format, such as `mp4` or `mp3`.
+- `duration` *number (double)*, **required** — The file's length in seconds.
+- `bitRate` *integer (int64) or null* — Bits per second, if known. At least 0.
+- `language` *string or null* — The file's language, if known.
+- `codec` *string or null* — The codec, if known.
+- `timeBase` *string or null* — The time base, if known.
+- `channels` *integer (int64) or null* — Audio channels, if known. At least 0.
+- `channelLayout` *string or null* — The channel layout, if known.
+- `chapters` *array of [`Chapter`](#chapter)*, **required** — Chapters embedded in the file: none are read.
+- `embeddedCoverArt` *string or null* — Always null.
+- `metaTags` *[`MetaTags`](#metatags)*, **required** — Tags read from the file: none until the stored media probe reads them.
+- `mimeType` *string*, **required** — The file's media type, such as `audio/mp4`.
+
+## AudioTrack
+
+A track with its place in the book.
+
+- `index` *integer (int64)*, **required** — The track's place in play order, from 1. At least 0.
+- `startOffset` *number (double)*, **required** — Where the track starts in the book, in seconds.
+- `duration` *number (double)*, **required** — The track's length in seconds.
+- `title` *string*, **required** — The track's title: its file name.
+- `contentUrl` *string*, **required** — The path the track streams from, under the API's base address (`/api/items/{id}/file/{ino}`); apps add `?token=`.
+- `mimeType` *string*, **required** — The track's media type.
+- `codec` *string or null* — The codec, if known.
+- `metadata` *[`FileMetadata`](#filemetadata) or null* — The file's name, size and times.
+
+## AuthFormData
+
+Text an app shows on its sign-in screen.
+
+- `authLoginCustomMessage` *string or null* — A note under the sign-in form: where to get a player password.
+- `authOpenIDButtonText` *string*, **required** — The label of the browser sign-in button.
+- `authOpenIDAutoLaunch` *boolean*, **required** — Whether apps open the browser sign-in without a tap: never.
+
 ## AuthMeImpersonating
 
 Target user shown while an operator session is impersonating.
@@ -160,6 +210,37 @@ First-party user snapshot attached to `/me` when a `users` row is linked.
 - `gravatar_hash` *string or null* — SHA-256 hex of the contact email for Gravatar, when an email is set.
 - `sso_pictures` *array of [`AuthSsoPicture`](#authssopicture)* — IdP-supplied pictures the user can pick.
 
+## Author
+
+An author.
+
+- `id` *string*, **required** — The contributor id.
+- `asin` *string or null* — Always null.
+- `name` *string*, **required** — The author's name.
+- `lastFirst` *string*, **required** — The name family name first.
+- `description` *string or null* — Always null.
+- `imagePath` *string or null* — Always null: no author images.
+- `libraryId` *string*, **required** — The library it is listed in.
+- `addedAt` *integer (int64)*, **required** — When the library first saw the author, in epoch milliseconds.
+- `updatedAt` *integer (int64)*, **required** — When the record last changed, in epoch milliseconds.
+- `numBooks` *integer (int64)*, **required** — Items by the author the patron can see. At least 0.
+- `libraryItems` *array of [`LibraryItem`](#libraryitem) or null* — The author's items, when asked for.
+- `series` *array of [`AuthorSeries`](#authorseries) or null* — The author's series with their items, when asked for.
+
+## Authors
+
+`GET /api/libraries/{id}/authors` without paging.
+
+- `authors` *array of [`Author`](#author)*, **required** — The authors.
+
+## AuthorSeries
+
+A series of an author's, with the author's items in it.
+
+- `id` *string*, **required** — The series id.
+- `name` *string*, **required** — The series name.
+- `items` *array of [`LibraryItem`](#libraryitem)*, **required** — The items, in series order.
+
 ## AuthSecondFactor
 
 Host MFA policy plus whether this user has TOTP and/or passkeys.
@@ -193,6 +274,12 @@ How to handle acquire failures (`BadBook` setting).
 
 Type: one of `ask`, `abort`, `retry`, `ignore`
 
+## BatchGetBody
+
+`POST /player/api/items/batch/get`.
+
+- `libraryItemIds` *array of string*, **required** — The items, at most 100.
+
 ## BinaryBody
 
 A request body of raw bytes (a file upload), documented as
@@ -200,6 +287,22 @@ A request body of raw bytes (a file upload), documented as
 rather than a JSON array.
 
 Type: binary
+
+## Bookmark
+
+A bookmark.
+
+- `libraryItemId` *string*, **required** — The item it is in.
+- `title` *string*, **required** — Its title.
+- `time` *number (double)*, **required** — Where it is, in seconds.
+- `createdAt` *integer (int64)*, **required** — When it was made, in epoch milliseconds.
+
+## BookmarkBody
+
+`POST` and `PATCH /player/api/me/item/{id}/bookmark`.
+
+- `time` *number (double)*, **required** — The place, in seconds; on `PATCH`, which bookmark to rename.
+- `title` *string or null* — The bookmark's title.
 
 ## BookmarkEditBody
 
@@ -224,6 +327,50 @@ A place the caller marked in an edition.
 `GET /api/library/editions/{id}/bookmarks` answer.
 
 - `bookmarks` *array of [`BookmarkJson`](#bookmarkjson)*, **required** — The caller's bookmarks in the edition, in timeline order.
+
+## BookMedia
+
+A book's media: metadata, tracks and chapters.
+
+- `id` *string*, **required** — The media id: the edition id.
+- `libraryItemId` *string or null* — The item id, when fetched expanded.
+- `metadata` *[`BookMetadata`](#bookmetadata)*, **required** — The book's metadata.
+- `coverPath` *string or null* — A cover path apps only test for presence; covers are fetched from `/api/items/{id}/cover`.
+- `tags` *array of string*, **required** — Tags: none.
+- `numTracks` *integer (int64)*, **required** — Tracks in play order. At least 0.
+- `numAudioFiles` *integer (int64)*, **required** — Audio files. At least 0.
+- `numChapters` *integer (int64)*, **required** — Chapters. At least 0.
+- `duration` *number (double)*, **required** — The book's length in seconds.
+- `size` *integer (int64)*, **required** — Bytes in its audio files. At least 0.
+- `audioFiles` *array of [`AudioFile`](#audiofile) or null* — The audio files, when fetched expanded.
+- `chapters` *array of [`Chapter`](#chapter) or null* — The chapters, when fetched expanded.
+- `tracks` *array of [`AudioTrack`](#audiotrack) or null* — The tracks with their place in the book, when fetched expanded.
+
+## BookMetadata
+
+A book's metadata.
+
+- `title` *string*, **required** — The title.
+- `titleIgnorePrefix` *string*, **required** — The title for sorting.
+- `subtitle` *string or null* — The subtitle, if any.
+- `authors` *array of [`NamedRef`](#namedref)*, **required** — The authors.
+- `authorName` *string*, **required** — The authors' names joined with `, `.
+- `authorNameLF` *string*, **required** — The authors' names, family name first, joined with `, `.
+- `narrators` *array of string*, **required** — The narrators' names.
+- `narratorName` *string*, **required** — The narrators' names joined with `, `.
+- `series` *array of [`SeriesRef`](#seriesref)*, **required** — The series the book is in.
+- `seriesName` *string*, **required** — The series names with the book's place (`Name #2`), joined.
+- `genres` *array of string*, **required** — Genres.
+- `publishedYear` *string or null* — The year of publication, as a string (`"2019"`).
+- `publishedDate` *string or null* — The date of publication, if known.
+- `publisher` *string or null* — The publisher.
+- `description` *string or null* — The description, as the library stores it.
+- `descriptionPlain` *string or null* — The description with markup removed.
+- `isbn` *string or null* — The ISBN, if known.
+- `asin` *string or null* — The ASIN, if known.
+- `language` *string or null* — The language.
+- `explicit` *boolean*, **required** — Always false.
+- `abridged` *boolean*, **required** — Whether the edition is abridged.
 
 ## BootstrapRequest
 
@@ -486,6 +633,15 @@ Paged catalog-search response.
 - `next_cursor` *string or null* — Opaque cursor for the next page; omit or `None` when exhausted.
 - `sort` *string*, **required** — Sort field applied to the merged result set.
 - `sort_dir` *string* — Ascending or descending order for [`Self::sort`].
+
+## Chapter
+
+A chapter of a book.
+
+- `id` *integer (int64)*, **required** — The chapter's place, from 0. At least 0.
+- `start` *number (double)*, **required** — Where it starts, in seconds.
+- `end` *number (double)*, **required** — Where it ends, in seconds.
+- `title` *string*, **required** — Its title.
 
 ## ChapterJsonMode
 
@@ -907,6 +1063,15 @@ books a storage destination takes.
 - `revision` *integer (int64)*, **required** — Revision of the destination's `core.destination` document; `0` when none was written, so the destination takes every book.
 - `filter` *[`DestinationFilter`](#destinationfilter)*, **required** — The filter; no rules take every book.
 
+## DeviceInfoBody
+
+The device an app plays on, as it describes itself.
+
+- `clientName` *string or null* — The app's name.
+- `manufacturer` *string or null* — The device's maker.
+- `model` *string or null* — The device's model.
+- `deviceName` *string or null* — The name the patron gave the device.
+
 ## DiagnosticsReportDeleted
 
 Body of `DELETE /api/diagnostics/reports/{id}`.
@@ -1078,6 +1243,16 @@ JSON body for Owner password re-auth before issuing an elevated operator cookie.
 
 - `password` *string*, **required** — Owner account password (re-authentication).
 
+## EmptyPage
+
+An empty page, for collections and playlists the library does not
+have yet.
+
+- `results` *array of object*, **required** — Always empty.
+- `total` *integer (int64)*, **required** — Always 0. At least 0.
+- `limit` *integer (int64)*, **required** — Items per page, echoed. At least 0.
+- `page` *integer (int64)*, **required** — The page number, echoed. At least 0.
+
 ## EnrollBody
 
 `POST /api/node/v1/enroll` body. Keys are base64url without padding.
@@ -1235,11 +1410,43 @@ How current a stored Discover feed is.
 
 Type: one of `ready`, `refreshing`, `preparing`
 
+## FileMetadata
+
+A file's name, size and times.
+
+- `filename` *string*, **required** — The file name.
+- `ext` *string*, **required** — The extension with its dot (`.m4b`).
+- `path` *string*, **required** — A display path: the file name.
+- `relPath` *string*, **required** — A display path: the file name.
+- `size` *integer (int64)*, **required** — The file's size in bytes. At least 0.
+- `mtimeMs` *integer (int64)*, **required** — When the file was stored, in epoch milliseconds.
+- `ctimeMs` *integer (int64)*, **required** — When the file was stored, in epoch milliseconds.
+- `birthtimeMs` *integer (int64)*, **required** — When the file was stored, in epoch milliseconds.
+
 ## FileTimestampMode
 
 Which timestamp to apply after acquire (`CreationTime` / `LastWriteTime`).
 
 Type: one of `now`, `purchased`, `published`
+
+## FilterData
+
+The values an app offers as filters.
+
+- `authors` *array of [`NamedRef`](#namedref)*, **required** — Authors with at least one item.
+- `genres` *array of string*, **required** — Genres.
+- `tags` *array of string*, **required** — Tags: none are shown.
+- `series` *array of [`NamedRef`](#namedref)*, **required** — Series with at least one item.
+- `narrators` *array of string*, **required** — Narrators.
+- `languages` *array of string*, **required** — Languages.
+- `publishers` *array of string*, **required** — Publishers.
+- `publishedDecades` *array of string*, **required** — Decades of publication: none are offered.
+- `bookCount` *integer (int64)*, **required** — Items in the library. At least 0.
+- `authorCount` *integer (int64)*, **required** — Authors in the library. At least 0.
+- `seriesCount` *integer (int64)*, **required** — Series in the library. At least 0.
+- `podcastCount` *integer (int64)*, **required** — Always 0. At least 0.
+- `numberEpisodes` *integer (int64)*, **required** — Always 0. At least 0.
+- `loadedAt` *integer (int64)*, **required** — When the values were read, in epoch milliseconds.
 
 ## FilterEffect
 
@@ -1389,6 +1596,31 @@ Optional body for `POST /integrations/{id}/scan`.
 
 - `link` *string*, **required** — The whole branch invite (`https://<library>/enroll#bcn1...`).
 
+## ItemListening
+
+Seconds listened to one item.
+
+- `id` *string*, **required** — The item id.
+- `timeListening` *number (double)*, **required** — Seconds listened.
+- `mediaMetadata` *[`BookMetadata`](#bookmetadata)*, **required** — The item's metadata.
+
+## ItemPage
+
+A page of items: `GET /api/libraries/{id}/items` and the like.
+
+- `results` *array of [`LibraryItem`](#libraryitem)*, **required** — The page's items.
+- `total` *integer (int64)*, **required** — Items matching the query in all. At least 0.
+- `limit` *integer (int64)*, **required** — Items per page (0: no paging). At least 0.
+- `page` *integer (int64)*, **required** — The page number, from 0. At least 0.
+- `sortBy` *string or null* — The sort key the app sent, echoed.
+- `sortDesc` *boolean*, **required** — Whether the order is reversed.
+- `filterBy` *string or null* — The filter the app sent, echoed.
+- `mediaType` *string*, **required** — Always [`MEDIA_TYPE_BOOK`].
+- `minified` *boolean*, **required** — Whether items are minified.
+- `collapseseries` *boolean*, **required** — Whether series were collapsed: never.
+- `include` *string*, **required** — The include list the app sent, echoed.
+- `offset` *integer (int64)*, **required** — The offset of the first result. At least 0.
+
 ## JobInfo
 
 Snapshot of one queued or running control-plane job.
@@ -1500,6 +1732,36 @@ The branch a card sign-in left.
 
 - `owner_notified` *boolean*, **required** — Whether the library accepted the leave notice. False when it could not be told: the branch then stays in its list until it is removed there.
 
+## Libraries
+
+`GET /api/libraries`.
+
+- `libraries` *array of [`Library`](#library)*, **required** — The libraries the patron may open.
+
+## Library
+
+One library an app can open.
+
+- `id` *string*, **required** — The library id ([`crate::ids::WHOLE_LIBRARY_ID`] for the whole library).
+- `name` *string*, **required** — The library's name.
+- `folders` *array of object*, **required** — Folders on disk: none are shown.
+- `displayOrder` *integer (int32)*, **required** — The library's place in the list, from 1. At least 0.
+- `icon` *string*, **required** — The icon apps show (`audiobookshelf` names a book stack).
+- `mediaType` *string*, **required** — Always [`MEDIA_TYPE_BOOK`].
+- `provider` *string*, **required** — The metadata provider apps show: none.
+- `settings` *[`LibrarySettings`](#librarysettings)*, **required** — Display settings.
+- `lastScan` *integer (int64) or null* — Always null.
+- `lastScanVersion` *string or null* — Always null.
+- `createdAt` *integer (int64)*, **required** — When the library was made, in epoch milliseconds.
+- `lastUpdate` *integer (int64)*, **required** — When it last changed, in epoch milliseconds.
+
+## LibraryAnswer
+
+`GET /player/api/libraries/{id}` answer: the library, with its filter
+values when asked for (`include=filterdata`).
+
+Type: [`LibraryWithFilterData`](#librarywithfilterdata) or [`Library`](#library)
+
 ## LibraryCollection
 
 One collection: a name and the storage key prefixes whose files belong
@@ -1521,6 +1783,49 @@ JSON body for `GET /api/config/library-consents`.
 
 - `libraries` *array of [`LibraryLinkView`](#librarylinkview)*, **required** — Every library this install is a branch of.
 - `consents` *array of [`RemoteConsentView`](#remoteconsentview)*, **required** — Every plugin request from those libraries, pending or answered.
+
+## LibraryFile
+
+A file of an item, in the expanded item's `libraryFiles`.
+
+- `ino` *string*, **required** — The file's `ino` ([`crate::ids::file_ino`]).
+- `metadata` *[`FileMetadata`](#filemetadata)*, **required** — The file's name, size and times.
+- `addedAt` *integer (int64)*, **required** — When the file was stored, in epoch milliseconds.
+- `updatedAt` *integer (int64)*, **required** — When the file was stored, in epoch milliseconds.
+- `fileType` *string*, **required** — Always `audio`.
+
+## LibraryItem
+
+An item: an edition with a stored copy.
+
+- `id` *string*, **required** — The item id: the edition id.
+- `ino` *string*, **required** — The item's inode as apps expect one: the edition id again.
+- `oldLibraryItemId` *string or null* — Always null.
+- `libraryId` *string*, **required** — The library the item is listed in.
+- `folderId` *string*, **required** — The folder id: the library id.
+- `path` *string*, **required** — A display path: the title.
+- `relPath` *string*, **required** — A display path: the title.
+- `isFile` *boolean*, **required** — Always false: an item is a folder of tracks.
+- `mtimeMs` *integer (int64)*, **required** — When the copy last changed, in epoch milliseconds.
+- `ctimeMs` *integer (int64)*, **required** — When the copy was stored, in epoch milliseconds.
+- `birthtimeMs` *integer (int64)*, **required** — When the copy was stored, in epoch milliseconds.
+- `addedAt` *integer (int64)*, **required** — When the item joined the library, in epoch milliseconds.
+- `updatedAt` *integer (int64)*, **required** — When its record last changed, in epoch milliseconds.
+- `isMissing` *boolean*, **required** — Always false.
+- `isInvalid` *boolean*, **required** — Always false.
+- `mediaType` *string*, **required** — Always [`MEDIA_TYPE_BOOK`].
+- `media` *[`BookMedia`](#bookmedia)*, **required** — The book.
+- `numFiles` *integer (int64)*, **required** — Files in the item. At least 0.
+- `size` *integer (int64)*, **required** — Bytes in all its files. At least 0.
+- `libraryFiles` *array of [`LibraryFile`](#libraryfile) or null* — The item's files, when the item is fetched expanded.
+- `userMediaProgress` *[`MediaProgress`](#mediaprogress) or null* — The patron's progress, when the app asked for it.
+- `seriesSequence` *string or null* — The item's place in a series, on a series' book list.
+
+## LibraryItems
+
+`{ "libraryItems": [...] }`: in-progress items and batch reads.
+
+- `libraryItems` *array of [`LibraryItem`](#libraryitem)*, **required** — The items.
 
 ## LibraryJobsBody
 
@@ -1570,6 +1875,30 @@ JSON body after the owner library queued a scan for this install.
 - `duplicates` *array of string*, **required** — Ids of jobs that were already pending or running.
 - `queue_full` *integer (int64)*, **required** — Planned jobs the owner's queue had no room for. At least 0.
 
+## LibrarySettings
+
+A library's display settings.
+
+- `coverAspectRatio` *integer (int32)*, **required** — 1 for square covers, 2 for the 1.6:1 book shape: square. At least 0.
+- `disableWatcher` *boolean*, **required** — Always true: the library is not a watched folder.
+- `audiobooksOnly` *boolean*, **required** — Always true: audiobooks only.
+- `hideSingleBookSeries` *boolean*, **required** — Whether one-book series are hidden from the series list: no.
+- `onlyShowLaterBooksInContinueSeries` *boolean*, **required** — Whether continue series skips earlier books: no.
+- `epubsAllowScriptedContent` *boolean*, **required** — Always false.
+- `markAsFinishedPercentComplete` *number (double) or null* — An item counts as finished at this share listened, in percent.
+- `markAsFinishedTimeRemaining` *number (double)*, **required** — An item counts as finished with this many seconds left.
+
+## LibraryStats
+
+`GET /api/libraries/{id}/stats`.
+
+- `totalItems` *integer (int64)*, **required** — Items. At least 0.
+- `totalAuthors` *integer (int64)*, **required** — Authors. At least 0.
+- `totalGenres` *integer (int64)*, **required** — Genres. At least 0.
+- `totalDuration` *number (double)*, **required** — Seconds of audio in all.
+- `numAudioTracks` *integer (int64)*, **required** — Audio tracks in all. At least 0.
+- `totalSize` *integer (int64)*, **required** — Bytes in all: not counted. At least 0.
+
 ## LibraryStatusResponse
 
 `GET /api/library-status` body.
@@ -1597,6 +1926,15 @@ Library-wide counters every node administrator may see.
 - `leases` *array of [`LeaseView`](#leaseview)*, **required** — Every library lease, held or expired.
 - `schema` *[`SchemaStateView`](#schemastateview)*, **required** — The database schema against this binary.
 
+## LibraryWithFilterData
+
+`GET /api/libraries/{id}?include=filterdata`.
+
+- `filterdata` *[`FilterData`](#filterdata)*, **required** — The filter values.
+- `issues` *integer (int64)*, **required** — Items with problems: none are reported. At least 0.
+- `numUserPlaylists` *integer (int64)*, **required** — The patron's playlists in the library: none. At least 0.
+- `library` *[`Library`](#library)*, **required** — The library.
+
 ## LinkedIdentitiesResponse
 
 JSON body for `GET /api/auth/oidc/identities`.
@@ -1611,6 +1949,17 @@ One sign-in identity linked to a user.
 - `external_user_id` *string*, **required** — Provider-stable subject.
 - `label` *string or null* — Operator-facing label, when the provider supplied one.
 
+## ListeningStats
+
+`GET /api/me/listening-stats`.
+
+- `totalTime` *number (double)*, **required** — Seconds listened in all.
+- `items` *map of string to [`ItemListening`](#itemlistening)*, **required** — Seconds listened per item, by item id.
+- `days` *map of string to number (double)*, **required** — Seconds listened per day, by `YYYY-MM-DD`.
+- `dayOfWeek` *map of string to number (double)*, **required** — Seconds listened per weekday, by English weekday name.
+- `today` *number (double)*, **required** — Seconds listened today.
+- `recentSessions` *array of [`PlaybackSession`](#playbacksession)*, **required** — The most recent sessions.
+
 ## ListingJson
 
 One store listing of an edition.
@@ -1622,11 +1971,36 @@ One store listing of an edition.
 - `url` *string or null* — The product page, when known.
 - `holdings` *array of [`HoldingJson`](#holdingjson)*, **required** — The listing's holdings.
 
+## LocalSessionBody
+
+`POST /player/api/session/local`: a stretch of listening the app made
+offline.
+
+- `id` *string*, **required** — The app's own id for the session.
+- `libraryItemId` *string*, **required** — The item.
+- `currentTime` *number (double)*, **required** — The position, in seconds.
+- `timeListening` *number (double) or null* — Seconds listened in the session.
+- `duration` *number (double) or null* — The runtime the app measured, in seconds.
+- `updatedAt` *integer (int64) or null* — When the app last updated the session, in epoch milliseconds.
+
+## LocalSessionsBody
+
+`POST /player/api/session/local-all`: several offline sessions.
+
+- `sessions` *array of [`LocalSessionBody`](#localsessionbody)*, **required** — The sessions; each is answered on its own.
+
 ## LoginBegin
 
 Login-name or email used to start a discoverable-less passkey login.
 
 - `login` *string*, **required** — Login name or email looked up before issuing an authentication challenge.
+
+## LoginBody
+
+`POST /player/login`: a sign-in with a player password.
+
+- `username` *string*, **required** — The patron's sign-in name or email address.
+- `password` *string*, **required** — A player password from Account settings; the account password is never accepted.
 
 ## LoginRequest
 
@@ -1695,6 +2069,27 @@ Carrier of an edition (`editions.media_kind`).
 
 Type: one of `audio`, `ebook`, `print`
 
+## MediaProgress
+
+The patron's progress on one item.
+
+- `id` *string*, **required** — The progress id: the item id (one record per patron and item).
+- `userId` *string*, **required** — The patron's id.
+- `libraryItemId` *string*, **required** — The item id.
+- `episodeId` *string or null* — Always null.
+- `mediaItemId` *string*, **required** — The media id: the item id.
+- `mediaItemType` *string*, **required** — Always `book`.
+- `duration` *number (double)*, **required** — The book's length in seconds, as last reported.
+- `progress` *number (double)*, **required** — The share listened, from 0 to 1.
+- `currentTime` *number (double)*, **required** — Where the patron is, in seconds.
+- `isFinished` *boolean*, **required** — Whether the patron finished it.
+- `hideFromContinueListening` *boolean*, **required** — Whether it is hidden from continue listening.
+- `ebookLocation` *string or null* — Always null.
+- `ebookProgress` *number (double) or null* — Always null.
+- `lastUpdate` *integer (int64)*, **required** — When the progress last changed, in epoch milliseconds.
+- `startedAt` *integer (int64)*, **required** — When the patron started, in epoch milliseconds.
+- `finishedAt` *integer (int64) or null* — When the patron finished, in epoch milliseconds.
+
 ## MemberControls
 
 A value for each control: the library's default, or what applies to
@@ -1723,6 +2118,13 @@ JSON body for `GET /me`.
 - `external_user_id` *string*, **required** — Provider-scoped user id stored on the portal identity row.
 - `label` *string or null* — Optional display label from the identity row.
 
+## MetaTags
+
+The tags read from an audio file, as apps read them: always empty until
+the stored media probe reads tags, so it serializes as `{}`.
+
+Type: object
+
 ## MfaPolicy
 
 The host-wide second-factor policy.
@@ -1748,6 +2150,13 @@ Behavior when some output destinations already have a title and others do not.
 
 Type: one of `sync_missing`, `refetch_missing`, `refetch_all`
 
+## NamedRef
+
+An id and a name.
+
+- `id` *string*, **required** — The entity's id.
+- `name` *string*, **required** — Its display name.
+
 ## NamingProfile
 
 Preset path-template profile.
@@ -1758,12 +2167,39 @@ set.
 
 Type: one of `audiobookshelf`, `classic`
 
+## Narrator
+
+A narrator with how many items they read.
+
+- `id` *string*, **required** — The name in URL-safe base64, as apps filter by it.
+- `name` *string*, **required** — The narrator's name.
+- `numBooks` *integer (int64)*, **required** — Items they read that the patron can see. At least 0.
+
+## Narrators
+
+`GET /api/libraries/{id}/narrators`.
+
+- `narrators` *array of [`Narrator`](#narrator)*, **required** — The narrators.
+
 ## NewBookmarkBody
 
 `POST /api/library/editions/{id}/bookmarks` body.
 
 - `position_ms` *integer (int64)*, **required** — The place to mark, in milliseconds (at most sixty days). At least 0.
 - `title` *string* — A note for it, at most 200 bytes, no control characters; empty when left out.
+
+## NewPlayerPasswordBody
+
+`POST /api/auth/player-passwords` body.
+
+- `label` *string*, **required** — A name for it, such as the app or device (1 to 64 bytes once trimmed).
+
+## NewPlayerPasswordJson
+
+`POST /api/auth/player-passwords` answer.
+
+- `password` *[`PlayerPasswordJson`](#playerpasswordjson)*, **required** — The stored password.
+- `secret` *string*, **required** — The password itself, shown this once: the library keeps only its digest.
 
 ## NodeCapabilities
 
@@ -2414,11 +2850,31 @@ Which part of the library a patron sees.
 
 - `rules` *array of [`ScopeRule`](#scoperule)* — Visibility rules, at most 16 and 1,024 bytes as JSON. Empty means every book is visible. At most 16 items.
 
+## Permissions
+
+What a patron may do, as apps read it.
+
+- `download` *boolean*, **required** — Whether the patron may download items to the device.
+- `update` *boolean*, **required** — Always false: apps edit nothing.
+- `delete` *boolean*, **required** — Always false.
+- `upload` *boolean*, **required** — Always false.
+- `createEreader` *boolean*, **required** — Always false.
+- `accessAllLibraries` *boolean*, **required** — Always true: the libraries listed are the ones the patron sees.
+- `accessAllTags` *boolean*, **required** — Always true.
+- `accessExplicitContent` *boolean*, **required** — Always true: scope, not an explicit flag, decides visibility.
+- `selectedTagsNotAccessible` *boolean*, **required** — Always false.
+
 ## PinBody
 
 Body of `PUT /api/library/listings/{id}/pin`.
 
 - `edition_id` *string*, **required** — The edition the listing sells.
+
+## Ping
+
+`GET /ping`: `{ "success": true }`.
+
+- `success` *boolean*, **required** — Always true.
 
 ## PinJson
 
@@ -2471,6 +2927,37 @@ Type: [`ScanPlanResponse`](#scanplanresponse) or [`ActionResponse`](#actionrespo
 - `progress` *[`ProgressJson`](#progressjson) or null* — The caller's progress; null before they first play it.
 - `bookmarks` *array of [`BookmarkJson`](#bookmarkjson)*, **required** — The caller's bookmarks, in timeline order.
 
+## PlaybackSession
+
+A playback session, as `POST /api/items/{id}/play` answers.
+
+- `id` *string*, **required** — The session id; apps send it back to sync and close.
+- `userId` *string*, **required** — The patron's id.
+- `libraryId` *string*, **required** — The library id.
+- `libraryItemId` *string*, **required** — The item id.
+- `bookId` *string*, **required** — The media id: the item id.
+- `episodeId` *string or null* — Always null.
+- `mediaType` *string*, **required** — Always [`MEDIA_TYPE_BOOK`].
+- `mediaMetadata` *[`BookMetadata`](#bookmetadata)*, **required** — The book's metadata.
+- `chapters` *array of [`Chapter`](#chapter)*, **required** — The book's chapters.
+- `displayTitle` *string*, **required** — The title apps show.
+- `displayAuthor` *string*, **required** — The author apps show.
+- `coverPath` *string or null* — A cover path apps test for presence.
+- `duration` *number (double)*, **required** — The book's length in seconds.
+- `playMethod` *integer (int32)*, **required** — How the app plays: 0, direct play of the stored files. At least 0.
+- `mediaPlayer` *string*, **required** — The player the app reported.
+- `deviceInfo` *[`SessionDevice`](#sessiondevice)*, **required** — The device the session was opened from.
+- `serverVersion` *string*, **required** — [`crate::COMPATIBLE_SERVER_VERSION`].
+- `date` *string*, **required** — The day the session started, `YYYY-MM-DD` in UTC.
+- `dayOfWeek` *string*, **required** — The weekday the session started, in English.
+- `timeListening` *number (double)*, **required** — Seconds listened in this session.
+- `startTime` *number (double)*, **required** — Where the session started, in seconds.
+- `currentTime` *number (double)*, **required** — Where the patron is, in seconds.
+- `startedAt` *integer (int64)*, **required** — When the session started, in epoch milliseconds.
+- `updatedAt` *integer (int64)*, **required** — When it last synced, in epoch milliseconds.
+- `audioTracks` *array of [`AudioTrack`](#audiotrack)*, **required** — The tracks to play, in order.
+- `libraryItem` *[`LibraryItem`](#libraryitem) or null* — The item, expanded.
+
 ## PlaybackSyncBody
 
 `POST /api/playback/sessions/{id}/sync` and `.../close` body: where
@@ -2480,12 +2967,77 @@ the listener is.
 - `listened_ms` *integer (int64)*, **required** — Milliseconds listened since this session's last report, as the player counted them; left out reads as 0. At least 0.
 - `duration_ms` *integer (int64) or null* — The edition's whole runtime in milliseconds, when the player knows it; left out or `null` keeps the stored one. At least 0.
 
+## PlayBody
+
+`POST /player/api/items/{id}/play`: what an app asks for when it starts
+playing. Tracks always play directly, whatever it asks.
+
+- `deviceInfo` *[`DeviceInfoBody`](#deviceinfobody) or null* — The device, named in the patron's session list.
+- `forceDirectPlay` *boolean or null* — Whether the app asks for direct play; tracks always play directly.
+- `forceTranscode` *boolean or null* — Whether the app asks for transcoding; it gets direct tracks too.
+- `mediaPlayer` *string or null* — The app's player, shown in the session list.
+
+## PlayerConsentBody
+
+`POST /api/auth/player-consent` body.
+
+Includes every field of [`PlayerConsentParams`](#playerconsentparams).
+
+- `approve` *boolean*, **required** — True to let the app sign in; false to decline.
+
+## PlayerConsentPage
+
+`GET /api/auth/player-consent` answer: what the consent page shows.
+
+- `app_name` *string*, **required** — The app asking, as the page names it.
+- `display_name` *string or null* — The signed-in patron's display name.
+
+## PlayerConsentParams
+
+The consent page's parameters, as the app passed them on.
+
+- `redirect_uri` *string*, **required** — The return address from `/player/auth/openid`: the library's mobile-redirect path with the app's address as `app`.
+- `code_challenge` *string*, **required** — The PKCE S256 challenge.
+- `state` *string or null* — The app's state.
+
+## PlayerConsentRedirect
+
+`POST /api/auth/player-consent` answer.
+
+- `redirect` *string*, **required** — Where to send the browser: the library's own way back to the app, with a code or the refusal.
+
 ## PlayerKindParam
 
 The kind of first-party player that opens a session. Outside player
 apps open theirs through the player API.
 
 Type: one of `web`, `desktop`
+
+## PlayerLoginResponse
+
+The answer to a sign-in, a token refresh, `POST /api/authorize` and
+the browser sign-in's callback.
+
+- `user` *[`User`](#user)*, **required** — The signed-in patron, with the card's tokens.
+- `userDefaultLibraryId` *string*, **required** — The library an app opens first: the whole library.
+- `serverSettings` *[`ServerSettings`](#serversettings)*, **required** — Settings apps read at sign-in.
+- `ereaderDevices` *array of object*, **required** — E-reader devices: always empty, the API serves no ebooks.
+- `Source` *string*, **required** — How the server was installed; apps only display it.
+
+## PlayerPasswordJson
+
+A player password as Account settings lists it.
+
+- `id` *string*, **required** — Its id, for removing it.
+- `label` *string*, **required** — The name the patron gave it.
+- `created_at` *string*, **required** — When it was made (RFC 3339).
+- `last_used_at` *string or null* — When it last signed an app in (RFC 3339), if ever.
+
+## PlayerPasswordsJson
+
+`GET /api/auth/player-passwords` answer.
+
+- `passwords` *array of [`PlayerPasswordJson`](#playerpasswordjson)*, **required** — The patron's player passwords, newest first.
 
 ## PluginArtifactSummary
 
@@ -2864,9 +3416,10 @@ JSON body after a portal session was minted for a first-party user.
 Where a user's session token is presented.
 
 A token works only in its own place: a browser token only as the session
-cookie, a library card only as `Authorization: Bookclerk-Clerk`.
+cookie, a library card only as `Authorization: Bookclerk-Clerk`, and a
+player card's tokens only on the `/player` API.
 
-Type: one of `browser`, `clerk`
+Type: one of `browser`, `clerk`, `player`
 
 ## PortalSessionView
 
@@ -2880,7 +3433,7 @@ A portal (user) session as listed by `GET /api/auth/sessions`.
 - `client_label` *string or null* — Best-effort OS or client label from the User-Agent.
 - `device_type` *string or null* — Best-effort device class (`desktop`, `mobile`, `tablet`, `api`).
 - `user_agent` *string or null* — Raw User-Agent captured when the session was created.
-- `channel` *[`PortalSessionKind`](#portalsessionkind)*, **required** — How the session is used: `browser` for a browser session, `clerk` for a library card, whose `client_label` is the name the clerk gave itself.
+- `channel` *[`PortalSessionKind`](#portalsessionkind)*, **required** — How the session is used: `browser` for a browser session, `clerk` for a library card, whose `client_label` is the name the clerk gave itself, `player` for a player app's card (`/player`), whose `client_label` is the player password's label or the app's name.
 
 ## PostNodeInvite
 
@@ -2919,6 +3472,25 @@ JSON body after `PATCH /api/auth/profile`.
 
 - `ok` *boolean*, **required** — Always `true` on this success path.
 - `user` *[`AuthMeUser`](#authmeuser)*, **required** — The profile after the change, as `GET /api/auth/me` reports it.
+
+## ProgressBatchEntry
+
+One entry of `PATCH /player/api/me/progress/batch/update`.
+
+- `libraryItemId` *string*, **required** — The item.
+- `currentTime` *number (double) or null* — The position, in seconds.
+- `duration` *number (double) or null* — The runtime, in seconds.
+- `isFinished` *boolean or null* — Whether the book is finished.
+
+## ProgressBody
+
+`PATCH /player/api/me/progress/{id}`: a change to the patron's progress.
+
+- `currentTime` *number (double) or null* — The position, in seconds.
+- `progress` *number (double) or null* — The share of `duration` listened, 0 to 1, read when `currentTime` is absent.
+- `duration` *number (double) or null* — The runtime, in seconds.
+- `isFinished` *boolean or null* — Whether the book is finished.
+- `hideFromContinueListening` *boolean or null* — True to take the item off Continue listening.
 
 ## ProgressEditBody
 
@@ -3426,6 +3998,104 @@ One rule of a scope: a field, one value of it, and its effect.
 - `value` *string*, **required** — The value, compared without case and surrounding space (1 to 256 bytes).
 - `effect` *[`RuleEffect`](#ruleeffect)*, **required** — Include or exclude.
 
+## SearchBook
+
+An item that matched a search.
+
+- `libraryItem` *[`LibraryItem`](#libraryitem)*, **required** — The item.
+
+## SearchResults
+
+`GET /api/libraries/{id}/search`.
+
+- `book` *array of [`SearchBook`](#searchbook)*, **required** — Matching items.
+- `podcast` *array of object*, **required** — Always empty.
+- `narrators` *array of [`Narrator`](#narrator)*, **required** — Matching narrators.
+- `tags` *array of object*, **required** — Always empty.
+- `genres` *array of object*, **required** — Always empty.
+- `series` *array of [`SearchSeries`](#searchseries)*, **required** — Matching series.
+- `authors` *array of [`Author`](#author)*, **required** — Matching authors.
+
+## SearchSeries
+
+A series that matched a search.
+
+- `series` *[`Series`](#series)*, **required** — The series.
+- `books` *array of [`LibraryItem`](#libraryitem)*, **required** — Its items.
+
+## Series
+
+A series.
+
+- `id` *string*, **required** — The series id.
+- `name` *string*, **required** — Its name.
+- `nameIgnorePrefix` *string*, **required** — The name for sorting.
+- `description` *string or null* — Its description: none.
+- `addedAt` *integer (int64)*, **required** — When the library first saw it, in epoch milliseconds.
+- `updatedAt` *integer (int64)*, **required** — When it last changed, in epoch milliseconds.
+- `libraryId` *string*, **required** — The library it is listed in.
+- `books` *array of [`LibraryItem`](#libraryitem) or null* — Its items in series order, on lists.
+- `progress` *[`SeriesProgress`](#seriesprogress) or null* — The patron's progress through it, when asked for.
+
+## SeriesPage
+
+A page of series.
+
+- `results` *array of [`Series`](#series)*, **required** — The page's series.
+- `total` *integer (int64)*, **required** — Series in all. At least 0.
+- `limit` *integer (int64)*, **required** — Series per page. At least 0.
+- `page` *integer (int64)*, **required** — The page number, from 0. At least 0.
+- `sortBy` *string or null* — The sort key, echoed.
+- `sortDesc` *boolean*, **required** — Whether the order is reversed.
+- `filterBy` *string or null* — The filter, echoed.
+- `minified` *boolean*, **required** — Whether items are minified.
+- `include` *string*, **required** — The include list, echoed.
+
+## SeriesProgress
+
+The patron's progress through a series.
+
+- `libraryItemIds` *array of string*, **required** — The series' items, by id.
+- `libraryItemIdsFinished` *array of string*, **required** — Those the patron finished.
+- `isFinished` *boolean*, **required** — Whether the patron finished every one.
+
+## SeriesRef
+
+A series an item belongs to, with the item's place in it.
+
+- `id` *string*, **required** — The series id.
+- `name` *string*, **required** — The series name.
+- `sequence` *string or null* — The item's place in the series as the library writes it (`1`, `2.5`), if known.
+
+## ServerSettings
+
+The server settings apps read.
+
+- `id` *string*, **required** — Always `server-settings`.
+- `version` *string*, **required** — [`crate::COMPATIBLE_SERVER_VERSION`]: apps turn features on by it.
+- `buildNumber` *integer (int32)*, **required** — Always 1. At least 0.
+- `language` *string*, **required** — The interface language.
+- `dateFormat` *string*, **required** — How apps format dates.
+- `timeFormat` *string*, **required** — How apps format times.
+- `sortingIgnorePrefix` *boolean*, **required** — Whether sorting skips leading articles: no.
+- `sortingPrefixes` *array of string*, **required** — The articles sorting would skip.
+- `chromecastEnabled` *boolean*, **required** — Whether apps offer casting: no.
+- `homeBookshelfView` *integer (int32)*, **required** — The home shelf style (1: standard). At least 0.
+- `bookshelfView` *integer (int32)*, **required** — The library shelf style (1: standard). At least 0.
+- `authActiveAuthMethods` *array of string*, **required** — [`AUTH_METHODS`].
+- `authOpenIDButtonText` *string*, **required** — The browser sign-in button's label.
+- `authOpenIDAutoLaunch` *boolean*, **required** — Never true.
+- `authLoginCustomMessage` *string or null* — The sign-in screen's note.
+- `timeZone` *string*, **required** — The host's time zone name, or UTC.
+
+## SessionDevice
+
+The device a playback session was opened from.
+
+- `deviceId` *string*, **required** — The device's id: the card's session id.
+- `deviceName` *string or null* — The device name the app reported, if any.
+- `clientName` *string or null* — The app's name, if reported.
+
 ## SessionJson
 
 `POST /api/playback/sessions` answer.
@@ -3437,6 +4107,16 @@ One rule of a scope: a field, one value of it, and its effect.
 - `duration_ms` *integer (int64) or null* — Runtime in milliseconds when known (see the manifest). At least 0.
 - `tracks` *array of [`TrackJson`](#trackjson)*, **required** — The tracks in play order, each with the path to stream it from.
 - `idle_secs` *integer (int64)*, **required** — Seconds without a report after which the session stops streaming and the player opens a new one.
+
+## SessionPage
+
+`GET /api/me/listening-sessions`.
+
+- `total` *integer (int64)*, **required** — Sessions in all. At least 0.
+- `numPages` *integer (int64)*, **required** — Pages in all. At least 0.
+- `page` *integer (int64)*, **required** — The page number, from 0. At least 0.
+- `itemsPerPage` *integer (int64)*, **required** — Sessions per page. At least 0.
+- `sessions` *array of [`PlaybackSession`](#playbacksession)*, **required** — The page's sessions, newest first.
 
 ## SessionsResponse
 
@@ -3573,6 +4253,23 @@ JSON body for `GET /api/config/join/sharing`.
 
 - `libraries` *array of [`LibraryLinkView`](#librarylinkview)*, **required** — Every library this install is a branch of, with its sharing and work settings.
 
+## Shelf
+
+A personalized shelf on the home screen.
+
+- `id` *string*, **required** — The shelf id, such as `continue-listening`.
+- `label` *string*, **required** — The shelf's English label.
+- `labelStringKey` *string*, **required** — The key apps translate the label by.
+- `type` *string*, **required** — What the shelf holds: `book`, `series` or `authors`.
+- `entities` *[`ShelfEntities`](#shelfentities)*, **required** — The shelf's entries.
+- `total` *integer (int64)*, **required** — Entries in all. At least 0.
+
+## ShelfEntities
+
+A shelf's entries.
+
+Type: array of [`LibraryItem`](#libraryitem) or array of [`Series`](#series) or array of [`Author`](#author)
+
 ## ShelfKindInfo
 
 A shelf kind the operator can ignore (all offered by default).
@@ -3654,6 +4351,17 @@ The result of a split.
 - `branch_name` *string or null* — The name to join as (default: this machine's name).
 - `shared_branch` *boolean* — Offer to join as a shared branch (a shared node that shares the library's database): only an empty install may, and its data is replaced.
 
+## Status
+
+`GET /status`: what an app asks before it signs in.
+
+- `app` *string*, **required** — Always [`STATUS_APP`].
+- `serverVersion` *string*, **required** — The server release whose API this one answers like ([`crate::COMPATIBLE_SERVER_VERSION`]).
+- `isInit` *boolean*, **required** — Always true: the library is set up before an app can sign in.
+- `language` *string*, **required** — The interface language apps show server text in.
+- `authMethods` *array of string*, **required** — [`AUTH_METHODS`].
+- `authFormData` *[`AuthFormData`](#authformdata)*, **required** — What the sign-in screen shows.
+
 ## StatusResponse
 
 Library and daemon snapshot for `GET /api/status`.
@@ -3713,12 +4421,35 @@ One storefront edition of a work (for multi-store purchase links).
 - `source` *string*, **required** — Canonical storefront / plugin id (`audible`, `libro`, `chirp`, …).
 - `product_id` *string*, **required** — Storefront-native product id (ASIN, ISBN, UUID, …).
 
+## SyncBody
+
+`POST /player/api/session/{id}/sync` and `.../close`: where the patron
+is.
+
+- `currentTime` *number (double) or null* — The position, in seconds.
+- `timeListened` *number (double) or null* — Seconds listened since the last sync.
+- `duration` *number (double) or null* — The runtime the app measured, in seconds.
+
 ## SyncJson
 
 `POST /api/playback/sessions/{id}/sync` and `.../close` answer.
 
 - `progress` *[`ProgressJson`](#progressjson)*, **required** — The caller's progress after the report.
 - `finished_now` *boolean*, **required** — True when this report is the one that reached the edition's end: the edition and its work are now finished for the caller.
+
+## SyncResult
+
+One entry's outcome in a batch sync.
+
+- `id` *string*, **required** — The session or item id the entry named.
+- `success` *boolean*, **required** — Whether it was applied.
+- `error` *string or null* — Why not, when it was not.
+
+## SyncResults
+
+`POST /api/session/local-all`.
+
+- `results` *array of [`SyncResult`](#syncresult)*, **required** — One outcome per entry, in the order sent.
 
 ## TcpGrantView
 
@@ -4040,6 +4771,30 @@ One file of an upload.
 - `outcome` *string*, **required** — What became of it: `pending`, `expanded` (an archive), `matched`, `needs_review`, `duplicate`, `refused` or `failed`.
 - `reason` *string or null* — Why it was refused or failed, as a stable code.
 - `editionId` *string or null* — The edition it was stored under.
+
+## User
+
+A patron as apps see them.
+
+- `id` *string*, **required** — The patron's portal identity id, as a string.
+- `username` *string*, **required** — The name the patron signs in with.
+- `email` *string or null* — The patron's email address, if the library has one.
+- `type` *string*, **required** — Always `user`: no app is given administrator powers.
+- `token` *string*, **required** — The access token, for apps that read it from here (older apps send this one as their bearer). Empty where the answer is not a sign-in.
+- `accessToken` *string or null* — The card's access token, on sign-in and refresh answers only.
+- `refreshToken` *string or null* — The card's refresh token, on sign-in and refresh answers only.
+- `isOldToken` *boolean*, **required** — Always false: tokens are never the old non-expiring kind.
+- `mediaProgress` *array of [`MediaProgress`](#mediaprogress)*, **required** — Progress on every item the patron has started.
+- `seriesHideFromContinueListening` *array of string*, **required** — Series hidden from continue listening: none.
+- `bookmarks` *array of [`Bookmark`](#bookmark)*, **required** — Every bookmark the patron has made.
+- `isActive` *boolean*, **required** — Always true: a disabled patron cannot sign in.
+- `isLocked` *boolean*, **required** — Always false.
+- `lastSeen` *integer (int64) or null* — When the patron was last seen, in epoch milliseconds.
+- `createdAt` *integer (int64)*, **required** — When the patron joined, in epoch milliseconds.
+- `permissions` *[`Permissions`](#permissions)*, **required** — What the patron may do.
+- `librariesAccessible` *array of string*, **required** — Libraries the patron may open, by id.
+- `itemTagsSelected` *array of string*, **required** — Tags that limit what the patron sees: none (scope is applied by the host, not by tags).
+- `hasOpenIDLink` *boolean*, **required** — Whether the patron signed in through the browser at least once.
 
 ## UserAdminControlsJson
 

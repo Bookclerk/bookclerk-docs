@@ -27,6 +27,7 @@ Each route lists the credentials it accepts and who may call it. The credentials
 | `oidcAccessToken` | HTTP bearer | An access token from this daemon's OIDC token endpoint (`POST /oidc/token`), as `Authorization: Bearer <token>`. |
 | `operatorSession` | cookie `bookclerk_operator_session` | The operator's browser session, set by `POST /api/auth/login`. |
 | `operatorToken` | HTTP bearer | The operator token (`bookclerk daemon token`), as `Authorization: Bearer <token>`. |
+| `playerToken` | HTTP bearer | A player card's access token (`POST /player/login`), as `Authorization: Bearer <token>` or, in audio and cover URLs, the `token` query parameter. Accepted only under `/player`. |
 | `portalSession` | cookie `bookclerk_portal_session` | A library user's browser session, set by a sign-in route. Cookie-authenticated writes must send an `Origin` (or `Referer`) matching the daemon's public origin or its host. |
 | `uploadToken` | header `Authorization` | The token of an upload grant, as `Authorization: Bookclerk-Upload <token>`. |
 
@@ -103,6 +104,11 @@ Sign-in, sessions, passkeys, TOTP and the operator's elevation.
 | [`DELETE /api/auth/totp`](auth.md#delete-apiauthtotp) | Disables TOTP after recent reauth and deletes sealed secrets. |
 | [`GET /api/auth/mfa-policy`](auth.md#get-apiauthmfa-policy) | Current MFA policy (`require_second_factor`). |
 | [`PUT /api/auth/mfa-policy`](auth.md#put-apiauthmfa-policy) | Persists `daemon.auth.require_second_factor` to `config.toml`. |
+| [`GET /api/auth/player-passwords`](auth.md#get-apiauthplayer-passwords) | Lists the caller's player passwords. |
+| [`POST /api/auth/player-passwords`](auth.md#post-apiauthplayer-passwords) | Makes a player password for the caller and shows it once. |
+| [`DELETE /api/auth/player-passwords/{id}`](auth.md#delete-apiauthplayer-passwordsid) | Removes one of the caller's player passwords and signs out every app it signed in. |
+| [`GET /api/auth/player-consent`](auth.md#get-apiauthplayer-consent) | What the consent page shows. |
+| [`POST /api/auth/player-consent`](auth.md#post-apiauthplayer-consent) | Approves or declines an app's browser sign-in. |
 
 ### [Users](users.md)
 
@@ -415,6 +421,60 @@ Bookclerk as an OpenID Connect provider for other apps.
 | [`PUT /api/auth/oidc/clients/{client_id}`](oidc-provider.md#put-apiauthoidcclientsclient_id) | Update redirects, name, scopes, and public/confidential mode; switching a public client to confidential mints its secret, shown once. |
 | [`DELETE /api/auth/oidc/clients/{client_id}`](oidc-provider.md#delete-apiauthoidcclientsclient_id) | Delete a registered client. |
 | [`POST /api/auth/oidc/clients/{client_id}/rotate-secret`](oidc-provider.md#post-apiauthoidcclientsclient_idrotate-secret) | Mint a new secret for a confidential client; plaintext is returned once. |
+
+### [Player](player.md)
+
+The player API for audiobook apps written for an Audiobookshelf server (`docs/server/player-apps.md`).
+
+| Route | Summary |
+| --- | --- |
+| [`GET /player/status`](player.md#get-playerstatus) | Tells an app what the server is before it offers a sign-in. |
+| [`GET /player/ping`](player.md#get-playerping) | Answers that the player API is up, without a card. |
+| [`GET /player/healthcheck`](player.md#get-playerhealthcheck) | Answers `OK` in plain text, without a card, for apps that check health. |
+| [`POST /player/login`](player.md#post-playerlogin) | Signs an app in with a username and a player password. |
+| [`POST /player/auth/refresh`](player.md#post-playerauthrefresh) | Trades a refresh token for a new access and refresh token. |
+| [`POST /player/logout`](player.md#post-playerlogout) | Ends the card a refresh token (or the bearer access token) belongs to. |
+| [`GET /player/auth/openid`](player.md#get-playerauthopenid) | Starts the browser sign-in: answers a 302 to the library's consent page, which the app opens in a browser. |
+| [`GET /player/auth/openid/mobile-redirect`](player.md#get-playerauthopenidmobile-redirect) | Sends the browser back to the app with the code (or the refusal). |
+| [`GET /player/auth/openid/callback`](player.md#get-playerauthopenidcallback) | Trades a browser sign-in's code and PKCE verifier for a card. |
+| [`GET /player/socket.io/`](player.md#get-playersocketio) | Opens the live socket. |
+| [`GET /player/socket.io`](player.md#get-playersocketio-1) | Opens the live socket for a client that drops the trailing slash; the same socket as [`get_socket`]. |
+| [`POST /player/api/authorize`](player.md#post-playerapiauthorize) | The signed-in patron, as at sign-in, without new tokens. |
+| [`GET /player/api/me`](player.md#get-playerapime) | The signed-in patron. |
+| [`GET /player/api/libraries`](player.md#get-playerapilibraries) | Lists the libraries the patron may open: the one library. |
+| [`GET /player/api/libraries/{id}`](player.md#get-playerapilibrariesid) | Reads the library. |
+| [`GET /player/api/libraries/{id}/items`](player.md#get-playerapilibrariesiditems) | Lists the library's items, one page at a time. |
+| [`GET /player/api/libraries/{id}/series`](player.md#get-playerapilibrariesidseries) | Lists the library's series, one page at a time. |
+| [`GET /player/api/libraries/{id}/authors`](player.md#get-playerapilibrariesidauthors) | Lists the library's authors. |
+| [`GET /player/api/libraries/{id}/narrators`](player.md#get-playerapilibrariesidnarrators) | Lists the library's narrators. |
+| [`GET /player/api/libraries/{id}/collections`](player.md#get-playerapilibrariesidcollections) | Lists the library's collections: none yet. |
+| [`GET /player/api/libraries/{id}/playlists`](player.md#get-playerapilibrariesidplaylists) | Lists the patron's playlists in the library: none yet. |
+| [`GET /player/api/libraries/{id}/personalized`](player.md#get-playerapilibrariesidpersonalized) | Reads the patron's home shelves: continue listening, recently added and listen again. |
+| [`GET /player/api/libraries/{id}/search`](player.md#get-playerapilibrariesidsearch) | Searches the library's items, series, authors and narrators. |
+| [`GET /player/api/libraries/{id}/stats`](player.md#get-playerapilibrariesidstats) | Adds up the library's items and their runtimes. |
+| [`GET /player/api/libraries/{id}/filterdata`](player.md#get-playerapilibrariesidfilterdata) | Reads the library's filter values. |
+| [`GET /player/api/series/{id}`](player.md#get-playerapiseriesid) | Reads one series with its items and the patron's progress through it. |
+| [`GET /player/api/authors/{id}`](player.md#get-playerapiauthorsid) | Reads one author, with their items and series when asked for. |
+| [`GET /player/api/items/{id}`](player.md#get-playerapiitemsid) | Reads one item; expanded, with its tracks and files. |
+| [`POST /player/api/items/batch/get`](player.md#post-playerapiitemsbatchget) | Reads several items at once. |
+| [`GET /player/api/items/{id}/cover`](player.md#get-playerapiitemsidcover) | Serves an item's cover. |
+| [`POST /player/api/items/{id}/play`](player.md#post-playerapiitemsidplay) | Opens a play session on an item. |
+| [`GET /player/api/items/{id}/file/{ino}`](player.md#get-playerapiitemsidfileino) | Streams one audio file of an item. |
+| [`GET /player/api/items/{id}/file/{ino}/download`](player.md#get-playerapiitemsidfileinodownload) | Downloads one audio file of an item for offline listening. |
+| [`POST /player/api/session/{id}/sync`](player.md#post-playerapisessionidsync) | Reports where the patron is in a playing session. |
+| [`POST /player/api/session/{id}/close`](player.md#post-playerapisessionidclose) | Sends a session's last report, if any, and ends it. |
+| [`POST /player/api/session/local`](player.md#post-playerapisessionlocal) | Uploads one session an app played offline. |
+| [`POST /player/api/session/local-all`](player.md#post-playerapisessionlocal-all) | Uploads every session an app played offline. |
+| [`GET /player/api/me/progress/{id}`](player.md#get-playerapimeprogressid) | Reads the patron's progress on an item. |
+| [`DELETE /player/api/me/progress/{id}`](player.md#delete-playerapimeprogressid) | Clears the patron's progress on an item. |
+| [`PATCH /player/api/me/progress/{id}`](player.md#patch-playerapimeprogressid) | Sets the patron's progress on an item: a seek, Mark finished or Start over. |
+| [`PATCH /player/api/me/progress/batch/update`](player.md#patch-playerapimeprogressbatchupdate) | Sets the patron's progress on several items. |
+| [`GET /player/api/me/items-in-progress`](player.md#get-playerapimeitems-in-progress) | Lists the items the patron is part way through, most recent first. |
+| [`GET /player/api/me/listening-sessions`](player.md#get-playerapimelistening-sessions) | Lists the patron's play sessions, newest first. |
+| [`GET /player/api/me/listening-stats`](player.md#get-playerapimelistening-stats) | Sums the patron's listening, by item and by day. |
+| [`POST /player/api/me/item/{id}/bookmark`](player.md#post-playerapimeitemidbookmark) | Adds a bookmark to an item. |
+| [`PATCH /player/api/me/item/{id}/bookmark`](player.md#patch-playerapimeitemidbookmark) | Renames the bookmark at a time in an item. |
+| [`DELETE /player/api/me/item/{id}/bookmark/{time}`](player.md#delete-playerapimeitemidbookmarktime) | Removes the bookmark at a time in an item. |
 
 ### [Legacy](legacy.md)
 

@@ -56,6 +56,7 @@ The crates the hosts are built from. Not a stable API.
 | [`bookclerk_naming`](bookclerk_naming/README.md) | Port of Libation's NamingTemplate tag-template engine (Chardonnay parity) |
 | [`bookclerk_node_client`](bookclerk_node_client/README.md) | Branch-node client: enrollment, the pinned owner socket, heartbeats, claimed work, token write-back, wakes and resume |
 | [`bookclerk_node_proto`](bookclerk_node_proto/README.md) | Branch-node protocol: node API frames, handshake signatures, key checks, and sealed boxes |
+| [`bookclerk_player_api`](bookclerk_player_api/README.md) | Sans-IO request parsers, response shapes and Socket.io framing of the host's /player API for audiobook player apps |
 | [`bookclerk_player_engine`](bookclerk_player_engine/README.md) | Native playback for the desktop window: speed change, rate conversion and one-track playback over PCM from the media worker |
 | [`bookclerk_plugin_catalog`](bookclerk_plugin_catalog/README.md) | Registry-neutral plugin discovery, manifests, and secure install |
 | [`bookclerk_plugin_host`](bookclerk_plugin_host/README.md) | External plugin host: discovery, spawn, consent, and workerd-fronted guests |
