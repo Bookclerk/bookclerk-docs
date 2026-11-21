@@ -771,7 +771,7 @@ Implements: `Clone`, `Debug`, `Default`
 ```rust
 pub struct AcquireRequest {
     pub asin: String,
-    pub book_uuid: Option<String>,
+    pub holding_id: Option<String>,
     pub source: String,
     pub account_id: String,
     pub title: String,
@@ -800,7 +800,9 @@ Request to acquire a single title.
 **Fields**
 
 - `asin`: Download product id (Audible ASIN / Libro ISBN).
-- `book_uuid`: Stable library UUID when known (preferred for status updates).
+- `holding_id`: The account holding (`holdings.id`) the title is acquired for,
+  when known: acquire state is written under it. Without one the
+  state is written to the title `asin` names on `account_id`.
 - `source`: Which store owns this title (plugin id: `audible`, `libro`, …).
 - `account_id`: Store account id that owns this title.
 - `title`: Display title used for naming and metadata.

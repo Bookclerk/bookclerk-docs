@@ -641,12 +641,12 @@ pub trait AtomicTxnBackend: Send + Sync {
         'life0: 'async_trait,;
     fn set_acquire_status<'life0, 'life1, 'life2, 'life3, 'life4, 'async_trait>(
         &'life0 self,
-        book_uuid: &'life1 str,
-        title: Option<&'life2 TitleHolding>,
+        holding: &'life1 TitleHolding,
+        book_uuid: Option<&'life2 str>,
         status: AcquireStatus,
         storage_key: Option<&'life3 str>,
         error_message: Option<&'life4 str>,
-        event: Option<PublishDomainEventSpec>,
+        event: PublishDomainEventSpec,
     ) -> Pin<Box<dyn Future<Output = Result<()>> + Send + 'async_trait>>
     where
         Self: 'async_trait,
@@ -933,12 +933,12 @@ Persist a domain event in the outbox.
 ```rust
 fn set_acquire_status<'life0, 'life1, 'life2, 'life3, 'life4, 'async_trait>(
     &'life0 self,
-    book_uuid: &'life1 str,
-    title: Option<&'life2 TitleHolding>,
+    holding: &'life1 TitleHolding,
+    book_uuid: Option<&'life2 str>,
     status: AcquireStatus,
     storage_key: Option<&'life3 str>,
     error_message: Option<&'life4 str>,
-    event: Option<PublishDomainEventSpec>,
+    event: PublishDomainEventSpec,
 ) -> Pin<Box<dyn Future<Output = Result<()>> + Send + 'async_trait>>
 where
     Self: 'async_trait,
@@ -949,11 +949,17 @@ where
     'life4: 'async_trait,
 ```
 
-Update acquire status and, when acquired, publish `book_acquired` in the same transaction.
+Write an edition's acquire state for the account holding that made
+the write, and publish its event, in one batch.
 
-`title` is the title's edition and account holding: the edition's
-`edition_acquisitions` row is written in the same batch (only the
-holding that acquired an edition, while it exists, changes it).
+Only the holding that acquired an edition, while it exists, changes
+it; `book_uuid` names the flat `books` row mirrored until the table
+is dropped (book model step 6).
+
+##### Errors
+
+Returns [`crate::LibraryError::NotFound`](#libraryerror) when the holding no longer
+holds the edition, or the database error.
 
 #### AtomicTxnBackend::dispatch_event_deliveries
 
@@ -5832,7 +5838,7 @@ One title an account holds, as acquire reads it from the library model.
 - `pdf_acquired_by`: The account holding (`holdings.id`) whose title's write set the
   PDF state; `None` as for [`Self::acquired_by`](#acquiretitle).
 - `book_uuid`: The flat `books` row of this account's title, while that table
-  exists: the status writes are still keyed by it.
+  exists: writers that still mirror it name it (book model step 6).
 
 #### AcquireTitle::acquired_here
 
@@ -6419,6 +6425,19 @@ listings.
 ##### Returns
 
 One title per account holding of a listing; empty when none is held.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
+#### LibraryStore::held_titles_of_edition
+
+```rust
+pub async fn held_titles_of_edition(&self, edition_id: &str) -> Result<Vec<AcquireTitle>>
+```
+
+The held titles of edition `edition_id`: one per account holding of
+any of its listings, in holding id order.
 
 ##### Errors
 
@@ -13875,6 +13894,34 @@ title's PDF state.
 
 Returns a crate error when the database operation fails or inputs are invalid.
 
+#### LibraryStore::set_holding_pdf_status
+
+```rust
+pub async fn set_holding_pdf_status(
+    &self,
+    holding_id: &str,
+    status: AcquireStatus,
+    pdf_storage_key: Option<&str>,
+) -> Result<()>
+```
+
+Records the companion PDF state account holding `holding_id`
+(`holdings.id`) wrote for the edition its listing sells.
+
+Once the PDF is acquired, only the holding that acquired it changes
+it while that holding exists.
+
+##### Arguments
+
+* `holding_id` - The account holding that wrote the state.
+* `status` - The new PDF state.
+* `pdf_storage_key` - Object-storage key for the companion PDF.
+
+##### Errors
+
+Returns [`LibraryError::NotFound`](#libraryerror) when no account holding has that
+id, or the database error.
+
 #### LibraryStore::is_ignored
 
 ```rust
@@ -13961,6 +14008,38 @@ writes, while that title stays in the library.
 ##### Errors
 
 Returns a crate error when the database operation fails or inputs are invalid.
+
+#### LibraryStore::set_holding_acquire_status
+
+```rust
+pub async fn set_holding_acquire_status(
+    &self,
+    holding_id: &str,
+    status: AcquireStatus,
+    storage_key: Option<&str>,
+    error_message: Option<&str>,
+) -> Result<()>
+```
+
+Records the acquire state account holding `holding_id`
+(`holdings.id`) wrote for the edition its listing sells.
+
+The edition's `edition_acquisitions` row (read with
+[`Self::edition_acquisition`](#librarystoreedition_acquisition)) and the state's event, which names
+the holding, are written in one batch; an edition another holding
+acquired keeps its state while that holding exists.
+
+##### Arguments
+
+* `holding_id` - The account holding that wrote the state.
+* `status` - The new acquire state.
+* `storage_key` - Object-storage key for the primary audio artifact.
+* `error_message` - Optional failure message to persist.
+
+##### Errors
+
+Returns [`LibraryError::NotFound`](#libraryerror) when no account holding has that
+id or it no longer holds the edition, or the database error.
 
 #### LibraryStore::bulk_set_acquire_status
 
@@ -15096,7 +15175,7 @@ pub enum DbAtomicParams {
     ConfirmTotpEnrollment { user_id: i64, format: String, ciphertext: String, cipher_algorithm: Option<String>, cipher_nonce: Option<String>, kdf_algorithm: Option<String>, kdf_salt: Option<String>, kdf_m_cost: Option<i64>, kdf_t_cost: Option<i64>, kdf_p_cost: Option<i64>, created_at: String },
     DisableUserTotp { user_id: i64 },
     PublishDomainEvent { id: String, event_type: String, schema_version: i64, account_id: String, source: String, correlation_id: String, causation_id: String, dedup_key: String, payload: String, ordering_key: String, queue_name: String, content_type: String, deliver_after: String },
-    SetAcquireStatus { book_uuid: String, edition_id: Option<String>, holding_id: Option<String>, status: String, storage_key: Option<String>, error_message: Option<String>, event_id: String, event_type: String, schema_version: i64, event_account_id: String, source: String, correlation_id: String, causation_id: String, dedup_key: String, payload: String, ordering_key: String },
+    SetAcquireStatus { holding_id: String, edition_id: String, book_uuid: Option<String>, status: String, storage_key: Option<String>, error_message: Option<String>, event_id: String, event_type: String, schema_version: i64, event_account_id: String, source: String, correlation_id: String, causation_id: String, dedup_key: String, payload: String, ordering_key: String },
     DispatchEventDeliveries { event_id: String, subscribers_json: String, mark_dispatched: bool },
     ClaimNextEventDelivery { owner: String, lease_secs: i64, plugin_ids_json: String, max_in_flight: i64 },
     LinkListing(Box<ListingLinkParams>),
@@ -15177,13 +15256,13 @@ Named atomic library operation compiled by the host into a generic plan.
   - `queue_name`: Queue name; empty means the domain-event bus (`core.events`).
   - `content_type`: Body encoding (`json`, `text`, `bytes`); empty means `json`.
   - `deliver_after`: RFC 3339 earliest delivery time; empty means now.
-- `SetAcquireStatus`: Update a book row and optionally publish `book_acquired` in the same batch.
-  - `book_uuid`: Book UUID to update.
-  - `edition_id`: The title's edition, whose `edition_acquisitions` row is written
-    in the same batch; `None` when the title has no edition yet.
-  - `holding_id`: The account holding (`holdings.id`) the title is held by, which
-    the edition's row records as the writer; the edition's row is
-    left alone without one.
+- `SetAcquireStatus`: Write an edition's acquire state for the account holding that made
+  the write, and publish its event in the same batch.
+  - `holding_id`: The account holding (`holdings.id`) that wrote the state; every
+    statement is gated on it still holding `edition_id`.
+  - `edition_id`: The edition whose `edition_acquisitions` row is written.
+  - `book_uuid`: The flat `books` row mirrored until the table is dropped (book
+    model step 6); `None` when the holding has none.
   - `status`: Acquire status string (`acquired`, `downloading`, …).
   - `storage_key`: Object-storage key for the primary audio artifact.
   - `error_message`: Optional failure message.

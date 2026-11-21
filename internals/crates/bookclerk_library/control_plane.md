@@ -13587,7 +13587,9 @@ checks the requester again.
 
 #### Returns
 
-One title uuid per edition, in the order the editions were given.
+One title per edition, named by its account holding (`holdings.id`,
+which an acquire job's title accepts), in the order the editions were
+given.
 
 #### Errors
 
