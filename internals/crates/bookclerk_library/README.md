@@ -105,6 +105,9 @@ the external guest RPC. This crate owns the greenfield schema
 | [`ListingHolding`](#listingholding) | struct | One holding of a listing. |
 | [`WorkDetail`](#workdetail) | struct | A top-level work with everything its detail view shows. |
 | [`WorkSearchDoc`](#worksearchdoc) | struct | The searchable text of one held top-level work. |
+| [`WorkTag`](#worktag) | struct | One library tag on a work. |
+| [`WorkTagsBody`](#worktagsbody) | struct | `PUT /api/library/works/{id}/tags` body: the tags an Administrator sets. |
+| [`WorkTagsRequest`](#worktagsrequest) | struct | A validated `WorkTagsBody`: at most `MAX_WORK_TAGS` distinct tags (by `facet_key`), trimmed, each 1 to `MAX_WORK_TAG_BYTES` bytes, in the order sent with the first spelling kept. |
 | [`CatalogListing`](#cataloglisting) | struct | One title a store's catalog answer reported. |
 | [`CatalogListingRecord`](#cataloglistingrecord) | struct | A stored catalog listing, as Discover and the wishlist read it. |
 | [`ListingDetail`](#listingdetail) | struct | The store's own text for a listing, beyond the title the resolver sees. |
@@ -212,6 +215,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`WorkFilter`](#workfilter) | enum | One filter on a page of library works. |
 | [`WorkSort`](#worksort) | enum | How a page of library works is ordered. |
 | [`HoldingHolder`](#holdingholder) | enum | Who holds a listing. |
+| [`WorkTagSource`](#worktagsource) | enum | Where a library tag came from (`work_tags.source`). |
 | [`OfferAudience`](#offeraudience) | enum | Who a `ListingOffer` price is for. |
 | [`EventPruneStep`](#eventprunestep) | enum | One delete of `LibraryStore::prune_event_deliveries`, in run order. |
 | [`PinOutcome`](#pinoutcome) | enum | What `LibraryStore::pin_listing` did. |
@@ -310,6 +314,8 @@ the external guest RPC. This crate owns the greenfield schema
 | [`validate_streamed_execute_reply`](#validate_streamed_execute_reply) | function | `validate_execute_reply` for a reply reassembled from `executeStreamed` frames. |
 | [`facet_key`](#facet_key) | function | The key a facet value or tag is stored and matched under: trimmed and lower-cased, so "Fantasy" and "fantasy " are one value. |
 | [`sort_title`](#sort_title) | function | The sort key of a title: lower case, with one leading English article dropped, so "The Hobbit" sorts under h. |
+| [`normalize_work_tags`](#normalize_work_tags) | function | Trims, drops empties and duplicates (by `facet_key`, first spelling kept) and checks the bounds. |
+| [`parse_work_tags_request`](#parse_work_tags_request) | function | Parses and validates a `PUT /api/library/works/{id}/tags` body from its raw bytes, sans IO, the way the route reads it: JSON into `WorkTagsBody`, then `WorkTagsBody::validate`. |
 | [`apply_user_states`](#apply_user_states) | function | Applies the state of `users` to `titles`, merged per work. |
 | [`copy_retry_delay`](#copy_retry_delay) | function | The delay before the next background attempt of a copy that has now failed `attempts` times (1 for the first failure): `COPY_RETRY_BASE_DELAY` doubled per earlier failure, capped at `COPY_RETRY_MAX_DELAY`. |
 | [`deliver_after_for`](#deliver_after_for) | function | RFC 3339 earliest delivery time for `spec`; empty when it may deliver now. |
@@ -374,6 +380,8 @@ the external guest RPC. This crate owns the greenfield schema
 | [`EVENT_STREAM_SCAN_FACTOR`](#event_stream_scan_factor) | constant | Rows one `LibraryStore::read_event_stream` call may examine per event it may return. |
 | [`EVENT_STREAM_SETTLE_SECS`](#event_stream_settle_secs) | constant | Seconds an outbox row must age before `LibraryStore::read_event_stream` returns it. `created_at` is stamped before the insert commits, so a publication can commit after a newer one; a read that stops short of the last few seconds never moves its cursor past a row that has yet to appear. Newer events still reach subscribers through delivery. |
 | [`LIBRARY_INDEX_LAYOUT`](#library_index_layout) | constant | Layout of `library_work_rows` this binary writes. A library with no finished build of this layout is rebuilt; bump it when a change to how rows are derived needs every row rewritten. |
+| [`MAX_WORK_TAGS`](#max_work_tags) | constant | Most tags an Administrator may set on one work. With the delete this fits one batch of the smallest statement count a database plugin may advertise (40). |
+| [`MAX_WORK_TAG_BYTES`](#max_work_tag_bytes) | constant | Longest tag, in UTF-8 bytes after trimming: the longest value the page index keeps under a facet, and the longest value a scope rule matches. |
 | [`CATALOG_LISTING_REFRESH`](#catalog_listing_refresh) | constant | How long a catalog listing counts as current: a store answer for a listing seen more recently than this refreshes only its prices, not its resolution or text, so overlapping tastes cost one resolve a day. |
 | [`MAX_CONFLICT_PAGE`](#max_conflict_page) | constant | Largest conflicts page `LibraryStore::list_resolution_conflicts` reads. |
 | [`MAX_BOOKMARKS_PER_EDITION`](#max_bookmarks_per_edition) | constant | Most bookmarks one person keeps in one edition. |
@@ -4564,6 +4572,70 @@ The searchable text of one held top-level work.
   others) of the editions, lowercased.
 
 Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
+
+### WorkTag
+
+```rust
+pub struct WorkTag {
+    pub value: String,
+    pub source: WorkTagSource,
+}
+```
+
+One library tag on a work.
+
+**Fields**
+
+- `value`: The tag as written.
+- `source`: Where it came from.
+
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
+
+### WorkTagsBody
+
+```rust
+pub struct WorkTagsBody {
+    /* private fields */
+}
+```
+
+`PUT /api/library/works/{id}/tags` body: the tags an Administrator sets.
+
+#### WorkTagsBody::validate
+
+```rust
+pub fn validate(self) -> Result<WorkTagsRequest>
+```
+
+Checks the body ([`normalize_work_tags`](#normalize_work_tags)).
+
+##### Errors
+
+Returns [`LibraryError::Invalid`](#libraryerror) for too many or too long tags.
+
+Implements: `ComposeSchema`, `Debug`, `Deserialize<'de>`, `ToSchema`
+
+### WorkTagsRequest
+
+```rust
+pub struct WorkTagsRequest {
+    /* private fields */
+}
+```
+
+A validated [`WorkTagsBody`]: at most [`MAX_WORK_TAGS`](#max_work_tags) distinct tags
+(by [`facet_key`](#facet_key)), trimmed, each 1 to [`MAX_WORK_TAG_BYTES`](#max_work_tag_bytes) bytes, in
+the order sent with the first spelling kept.
+
+#### WorkTagsRequest::tags
+
+```rust
+pub fn tags(&self) -> &[String]
+```
+
+The tags as written, trimmed and distinct.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ### CatalogListing
 
@@ -9066,6 +9138,21 @@ True when the page index has a finished build of
 
 Returns [`LibraryError::Orm`](#libraryerror) when the read fails.
 
+#### LibraryStore::drop_library_index_build
+
+```rust
+pub async fn drop_library_index_build(&self) -> Result<()>
+```
+
+Drops the finished build of [`LIBRARY_INDEX_LAYOUT`](#library_index_layout), so the next
+heartbeat queues a rebuild of every row: for a change, such as the
+library's collections, that the rows' derivation reads but no
+work's events carry.
+
+##### Errors
+
+Returns a batch error when the write fails.
+
 #### LibraryStore::finish_library_index_build
 
 ```rust
@@ -11262,6 +11349,53 @@ the expressions were moved.
 Returns the database error of a failed read or write, or
 [`LibraryError::Conflict`](#libraryerror) when the work changed between the read
 and the write.
+
+#### LibraryStore::work_tags
+
+```rust
+pub async fn work_tags(&self, work_id: &str) -> Result<Vec<WorkTag>>
+```
+
+A work's library tags, every source, in key order (a key two sources
+share is listed once per source).
+
+##### Errors
+
+Returns [`LibraryError::NotFound`](#libraryerror) for a missing work or an episode,
+or the read error.
+
+#### LibraryStore::set_work_tags
+
+```rust
+pub async fn set_work_tags(
+    &self,
+    work_id: &str,
+    values: &[String],
+) -> Result<Vec<WorkTag>>
+```
+
+Replaces the tags an Administrator set on a work (sidecar tags stay)
+and refreshes the work's page index row, so the Library filter and
+patron scopes see the change at once.
+
+The replacement is one atomic batch. The caller checks who may set
+tags.
+
+##### Arguments
+
+* `work_id` - A top-level work (`works.id`).
+* `values` - The tags; blanks and repeats (ignoring case) are
+  dropped.
+
+##### Returns
+
+The work's tags afterwards, every source.
+
+##### Errors
+
+Returns [`LibraryError::NotFound`](#libraryerror) for a missing work or an episode,
+[`LibraryError::Invalid`](#libraryerror) for too many or too long tags, or the
+read or write error.
 
 #### LibraryStore::enqueue_job
 
@@ -16781,6 +16915,8 @@ pub enum WorkFacet {
     Genre,
     Publisher,
     Source,
+    Tag,
+    Collection,
 }
 ```
 
@@ -16794,11 +16930,14 @@ A filter value list of the page index (`library_work_facets`).
 - `Genre`: Genres (store categories).
 - `Publisher`: Publishers.
 - `Source`: Storefront plugins the work is held through.
+- `Tag`: Library tags (`work_tags`): set by an Administrator or read from a
+  sidecar, the same for everyone.
+- `Collection`: Collections (`core.collections`) one of the work's files is in.
 
 #### WorkFacet::ALL
 
 ```rust
-pub const ALL: [Self; 6] = _
+pub const ALL: [Self; 8] = _
 ```
 
 Every facet, in the order a work's values are written.
@@ -16893,6 +17032,32 @@ Who holds a listing.
   - `user_id`: The person's `users.id`.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### WorkTagSource
+
+```rust
+pub enum WorkTagSource {
+    Admin,
+    Sidecar,
+}
+```
+
+Where a library tag came from (`work_tags.source`).
+
+**Variants**
+
+- `Admin`: Set in Bookclerk by an Owner, an Administrator or the operator.
+- `Sidecar`: Read from a metadata file beside the book.
+
+#### WorkTagSource::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+The stored value.
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Eq`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`, `ToSchema`
 
 ### OfferAudience
 
@@ -18791,6 +18956,36 @@ dropped, so "The Hobbit" sorts under h.
 
 * `title` - The display title.
 
+### normalize_work_tags
+
+```rust
+pub fn normalize_work_tags(values: &[String]) -> Result<Vec<(String, String)>>
+```
+
+Trims, drops empties and duplicates (by [`facet_key`](#facet_key), first spelling
+kept) and checks the bounds.
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](#libraryerror) for more than [`MAX_WORK_TAGS`](#max_work_tags) tags or
+a tag longer than [`MAX_WORK_TAG_BYTES`](#max_work_tag_bytes).
+
+### parse_work_tags_request
+
+```rust
+pub fn parse_work_tags_request(body: &[u8]) -> Result<WorkTagsRequest>
+```
+
+Parses and validates a `PUT /api/library/works/{id}/tags` body from its
+raw bytes, sans IO, the way the route reads it: JSON into
+[`WorkTagsBody`](#worktagsbody), then [`WorkTagsBody::validate`](#worktagsbodyvalidate).
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](#libraryerror) for bytes that are not the body's JSON
+shape (unknown or repeated fields, wrong types, a missing field, an
+array instead of an object) or tags outside the bounds.
+
 ### apply_user_states
 
 ```rust
@@ -19562,6 +19757,25 @@ rows are derived needs every row rewritten.
 - 2: every work with an edition names a cover edition, whose cover may
   come from a store listing or the work, so libraries indexed under 1
   (no cover edition unless the edition row had a cover) are rebuilt.
+
+### MAX_WORK_TAGS
+
+```rust
+pub const MAX_WORK_TAGS: usize = 32;
+```
+
+Most tags an Administrator may set on one work. With the delete this
+fits one batch of the smallest statement count a database plugin may
+advertise (40).
+
+### MAX_WORK_TAG_BYTES
+
+```rust
+pub const MAX_WORK_TAG_BYTES: usize = 256;
+```
+
+Longest tag, in UTF-8 bytes after trimming: the longest value the page
+index keeps under a facet, and the longest value a scope rule matches.
 
 ### CATALOG_LISTING_REFRESH
 

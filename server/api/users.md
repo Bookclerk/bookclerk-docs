@@ -2004,7 +2004,9 @@ Schema:
                   "genre",
                   "series",
                   "author",
-                  "narrator"
+                  "narrator",
+                  "tag",
+                  "collection"
                 ]
               },
               "value": {
@@ -2303,7 +2305,9 @@ Schema:
                   "genre",
                   "series",
                   "author",
-                  "narrator"
+                  "narrator",
+                  "tag",
+                  "collection"
                 ]
               },
               "value": {
@@ -2674,7 +2678,9 @@ Schema:
                   "genre",
                   "series",
                   "author",
-                  "narrator"
+                  "narrator",
+                  "tag",
+                  "collection"
                 ]
               },
               "value": {
@@ -3033,7 +3039,9 @@ Schema:
                   "genre",
                   "series",
                   "author",
-                  "narrator"
+                  "narrator",
+                  "tag",
+                  "collection"
                 ]
               },
               "value": {

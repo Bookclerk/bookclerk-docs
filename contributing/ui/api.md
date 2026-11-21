@@ -1882,6 +1882,46 @@ status: string;
 
 ***
 
+### LibraryCollection
+
+One collection: a name and the storage key prefixes whose files belong to it.
+
+#### Properties
+
+##### name
+
+```ts
+name: string;
+```
+
+The name people see and scope rules match.
+
+##### prefixes
+
+```ts
+prefixes: string[];
+```
+
+Folders relative to a destination's root, each ending in `/`.
+
+***
+
+### LibraryCollections
+
+The library's collections.
+
+#### Properties
+
+##### collections
+
+```ts
+collections: LibraryCollection[];
+```
+
+The collections, in the order shown.
+
+***
+
 ### LibraryConsentsResponse
 
 `GET /api/config/library-consents`.
@@ -7038,6 +7078,54 @@ title: string;
 
 Display title.
 
+***
+
+### WorkTag
+
+One library tag on a work.
+
+#### Properties
+
+##### source
+
+```ts
+source: WorkTagSource;
+```
+
+Set in Bookclerk (`admin`) or read from a sidecar file.
+
+##### value
+
+```ts
+value: string;
+```
+
+The tag as written.
+
+***
+
+### WorkTags
+
+A work's library tags as `GET /api/library/works/{id}/tags` reports them.
+
+#### Properties
+
+##### tags
+
+```ts
+tags: WorkTag[];
+```
+
+Every tag, by key.
+
+##### work\_id
+
+```ts
+work_id: string;
+```
+
+The work.
+
 ## Type Aliases
 
 ### Abridgement
@@ -7405,7 +7493,7 @@ Whether a patron scope rule lets matching books in or keeps them out.
 ### ScopeField
 
 ```ts
-type ScopeField = "genre" | "series" | "author" | "narrator";
+type ScopeField = "genre" | "series" | "author" | "narrator" | "tag" | "collection";
 ```
 
 The book field a patron scope rule matches one value of.
@@ -7617,11 +7705,14 @@ type WorkFacet =
   | "publisher"
   | "source"
   | "tag"
+  | "library_tag"
+  | "collection"
   | "progress";
 ```
 
-What `facet` and `value` filter works by: a value list of the page index,
-the caller's own tags, or their progress (`finished` / `not_finished`).
+What `facet` and `value` filter works by: a value list of the page index
+(`library_tag` is a library tag everyone sees), the caller's own tags
+(`tag`), or their progress (`finished` / `not_finished`).
 
 ***
 
@@ -7642,6 +7733,16 @@ type WorkSort = "title" | "author" | "series" | "purchased" | "added" | "length"
 ```
 
 How `/api/library/works` orders a page (ignored while searching).
+
+***
+
+### WorkTagSource
+
+```ts
+type WorkTagSource = "admin" | "sidecar";
+```
+
+Where a library tag came from.
 
 ## Variables
 
@@ -8431,7 +8532,7 @@ Fetches one page of a facet's values across the library's held works.
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
-| `facet` | \| `"source"` \| `"author"` \| `"series"` \| `"narrator"` \| `"genre"` \| `"publisher"` \| `"tag"` | The facet (not `progress`, whose values are fixed). |
+| `facet` | \| `"source"` \| `"author"` \| `"series"` \| `"narrator"` \| `"genre"` \| `"publisher"` \| `"tag"` \| `"library_tag"` \| `"collection"` | The facet (not `progress`, whose values are fixed). |
 | `cursor?` | `string` | The previous page's `next_cursor`; omitted for the first. |
 
 #### Returns
@@ -8857,6 +8958,22 @@ The page and the next page's cursor.
 
 ***
 
+### getCollections()
+
+```ts
+function getCollections(): Promise<LibraryCollections>;
+```
+
+Reads the library's collections (operator, Owner or Administrator).
+
+#### Returns
+
+`Promise`\<[`LibraryCollections`](#librarycollections)\>
+
+The collections.
+
+***
+
 ### getDefaultAdminControls()
 
 ```ts
@@ -8980,6 +9097,28 @@ Reads which part of the library a patron sees.
 `Promise`\<[`UserScope`](#userscope)\>
 
 The scope that applies and where it comes from.
+
+***
+
+### getWorkTags()
+
+```ts
+function getWorkTags(id): Promise<WorkTags>;
+```
+
+Reads a work's library tags (operator, Owner or Administrator).
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `id` | `string` | A top-level work. |
+
+#### Returns
+
+`Promise`\<[`WorkTags`](#worktags)\>
+
+The tags.
 
 ***
 
@@ -9769,6 +9908,28 @@ Source descriptors including brand metadata.
 
 ***
 
+### putCollections()
+
+```ts
+function putCollections(collections): Promise<LibraryCollections>;
+```
+
+Replaces the library's collections; the Library is re-indexed after.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `collections` | [`LibraryCollections`](#librarycollections) | The new collections. |
+
+#### Returns
+
+`Promise`\<[`LibraryCollections`](#librarycollections)\>
+
+The collections as saved (names trimmed, prefixes ending in `/`).
+
+***
+
 ### putDefaultControls()
 
 ```ts
@@ -10117,6 +10278,29 @@ Changes the caller's own finished flag, ratings or tags for a work.
 `Promise`\<[`WorkState`](#workstate)\>
 
 The caller's state after the change.
+
+***
+
+### putWorkTags()
+
+```ts
+function putWorkTags(id, tags): Promise<WorkTags>;
+```
+
+Replaces the tags set in Bookclerk on a work; sidecar tags stay.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `id` | `string` | A top-level work. |
+| `tags` | `string`[] | The tags to set (`[]` removes them). |
+
+#### Returns
+
+`Promise`\<[`WorkTags`](#worktags)\>
+
+The tags afterwards.
 
 ***
 

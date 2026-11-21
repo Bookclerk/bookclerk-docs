@@ -121,4 +121,5 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`window_book_parts`](window_book_parts.md): SeaORM entity for `window_book_parts`: one piece of a window book's stored edition and identifiers (`control_plane::window_books`).
 - [`window_books`](window_books.md): SeaORM entity for `window_books`: on a branch or a clerk, the books of each library it reads, one row per edition (`control_plane::window_books`).
 - [`work_identifiers`](work_identifiers.md): SeaORM entity for the `work_identifiers` table (composite primary key).
+- [`work_tags`](work_tags.md): SeaORM entity for `work_tags`: library tags on a top-level work, one row per tag and source.
 - [`works`](works.md): SeaORM entity for the `works` table (text primary key).

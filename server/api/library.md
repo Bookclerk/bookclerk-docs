@@ -12765,6 +12765,1432 @@ Schema:
 
 A `text/plain` body: a string.
 
+## `GET /api/library/works/{id}/tags`
+
+Reads a work's library tags.
+
+Only the operator, an Owner or an Administrator may call it; patrons see
+tags through the Library's tag filter, inside their scope.
+
+**Access:** The operator, or any signed-in user.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Parameters
+
+- `id` (path) *string*, **required** — A top-level work id.
+
+### Responses
+
+- `200` — The work's tags. Body: [`WorkTagsJson`](schemas.md#worktagsjson) (`application/json`)
+  - `work_id` *string*, **required** — The work.
+  - `tags` *array of [`WorkTag`](schemas.md#worktag)*, **required** — Every tag, by key, with where it came from.
+- `401` — No one is signed in. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `403` — The caller is not an Administrator. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. Body: [`ErrorMessage`](schemas.md#errormessage) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `404` — No such work, or a podcast episode (tags go on its show). Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The tags could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/library/works/<id>/tags' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/library/works/<id>/tags' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/library/works/<id>/tags",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/library/works/<id>/tags", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/library/works/<id>/tags")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The work's tags.
+
+```json
+{
+  "work_id": "6c1f2e8a-4b3d-4f5e-8a9b-0c1d2e3f4a5b",
+  "tags": [
+    {
+      "value": "Kids",
+      "source": "admin"
+    }
+  ]
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "A work's library tags.",
+  "required": [
+    "work_id",
+    "tags"
+  ],
+  "properties": {
+    "work_id": {
+      "type": "string",
+      "description": "The work.",
+      "example": "6c1f2e8a-4b3d-4f5e-8a9b-0c1d2e3f4a5b"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One library tag on a work.",
+        "required": [
+          "value",
+          "source"
+        ],
+        "properties": {
+          "value": {
+            "type": "string",
+            "description": "The tag as written.",
+            "example": "Kids"
+          },
+          "source": {
+            "type": "string",
+            "description": "Where it came from.",
+            "enum": [
+              "admin",
+              "sidecar"
+            ]
+          }
+        }
+      },
+      "description": "Every tag, by key, with where it came from."
+    }
+  }
+}
+```
+
+Status `401`: No one is signed in.
+
+```json
+{
+  "error": "sign in first"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `403`: The caller is not an Administrator. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`.
+
+```json
+{
+  "error": "mfa_enrollment_required",
+  "message": "This server requires a passkey or authenticator app. Set one up to continue, or log out and finish later.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "What went wrong, as the handler describes it.",
+          "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
+    }
+  ]
+}
+```
+
+Status `404`: No such work, or a podcast episode (tags go on its show).
+
+```json
+{
+  "error": "work 6c1f2e8a-4b3d-4f5e-8a9b-0c1d2e3f4a5b not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `500`: The tags could not be read.
+
+```json
+{
+  "error": "the library tags could not be read or saved"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `PUT /api/library/works/{id}/tags`
+
+Replaces the tags an Administrator set on a work.
+
+Sidecar tags stay. The Library filter and patron scopes see the change
+at once. Only the operator, an Owner, or an Administrator whom an Owner
+lets set patron limits may call it.
+
+**Access:** The operator, or any signed-in user.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Parameters
+
+- `id` (path) *string*, **required** — A top-level work id.
+
+### Request body
+
+`application/json`: [`WorkTagsBody`](schemas.md#worktagsbody)
+
+- `tags` *array of string*, **required** — The tags, replacing the ones set in Bookclerk (sidecar tags stay). Blanks and repeats, ignoring case, are dropped; at most 32 tags of at most 256 bytes each. At most 32 items.
+
+### Responses
+
+- `200` — The work's tags afterwards. Body: [`WorkTagsJson`](schemas.md#worktagsjson) (`application/json`)
+  - `work_id` *string*, **required** — The work.
+  - `tags` *array of [`WorkTag`](schemas.md#worktag)*, **required** — Every tag, by key, with where it came from.
+- `400` — Too many tags, or one too long. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`); string (`text/plain`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `401` — No one is signed in. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `403` — The caller is not an Administrator, or an Owner turned off setting patron limits for them. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorMessage`](schemas.md#errormessage) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `404` — No such work, or a podcast episode (tags go on its show). Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `500` — The tags could not be saved. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/library/works/<id>/tags' \
+    -X PUT \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"tags": ["Kids", "Bedtime"]}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/library/works/<id>/tags' `
+    -Method Put `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{"tags": ["Kids", "Bedtime"]}'
+```
+
+```python
+import requests
+
+response = requests.put(
+    "http://127.0.0.1:8787/api/library/works/<id>/tags",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={"tags": ["Kids", "Bedtime"]},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/library/works/<id>/tags", {
+  method: "PUT",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({"tags": ["Kids", "Bedtime"]}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .put("http://127.0.0.1:8787/api/library/works/<id>/tags")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({"tags": ["Kids", "Bedtime"]}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The work's tags afterwards.
+
+```json
+{
+  "work_id": "6c1f2e8a-4b3d-4f5e-8a9b-0c1d2e3f4a5b",
+  "tags": [
+    {
+      "value": "Kids",
+      "source": "admin"
+    }
+  ]
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "A work's library tags.",
+  "required": [
+    "work_id",
+    "tags"
+  ],
+  "properties": {
+    "work_id": {
+      "type": "string",
+      "description": "The work.",
+      "example": "6c1f2e8a-4b3d-4f5e-8a9b-0c1d2e3f4a5b"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One library tag on a work.",
+        "required": [
+          "value",
+          "source"
+        ],
+        "properties": {
+          "value": {
+            "type": "string",
+            "description": "The tag as written.",
+            "example": "Kids"
+          },
+          "source": {
+            "type": "string",
+            "description": "Where it came from.",
+            "enum": [
+              "admin",
+              "sidecar"
+            ]
+          }
+        }
+      },
+      "description": "Every tag, by key, with where it came from."
+    }
+  }
+}
+```
+
+Status `400`: Too many tags, or one too long. As `text/plain`, when the body is not syntactically valid JSON.
+
+```json
+{
+  "error": "a work has at most 32 library tags"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `401`: No one is signed in.
+
+```json
+{
+  "error": "sign in first"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `403`: The caller is not an Administrator, or an Owner turned off setting patron limits for them. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "mfa_enrollment_required",
+  "message": "This server requires a passkey or authenticator app. Set one up to continue, or log out and finish later.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "What went wrong, as the handler describes it.",
+          "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
+    }
+  ]
+}
+```
+
+Status `404`: No such work, or a podcast episode (tags go on its show).
+
+```json
+{
+  "error": "work 6c1f2e8a-4b3d-4f5e-8a9b-0c1d2e3f4a5b not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: missing field `tags` at line 1 column 2
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `500`: The tags could not be saved.
+
+```json
+{
+  "error": "the library tags could not be read or saved"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `GET /api/library/collections`
+
+Reads the library's collections.
+
+Only the operator, an Owner or an Administrator may call it; patrons see
+collection names through the Library's collection filter, inside their
+scope.
+
+**Access:** The operator, or any signed-in user.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Responses
+
+- `200` — The collections, in the order shown. Body: [`LibraryCollections`](schemas.md#librarycollections) (`application/json`)
+  - `collections` *array of [`LibraryCollection`](schemas.md#librarycollection)*, **required** — The collections, at most 32, in the order shown. At most 32 items.
+- `401` — No one is signed in. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `403` — The caller is not an Administrator. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. Body: [`ErrorMessage`](schemas.md#errormessage) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `500` — The collections could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/library/collections' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/library/collections' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/library/collections",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/library/collections", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/library/collections")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The collections, in the order shown.
+
+```json
+{
+  "collections": [
+    {
+      "name": "Kids",
+      "prefixes": [
+        "kids/",
+        "children/"
+      ]
+    }
+  ]
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "The library's collections: the `core.collections` document and the\nbody of `PUT /api/library/collections`.",
+  "required": [
+    "collections"
+  ],
+  "properties": {
+    "collections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One collection: a name and the storage key prefixes whose files belong\nto it.",
+        "required": [
+          "name",
+          "prefixes"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name people see and scope rules match, 1 to 64 bytes, distinct\nignoring case.",
+            "example": "Kids"
+          },
+          "prefixes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Storage key prefixes, 1 to 8, each a folder relative to the\ndestination's root (no leading `/`); a closing `/` is added when\nmissing, so `kids` matches `kids/…` but not `kidsbooks/…`.",
+            "example": [
+              "kids/",
+              "children/"
+            ],
+            "maxItems": 8
+          }
+        },
+        "additionalProperties": false
+      },
+      "description": "The collections, at most 32, in the order shown.",
+      "maxItems": 32
+    }
+  },
+  "additionalProperties": false
+}
+```
+
+Status `401`: No one is signed in.
+
+```json
+{
+  "error": "sign in first"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `403`: The caller is not an Administrator. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`.
+
+```json
+{
+  "error": "mfa_enrollment_required",
+  "message": "This server requires a passkey or authenticator app. Set one up to continue, or log out and finish later.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "What went wrong, as the handler describes it.",
+          "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
+    }
+  ]
+}
+```
+
+Status `500`: The collections could not be read.
+
+```json
+{
+  "error": "the collections could not be read or saved"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `PUT /api/library/collections`
+
+Replaces the library's collections.
+
+Names are trimmed and must differ ignoring case; each prefix gets a
+closing `/`. When the collections change, the page index is rebuilt so
+the Library filter and patron scopes follow. Only the operator, an
+Owner, or an Administrator whom an Owner lets set patron limits may
+call it.
+
+**Access:** The operator, or any signed-in user.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Request body
+
+`application/json`: [`LibraryCollections`](schemas.md#librarycollections)
+
+- `collections` *array of [`LibraryCollection`](schemas.md#librarycollection)*, **required** — The collections, at most 32, in the order shown. At most 32 items.
+
+### Responses
+
+- `200` — The collections after the change. Body: [`LibraryCollections`](schemas.md#librarycollections) (`application/json`)
+  - `collections` *array of [`LibraryCollection`](schemas.md#librarycollection)*, **required** — The collections, at most 32, in the order shown. At most 32 items.
+- `400` — The collections are invalid. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`); string (`text/plain`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `401` — No one is signed in. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `403` — The caller is not an Administrator, or an Owner turned off setting patron limits for them. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorMessage`](schemas.md#errormessage) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `409` — The collections kept changing underneath the write; retry. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `500` — The collections could not be saved. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/library/collections' \
+    -X PUT \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"collections": [{"name": "Kids", "prefixes": ["kids/", "children/"]}]}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/library/collections' `
+    -Method Put `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{"collections": [{"name": "Kids", "prefixes": ["kids/", "children/"]}]}'
+```
+
+```python
+import requests
+
+response = requests.put(
+    "http://127.0.0.1:8787/api/library/collections",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={"collections": [{"name": "Kids", "prefixes": ["kids/", "children/"]}]},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/library/collections", {
+  method: "PUT",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({"collections": [{"name": "Kids", "prefixes": ["kids/", "children/"]}]}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .put("http://127.0.0.1:8787/api/library/collections")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({"collections": [{"name": "Kids", "prefixes": ["kids/", "children/"]}]}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The collections after the change.
+
+```json
+{
+  "collections": [
+    {
+      "name": "Kids",
+      "prefixes": [
+        "kids/",
+        "children/"
+      ]
+    }
+  ]
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "The library's collections: the `core.collections` document and the\nbody of `PUT /api/library/collections`.",
+  "required": [
+    "collections"
+  ],
+  "properties": {
+    "collections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One collection: a name and the storage key prefixes whose files belong\nto it.",
+        "required": [
+          "name",
+          "prefixes"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name people see and scope rules match, 1 to 64 bytes, distinct\nignoring case.",
+            "example": "Kids"
+          },
+          "prefixes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Storage key prefixes, 1 to 8, each a folder relative to the\ndestination's root (no leading `/`); a closing `/` is added when\nmissing, so `kids` matches `kids/…` but not `kidsbooks/…`.",
+            "example": [
+              "kids/",
+              "children/"
+            ],
+            "maxItems": 8
+          }
+        },
+        "additionalProperties": false
+      },
+      "description": "The collections, at most 32, in the order shown.",
+      "maxItems": 32
+    }
+  },
+  "additionalProperties": false
+}
+```
+
+Status `400`: The collections are invalid. As `text/plain`, when the body is not syntactically valid JSON.
+
+```json
+{
+  "error": "invalid collections: two collections are named Kids"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `401`: No one is signed in.
+
+```json
+{
+  "error": "sign in first"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `403`: The caller is not an Administrator, or an Owner turned off setting patron limits for them. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "mfa_enrollment_required",
+  "message": "This server requires a passkey or authenticator app. Set one up to continue, or log out and finish later.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "What went wrong, as the handler describes it.",
+          "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
+    }
+  ]
+}
+```
+
+Status `409`: The collections kept changing underneath the write; retry.
+
+```json
+{
+  "error": "core.collections kept changing; retry"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: missing field `collections` at line 1 column 2
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `500`: The collections could not be saved.
+
+```json
+{
+  "error": "the collections could not be read or saved"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
 ## `GET /api/config/node-invites`
 
 `GET /api/config/node-invites`: every link for the operator or an
@@ -19078,7 +20504,7 @@ match come best first; pass `next_cursor` back with the same `q`.
 - `kind` (query) *one of `book`, `podcast`* — Only works of this kind.
 - `status` (query) *one of `not_acquired`, `queued`, `downloading`, `acquired`, `error`* — Only works whose furthest acquire state is this one.
 - `account` (query) *string* — Only works held by this store account id.
-- `facet` (query) *one of `author`, `narrator`, `series`, `genre`, `publisher`, `source`, `tag`, `progress`* — Only works with `value` under this facet. Values match ignoring case; `tag` and `progress` read the caller's own state.
+- `facet` (query) *one of `author`, `narrator`, `series`, `genre`, `publisher`, `source`, `tag`, `library_tag`, `collection`, `progress`* — Only works with `value` under this facet. Values match ignoring case; `tag` and `progress` read the caller's own state.
 - `value` (query) *string* — The value `facet` must have, as `GET /api/library/works/facets/{facet}` lists it (or `finished` / `not_finished` for `progress`).
 - `cursor` (query) *string* — `next_cursor` of the previous page, under the same `sort` (or the same `q`).
 - `limit` (query) *integer (int64)* — Page size, clamped to 1–200 (default 40).
@@ -20800,7 +22226,7 @@ lists the caller's own tags (none for an operator token).
 
 ### Parameters
 
-- `facet` (path) *one of `author`, `narrator`, `series`, `genre`, `publisher`, `source`, `tag`, `progress`*, **required** — The facet; `progress` has no value list.
+- `facet` (path) *one of `author`, `narrator`, `series`, `genre`, `publisher`, `source`, `tag`, `library_tag`, `collection`, `progress`*, **required** — The facet; `progress` has no value list.
 - `cursor` (query) *string* — `next_cursor` of the previous page of the same facet.
 - `limit` (query) *integer (int64)* — Page size, clamped to 1–500 (default 200).
 

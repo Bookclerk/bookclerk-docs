@@ -1483,6 +1483,21 @@ The branch a card sign-in left.
 
 - `owner_notified` *boolean*, **required** — Whether the library accepted the leave notice. False when it could not be told: the branch then stays in its list until it is removed there.
 
+## LibraryCollection
+
+One collection: a name and the storage key prefixes whose files belong
+to it.
+
+- `name` *string*, **required** — The name people see and scope rules match, 1 to 64 bytes, distinct ignoring case.
+- `prefixes` *array of string*, **required** — Storage key prefixes, 1 to 8, each a folder relative to the destination's root (no leading `/`); a closing `/` is added when missing, so `kids` matches `kids/…` but not `kidsbooks/…`. At most 8 items.
+
+## LibraryCollections
+
+The library's collections: the `core.collections` document and the
+body of `PUT /api/library/collections`.
+
+- `collections` *array of [`LibraryCollection`](#librarycollection)*, **required** — The collections, at most 32, in the order shown. At most 32 items.
+
 ## LibraryConsentsResponse
 
 JSON body for `GET /api/config/library-consents`.
@@ -3333,7 +3348,7 @@ null, `compatible` false and the `error` text.
 
 The book field a [`ScopeRule`] matches one value of.
 
-Type: one of `genre`, `series`, `author`, `narrator`
+Type: one of `genre`, `series`, `author`, `narrator`, `tag`, `collection`
 
 ## ScopeRule
 
@@ -4267,3 +4282,29 @@ One work in a page of `GET /api/library/works`.
 - `added_at` *string*, **required** — RFC 3339 time of the newest holding.
 - `length_minutes` *integer (int64) or null* — Runtime in minutes of the longest held edition, when known. At least 0.
 - `purchased_at` *string or null* — RFC 3339 time of the newest purchase a store reported.
+
+## WorkTag
+
+One library tag on a work.
+
+- `value` *string*, **required** — The tag as written.
+- `source` *[`WorkTagSource`](#worktagsource)*, **required** — Where it came from.
+
+## WorkTagsBody
+
+`PUT /api/library/works/{id}/tags` body: the tags an Administrator sets.
+
+- `tags` *array of string*, **required** — The tags, replacing the ones set in Bookclerk (sidecar tags stay). Blanks and repeats, ignoring case, are dropped; at most 32 tags of at most 256 bytes each. At most 32 items.
+
+## WorkTagsJson
+
+A work's library tags.
+
+- `work_id` *string*, **required** — The work.
+- `tags` *array of [`WorkTag`](#worktag)*, **required** — Every tag, by key, with where it came from.
+
+## WorkTagSource
+
+Where a library tag came from (`work_tags.source`).
+
+Type: one of `admin`, `sidecar`

@@ -160,6 +160,10 @@ Books in the library, scans and acquires.
 | [`DELETE /api/library/listings/{id}/pin`](library.md#delete-apilibrarylistingsidpin) | Removes a listing's pin. |
 | [`GET /api/library/conflicts`](library.md#get-apilibraryconflicts) | Pages the conflicts the resolver could not decide, for an Administrator to settle with a pin. |
 | [`POST /api/library/works/{id}/split`](library.md#post-apilibraryworksidsplit) | Splits a work an automatic merge joined wrongly. |
+| [`GET /api/library/works/{id}/tags`](library.md#get-apilibraryworksidtags) | Reads a work's library tags. |
+| [`PUT /api/library/works/{id}/tags`](library.md#put-apilibraryworksidtags) | Replaces the tags an Administrator set on a work. |
+| [`GET /api/library/collections`](library.md#get-apilibrarycollections) | Reads the library's collections. |
+| [`PUT /api/library/collections`](library.md#put-apilibrarycollections) | Replaces the library's collections. |
 | [`GET /api/config/node-invites`](library.md#get-apiconfignode-invites) | `GET /api/config/node-invites`: every link for the operator or an Owner; the caller's own links for anyone else, and with `?mine=true`. |
 | [`POST /api/config/node-invites`](library.md#post-apiconfignode-invites) | `POST /api/config/node-invites`: mint an enrollment link. Any user may mint one for themselves while branch enrollment is on; the operator or an Owner may mint for any active user. |
 | [`DELETE /api/config/node-invites/{id}`](library.md#delete-apiconfignode-invitesid) | `DELETE /api/config/node-invites/{id}`: revoke an unredeemed link. |

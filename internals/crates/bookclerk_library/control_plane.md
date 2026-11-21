@@ -36,6 +36,8 @@ See `docs/adr/control-plane.md`.
 | [`ClerkLink`](#clerklink) | struct | One library this install holds (or held) a library card for. |
 | [`LibraryCard`](#librarycard) | struct | A library card in plain form: zeroized on drop, redacted in `Debug`. |
 | [`NewClerkLink`](#newclerklink) | struct | What a sign-in returned, to record with `record_clerk_link`. |
+| [`LibraryCollection`](#librarycollection) | struct | One collection: a name and the storage key prefixes whose files belong to it. |
+| [`LibraryCollections`](#librarycollections) | struct | The library's collections: the `core.collections` document and the body of `PUT /api/library/collections`. |
 | [`AccountRef`](#accountref) | struct | One store account, by storefront plugin key and store account id. |
 | [`AddConnectionsBody`](#addconnectionsbody) | struct | `POST /api/config/join/connections` body. |
 | [`AddConnectionsRequest`](#addconnectionsrequest) | struct | An "Add my connections" request: the library it names (trimmed) and the accounts picked, between 1 and `MAX_ADD_CONNECTIONS` of them. |
@@ -299,6 +301,11 @@ See `docs/adr/control-plane.md`.
 | [`load_clerk_link`](#load_clerk_link) | function | One clerk link. |
 | [`record_clerk_link`](#record_clerk_link) | function | Seals `card` and records the link as active, replacing an earlier sign-in to the same library. |
 | [`sign_out_clerk_link`](#sign_out_clerk_link) | function | Marks a link signed out, deletes its card and drops the books read through it. Answers the link as it now stands, or `None` when there is no such link. |
+| [`collections_revision`](#collections_revision) | function | The collections document's revision, 0 when it was never written. The page index rebuild compares it before and after its walk. |
+| [`library_collections`](#library_collections) | function | The library's collections; none when the document was never written. |
+| [`load_collections`](#load_collections) | function | Reads the stored collections document, if one was ever written. |
+| [`parse_collections_request`](#parse_collections_request) | function | Parses and validates a `PUT /api/library/collections` body from its raw bytes, sans IO, the way the route reads it: JSON into `LibraryCollections`, then `LibraryCollections::validate`. |
+| [`set_library_collections`](#set_library_collections) | function | Replaces the library's collections (compare-and-swap, audited) and, when they changed, drops the page index's finished build so every row is rebuilt with the new prefixes. |
 | [`parse_add_connections_request`](#parse_add_connections_request) | function | Parses and validates a `POST /api/config/join/connections` body from its raw bytes, sans IO, the way the route reads it: JSON into `AddConnectionsBody`, then `AddConnectionsBody::validate`. |
 | [`parse_disconnect_request`](#parse_disconnect_request) | function | Parses a `POST /api/config/join/connections/disconnect` body from its raw bytes, sans IO, the way the route reads it: JSON into `DisconnectBody`, then `DisconnectBody::into_request`. |
 | [`authorize_copy`](#authorize_copy) | function | The files `token` may download for copy `copy_id`, or `None`. |
@@ -648,6 +655,13 @@ See `docs/adr/control-plane.md`.
 | [`LOOKUP_ANSWER_TTL`](#lookup_answer_ttl) | constant | How long a branch's answer stands: a question answered longer ago is asked again the next time `ask_branches` names its work. |
 | [`LOOKUP_RESEND`](#lookup_resend) | constant | How long a sent question waits for its answer before it is sent again. |
 | [`CLERK_CARD_NAME`](#clerk_card_name) | constant | `encrypted_secrets.name` of a clerk link's library card. |
+| [`COLLECTIONS_NAMESPACE`](#collections_namespace) | constant | Namespace of the library document that holds the library's collections. |
+| [`COLLECTIONS_SCHEMA_VERSION`](#collections_schema_version) | constant | Schema version of `LibraryCollections` in the document. |
+| [`MAX_COLLECTIONS`](#max_collections) | constant | Most collections a library may define. |
+| [`MAX_COLLECTIONS_JSON_BYTES`](#max_collections_json_bytes) | constant | Largest set of collections as compact JSON, in bytes: well inside the largest configuration document. |
+| [`MAX_COLLECTION_NAME_BYTES`](#max_collection_name_bytes) | constant | Longest collection name, in UTF-8 bytes after trimming. |
+| [`MAX_COLLECTION_PREFIXES`](#max_collection_prefixes) | constant | Most prefixes one collection may have. |
+| [`MAX_COLLECTION_PREFIX_BYTES`](#max_collection_prefix_bytes) | constant | Longest prefix, in UTF-8 bytes after trimming and the closing `/`. |
 | [`MAX_ADD_CONNECTIONS`](#max_add_connections) | constant | Most accounts one "Add my connections" request names: as many as one sealed account bundle carries. |
 | [`COPY_TOKEN_TTL_SECS`](#copy_token_ttl_secs) | constant | Seconds a copy token is accepted after its grant. |
 | [`CRON_FIRE_MAX_ATTEMPTS`](#cron_fire_max_attempts) | constant | Failure attempts a cron fire gets before it is terminal (the first run plus two retries with the queue's backoff). |
@@ -1567,6 +1581,75 @@ What a sign-in returned, to record with [`record_clerk_link`](#record_clerk_link
 - `clerk_name`: The name this install signed in as.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### LibraryCollection
+
+```rust
+pub struct LibraryCollection {
+    pub name: String,
+    pub prefixes: Vec<String>,
+}
+```
+
+One collection: a name and the storage key prefixes whose files belong
+to it.
+
+**Fields**
+
+- `name`: The name people see and scope rules match, 1 to 64 bytes, distinct
+  ignoring case.
+- `prefixes`: Storage key prefixes, 1 to 8, each a folder relative to the
+  destination's root (no leading `/`); a closing `/` is added when
+  missing, so `kids` matches `kids/…` but not `kidsbooks/…`.
+
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
+
+### LibraryCollections
+
+```rust
+pub struct LibraryCollections {
+    pub collections: Vec<LibraryCollection>,
+}
+```
+
+The library's collections: the `core.collections` document and the
+body of `PUT /api/library/collections`.
+
+**Fields**
+
+- `collections`: The collections, at most 32, in the order shown.
+
+#### LibraryCollections::validate
+
+```rust
+pub fn validate(self) -> Result<Self>
+```
+
+Checks and normalizes the collections: names trimmed and distinct
+ignoring case, prefixes trimmed with a closing `/` and distinct
+within a collection, every bound held.
+
+##### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) naming the first bound broken.
+
+#### LibraryCollections::names_for_keys
+
+```rust
+pub fn names_for_keys<'k>(
+    &self,
+    keys: impl IntoIterator<Item = &'k str> + Clone,
+) -> Vec<&str>
+```
+
+The names of the collections any of `keys` belongs to, in the
+collections' order.
+
+##### Arguments
+
+* `keys` - Storage keys of a book's files.
+
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### AccountRef
 
@@ -6389,8 +6472,9 @@ Who is allowed to write a configuration document.
   operator write. Built by [`super::verify_library_owner`](#verify_library_owner), which reads
   the user's stored role and status.
 - `PatronAdministrator`: An active portal Owner or Administrator. Writes the library's
-  patron defaults only: the default scope (`core.patron_scope`) and
-  the default member controls (`core.member_controls`). Built by
+  patron defaults only: the default scope (`core.patron_scope`), the
+  default member controls (`core.member_controls`) and the
+  collections scopes match (`core.collections`). Built by
   [`super::verify_patron_administrator`](#verify_patron_administrator), which reads the user's
   stored role and status.
 
@@ -7106,6 +7190,8 @@ pub enum ScopeField {
     Series,
     Author,
     Narrator,
+    Tag,
+    Collection,
 }
 ```
 
@@ -7117,6 +7203,10 @@ The book field a [`ScopeRule`](#scoperule) matches one value of.
 - `Series`: A series name, such as "Discworld".
 - `Author`: An author (a show's host, for a podcast).
 - `Narrator`: A narrator.
+- `Tag`: A library tag: one an Administrator set on the work, or one read
+  from a sidecar file.
+- `Collection`: A collection: a named part of the library, defined by storage key
+  prefixes (`core.collections`). A book with no file is in none.
 
 #### ScopeField::facet
 
@@ -9086,6 +9176,85 @@ when the person signs out here.
 #### Errors
 
 Returns the read or write error.
+
+### collections_revision
+
+```rust
+pub async fn collections_revision(store: &LibraryStore) -> Result<i64>
+```
+
+The collections document's revision, 0 when it was never written. The
+page index rebuild compares it before and after its walk.
+
+#### Errors
+
+See [`load_collections`](#load_collections).
+
+### library_collections
+
+```rust
+pub async fn library_collections(store: &LibraryStore) -> Result<LibraryCollections>
+```
+
+The library's collections; none when the document was never written.
+
+#### Errors
+
+See [`load_collections`](#load_collections).
+
+### load_collections
+
+```rust
+pub async fn load_collections(
+    store: &LibraryStore,
+) -> Result<Option<ConfigurationDocument<LibraryCollections>>>
+```
+
+Reads the stored collections document, if one was ever written.
+
+#### Errors
+
+Returns the read error, or [`LibraryError::Invalid`](README.md#libraryerror) for a stored
+document this binary can't read.
+
+### parse_collections_request
+
+```rust
+pub fn parse_collections_request(body: &[u8]) -> Result<LibraryCollections>
+```
+
+Parses and validates a `PUT /api/library/collections` body from its raw
+bytes, sans IO, the way the route reads it: JSON into
+[`LibraryCollections`](#librarycollections), then [`LibraryCollections::validate`](#librarycollectionsvalidate).
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) for bytes that are not the body's JSON
+shape (unknown or repeated fields, wrong types, a missing field, an
+array instead of an object) or collections outside the bounds.
+
+### set_library_collections
+
+```rust
+pub async fn set_library_collections(
+    store: &LibraryStore,
+    actor: &ConfigActor,
+    collections: LibraryCollections,
+) -> Result<ConfigurationDocument<LibraryCollections>>
+```
+
+Replaces the library's collections (compare-and-swap, audited) and,
+when they changed, drops the page index's finished build so every row
+is rebuilt with the new prefixes.
+
+The caller checks who may write them; `actor` must be the operator or a
+verified Owner or Administrator.
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) for collections outside the bounds,
+[`LibraryError::Conflict`](README.md#libraryerror) when the document kept changing, or the write
+error.
 
 ### parse_add_connections_request
 
@@ -15479,6 +15648,63 @@ pub const CLERK_CARD_NAME: &str = "library_card";
 ```
 
 `encrypted_secrets.name` of a clerk link's library card.
+
+### COLLECTIONS_NAMESPACE
+
+```rust
+pub const COLLECTIONS_NAMESPACE: &str = "core.collections";
+```
+
+Namespace of the library document that holds the library's collections.
+
+### COLLECTIONS_SCHEMA_VERSION
+
+```rust
+pub const COLLECTIONS_SCHEMA_VERSION: i64 = 1;
+```
+
+Schema version of [`LibraryCollections`](#librarycollections) in the document.
+
+### MAX_COLLECTIONS
+
+```rust
+pub const MAX_COLLECTIONS: usize = 32;
+```
+
+Most collections a library may define.
+
+### MAX_COLLECTIONS_JSON_BYTES
+
+```rust
+pub const MAX_COLLECTIONS_JSON_BYTES: usize = _;
+```
+
+Largest set of collections as compact JSON, in bytes: well inside the
+largest configuration document.
+
+### MAX_COLLECTION_NAME_BYTES
+
+```rust
+pub const MAX_COLLECTION_NAME_BYTES: usize = 64;
+```
+
+Longest collection name, in UTF-8 bytes after trimming.
+
+### MAX_COLLECTION_PREFIXES
+
+```rust
+pub const MAX_COLLECTION_PREFIXES: usize = 8;
+```
+
+Most prefixes one collection may have.
+
+### MAX_COLLECTION_PREFIX_BYTES
+
+```rust
+pub const MAX_COLLECTION_PREFIX_BYTES: usize = 256;
+```
+
+Longest prefix, in UTF-8 bytes after trimming and the closing `/`.
 
 ### MAX_ADD_CONNECTIONS
 
