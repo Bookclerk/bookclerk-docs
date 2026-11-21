@@ -14,6 +14,19 @@ per secret (no Argon2 on every load/save).
 | --- | --- |
 | `BOOKCLERK_AUTH_PASSWORD` or `[auth].password` | Wraps/unwraps the DEK in `{files_dir}/master.key` |
 | Auto-mint | If neither password nor file exists, generates a DEK and writes `master.key` (mode `0600`) |
+| OS keychain | `master.key` is a `BCK3` pointer naming a keychain item that holds the `BCK1`/`BCK2` envelope |
+
+### Key stores
+
+The envelope (`BCK1` or `BCK2`) lives either in `master.key` itself or in
+one OS keychain item ([`bookclerk_keystore`](../bookclerk_keystore/README.md)). On a keychain install
+`master.key` holds a `BCK3` pointer: the item's id and the DEK's SHA-256
+fingerprint, never key bytes. Loading follows whatever `master.key` says
+and fails closed: a missing item, a locked keychain or a key that doesn't
+match the pointer's fingerprint is an error, never a fresh mint.
+[`set_key_store_preference`](#set_key_store_preference) picks where a *new* key goes (a first mint,
+a shared branch's installed key, an import); [`move_master_key`](#move_master_key) moves an
+existing one.
 
 A later password can wrap an existing `BCK1` file in place (CLI
 `config master-key wrap`, `config set auth.password`, or daemon config
@@ -26,11 +39,17 @@ recovers the whole credential.
 
 | Item | Kind | Summary |
 | --- | --- | --- |
+| [`KeyStorePreference`](#keystorepreference) | struct | Where a new key goes, and whether that place is required. |
 | [`MasterKey`](#masterkey) | struct | 32-byte data-encryption key (zeroized on drop). |
 | [`MasterKeyResolution`](#masterkeyresolution) | struct | DEK loaded from `master.key`, plus whether this call created the file. |
+| [`StoredMasterKey`](#storedmasterkey) | struct | A key `store_master_key` placed, waiting for its `master.key` to be published. |
 | [`MasterKeyFormat`](#masterkeyformat) | enum | On-disk `master.key` envelope kind. |
+| [`set_key_store_preference`](#set_key_store_preference) | function | Sets where this process writes new keys (first mint, a shared branch's installed key, an import). Existing keys stay where `master.key` says. |
+| [`key_store_preference`](#key_store_preference) | function | The current store preference. |
+| [`set_keychain_vault`](#set_keychain_vault) | function | Replaces the keychain this process uses, for tests (a `bookclerk_keystore::MemoryVault`) and for hosts that substitute their own store. |
 | [`master_key_path`](#master_key_path) | function | Path to `{files_dir}/master.key`. |
 | [`inspect_master_key`](#inspect_master_key) | function | Inspect the on-disk envelope without unlocking (missing → `None`). |
+| [`master_key_is_wrapped`](#master_key_is_wrapped) | function | Whether the key is password-wrapped (`BCK2`), reading the keychain item when `master.key` is a pointer. `None` when there is no `master.key`. |
 | [`configure_master_key`](#configure_master_key) | function | Load or mint the DEK and cache it for this process. |
 | [`configure_master_key_with`](#configure_master_key_with) | function | Load or mint the DEK using an explicit password (env / config), then cache it. |
 | [`require_master_key`](#require_master_key) | function | Return the process-cached DEK, or resolve from `files_dir` if not configured. |
@@ -40,17 +59,55 @@ recovers the whole credential.
 | [`master_key_fingerprint`](#master_key_fingerprint) | function | SHA-256 hex fingerprint of the unwrapped DEK. |
 | [`uncache_master_key`](#uncache_master_key) | function | Drops `key` from the process cache when it is the cached DEK. |
 | [`discard_minted_master_key`](#discard_minted_master_key) | function | Delete a `master.key` this process just created and drop it from the cache. |
-| [`wrap_master_key`](#wrap_master_key) | function | Wrap an existing `BCK1` `master.key` with `password` (`BCK2`). |
+| [`wrap_master_key`](#wrap_master_key) | function | Wrap an existing `BCK1` key with `password` (`BCK2`), in `master.key` or in the OS keychain item it points at. |
 | [`install_master_key`](#install_master_key) | function | Installs `dek` as `{files_dir}/master.key`: a shared branch joining a library receives the library's DEK (sealed to its node key, never the passphrase-wrapped file) and keeps it under its own `password`. |
 | [`prepare_master_key_dir`](#prepare_master_key_dir) | function | Creates the directory that holds `master.key` and sets it to mode `0700` on Unix, as a first mint does. |
 | [`warn_unwrapped_master_key`](#warn_unwrapped_master_key) | function | Warns that the `master.key` at `path` was written as `BCK1` (the DEK unwrapped at rest), and how to wrap it. |
-| [`encode_master_key_file`](#encode_master_key_file) | function | The `master.key` file contents for `dek`: `BCK2` (Argon2id + XChaCha20-Poly1305) when `password` is set and non-empty after trimming, `BCK1` otherwise. A caller that stages the file itself (a shared branch applying its bootstrap as one recoverable step) writes these bytes with mode `0600`. |
+| [`encode_master_key_file`](#encode_master_key_file) | function | The key envelope for `dek`: `BCK2` (Argon2id + XChaCha20-Poly1305) when `password` is set and non-empty after trimming, `BCK1` otherwise. It touches no store; `store_master_key` places an envelope where the store preference says. |
+| [`store_master_key`](#store_master_key) | function | The bytes `master.key` must hold for `dek`, after putting the envelope where the `key_store_preference` says: the envelope itself for the file store, or a `BCK3` pointer to the keychain item this call just wrote. A caller that stages the file itself (a shared branch applying its bootstrap as one recoverable step) writes these bytes with mode `0600`. |
+| [`move_master_key`](#move_master_key) | function | Moves the existing key to `to`, keeping its bytes (and its password wrap) unchanged, so every sealed secret stays readable. |
+| [`export_master_key`](#export_master_key) | function | A recovery copy of the key: a `BCK2` envelope wrapped with `recovery_password`, readable by `import_master_key` on any machine. |
+| [`import_master_key`](#import_master_key) | function | Restores a key from a recovery copy (`export_master_key`, or a copied `master.key` in `BCK1`/`BCK2`) on an install that has no `master.key`, placing it where the `key_store_preference` says. |
 | [`seal_with_dek`](#seal_with_dek) | function | Seal plaintext with the DEK (random nonce). Fast — no Argon2. |
 | [`unseal_with_dek`](#unseal_with_dek) | function | Unseal ciphertext with the DEK. |
 | [`AUTH_PASSWORD_ENV`](#auth_password_env) | constant | Env var that wraps the DEK in `master.key` (optional). |
 | [`MASTER_KEY_FILE_NAME`](#master_key_file_name) | constant | Bootstrap key file under `BOOKCLERK_FILES_DIR` (auto-minted when missing). |
 
 ## Structs
+
+### KeyStorePreference
+
+```rust
+pub struct KeyStorePreference {
+    pub kind: KeyStoreKind,
+    pub required: bool,
+}
+```
+
+Where a new key goes, and whether that place is required.
+
+**Fields**
+
+- `kind`: The store new keys are written to.
+- `required`: True when the operator set `[auth].key_store`: a keychain that can't
+  be reached is then an error. False for a host's default, which falls
+  back to the file with a warning.
+
+#### KeyStorePreference::from_config
+
+```rust
+pub fn from_config(configured: Option<KeyStoreKind>, default: KeyStoreKind) -> Self
+```
+
+The preference for `configured` (`[auth].key_store`), or the host's
+`default` when unset.
+
+##### Arguments
+
+* `configured` - the operator's setting, if any.
+* `default` - the host's default store.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
 ### MasterKey
 
@@ -90,6 +147,42 @@ DEK loaded from `master.key`, plus whether this call created the file.
 
 Implements: `Clone`
 
+### StoredMasterKey
+
+```rust
+pub struct StoredMasterKey {
+    /* private fields */
+}
+```
+
+A key [`store_master_key`](#store_master_key) placed, waiting for its `master.key` to be
+published.
+
+#### StoredMasterKey::bytes
+
+```rust
+pub fn bytes(&self) -> &[u8]
+```
+
+The bytes `master.key` must hold (write them with mode `0600`).
+
+#### StoredMasterKey::in_keychain
+
+```rust
+pub fn in_keychain(&self) -> bool
+```
+
+Whether the key went to the OS keychain (`master.key` is a pointer).
+
+#### StoredMasterKey::discard
+
+```rust
+pub fn discard(self)
+```
+
+Deletes the keychain item again, for a caller whose `master.key`
+was never published. Does nothing for a key kept in the file.
+
 ## Enums
 
 ### MasterKeyFormat
@@ -98,6 +191,7 @@ Implements: `Clone`
 pub enum MasterKeyFormat {
     Raw,
     Wrapped,
+    Keychain,
 }
 ```
 
@@ -107,10 +201,63 @@ On-disk `master.key` envelope kind.
 
 - `Raw`: Raw 32-byte DEK (`BCK1`).
 - `Wrapped`: Password-wrapped DEK (`BCK2`).
+- `Keychain`: A pointer to an OS keychain item (`BCK3`); the item holds `BCK1` or
+  `BCK2`.
+
+#### MasterKeyFormat::header
+
+```rust
+pub fn header(self) -> &'static str
+```
+
+The four-character header: `BCK1`, `BCK2` or `BCK3`.
+
+#### MasterKeyFormat::store
+
+```rust
+pub fn store(self) -> KeyStoreKind
+```
+
+The store this format means.
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
 ## Functions
+
+### set_key_store_preference
+
+```rust
+pub fn set_key_store_preference(preference: KeyStorePreference)
+```
+
+Sets where this process writes new keys (first mint, a shared branch's
+installed key, an import). Existing keys stay where `master.key` says.
+
+#### Arguments
+
+* `preference` - the store and whether it is required.
+
+### key_store_preference
+
+```rust
+pub fn key_store_preference() -> KeyStorePreference
+```
+
+The current store preference.
+
+### set_keychain_vault
+
+```rust
+pub fn set_keychain_vault(vault: Arc<dyn Vault>)
+```
+
+Replaces the keychain this process uses, for tests (a
+[`bookclerk_keystore::MemoryVault`](../bookclerk_keystore/README.md#memoryvault)) and for hosts that substitute
+their own store.
+
+#### Arguments
+
+* `vault` - the keychain to read and write items in.
 
 ### master_key_path
 
@@ -131,6 +278,19 @@ Inspect the on-disk envelope without unlocking (missing → `None`).
 #### Errors
 
 Returns an error when the operation fails.
+
+### master_key_is_wrapped
+
+```rust
+pub fn master_key_is_wrapped(files_dir: &Path) -> Result<Option<bool>>
+```
+
+Whether the key is password-wrapped (`BCK2`), reading the keychain item
+when `master.key` is a pointer. `None` when there is no `master.key`.
+
+#### Errors
+
+Returns an error when `master.key` or the item it names can't be read.
 
 ### configure_master_key
 
@@ -264,7 +424,8 @@ Returns an error when the file exists and cannot be removed.
 pub fn wrap_master_key(files_dir: &Path, password: &str) -> Result<MasterKey>
 ```
 
-Wrap an existing `BCK1` `master.key` with `password` (`BCK2`).
+Wrap an existing `BCK1` key with `password` (`BCK2`), in `master.key`
+or in the OS keychain item it points at.
 
 No-op (still unlocks) when already `BCK2` and `password` is correct.
 Fails if the file is missing — mint via [`configure_master_key_with`](#configure_master_key_with) first.
@@ -287,7 +448,8 @@ Installs `dek` as `{files_dir}/master.key`: a shared branch joining a library
 receives the library's DEK (sealed to its node key, never the
 passphrase-wrapped file) and keeps it under its own `password`.
 
-Writes [`encode_master_key_file`](#encode_master_key_file)'s bytes, mode `0600`, replacing any
+Writes [`store_master_key`](#store_master_key)'s bytes (the envelope, or a pointer to the
+keychain item it just wrote), mode `0600`, replacing any
 existing file atomically. The process cache is not changed: the daemon
 restarts on the new bootstrap.
 
@@ -327,16 +489,127 @@ pub fn encode_master_key_file(
 ) -> Result<Zeroizing<Vec<u8>>>
 ```
 
-The `master.key` file contents for `dek`: `BCK2` (Argon2id +
-XChaCha20-Poly1305) when `password` is set and non-empty after
-trimming, `BCK1` otherwise. A caller that stages the file itself (a
-shared branch applying its bootstrap as one recoverable step) writes these
-bytes with mode `0600`.
+The key envelope for `dek`: `BCK2` (Argon2id + XChaCha20-Poly1305) when
+`password` is set and non-empty after trimming, `BCK1` otherwise. It
+touches no store; [`store_master_key`](#store_master_key) places an envelope where the store
+preference says.
 
 #### Errors
 
 Returns [`LibraryError::Invalid`](README.md#libraryerror) when `dek` is not 32 bytes, and the
 wrapping error.
+
+### store_master_key
+
+```rust
+pub fn store_master_key(dek: &[u8], password: Option<&str>) -> Result<StoredMasterKey>
+```
+
+The bytes `master.key` must hold for `dek`, after putting the envelope
+where the [`key_store_preference`](#key_store_preference) says: the envelope itself for the
+file store, or a `BCK3` pointer to the keychain item this call just
+wrote. A caller that stages the file itself (a shared branch applying
+its bootstrap as one recoverable step) writes these bytes with mode
+`0600`.
+
+#### Arguments
+
+* `dek` - the 32-byte data-encryption key.
+* `password` - wraps the envelope as `BCK2` when set and non-empty.
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) when `dek` is not 32 bytes, the
+wrapping error, and a keychain failure when the keychain is required.
+
+### move_master_key
+
+```rust
+pub fn move_master_key(
+    files_dir: &Path,
+    to: KeyStoreKind,
+    password: Option<&str>,
+) -> Result<MasterKeyFormat>
+```
+
+Moves the existing key to `to`, keeping its bytes (and its password
+wrap) unchanged, so every sealed secret stays readable.
+
+To the keychain: writes a new item, reads it back, then replaces
+`master.key` with a pointer atomically. To the file: writes the envelope
+over the pointer atomically, reloads it, then deletes the old item.
+Moving to the store the key is already in does nothing.
+
+#### Arguments
+
+* `files_dir` - the files directory holding `master.key`.
+* `to` - the store to move to.
+* `password` - the auth password, needed when the key is wrapped.
+
+#### Returns
+
+The format `master.key` has afterwards.
+
+#### Errors
+
+Returns an error when there is no key, it can't be unwrapped, or the
+target store can't take it. On error the key stays where it was.
+
+### export_master_key
+
+```rust
+pub fn export_master_key(
+    files_dir: &Path,
+    password: Option<&str>,
+    recovery_password: &str,
+) -> Result<Zeroizing<Vec<u8>>>
+```
+
+A recovery copy of the key: a `BCK2` envelope wrapped with
+`recovery_password`, readable by [`import_master_key`](#import_master_key) on any machine.
+
+#### Arguments
+
+* `files_dir` - the files directory holding `master.key`.
+* `password` - the auth password, needed when the key is wrapped.
+* `recovery_password` - the password the recovery copy is wrapped with.
+
+#### Errors
+
+Returns an error when `recovery_password` is empty, or there is no key or
+it can't be unwrapped.
+
+### import_master_key
+
+```rust
+pub fn import_master_key(
+    files_dir: &Path,
+    recovery: &[u8],
+    recovery_password: Option<&str>,
+    password: Option<&str>,
+) -> Result<String>
+```
+
+Restores a key from a recovery copy ([`export_master_key`](#export_master_key), or a copied
+`master.key` in `BCK1`/`BCK2`) on an install that has no `master.key`,
+placing it where the [`key_store_preference`](#key_store_preference) says.
+
+#### Arguments
+
+* `files_dir` - the files directory to write `master.key` in.
+* `recovery` - the recovery copy's bytes.
+* `recovery_password` - the password the copy is wrapped with, if it is.
+* `password` - this install's auth password, which wraps the key at rest
+  when set.
+
+#### Returns
+
+The SHA-256 hex fingerprint of the restored key.
+
+#### Errors
+
+Returns an error when `master.key` already exists, the copy can't be
+unwrapped, or the key can't be stored.
 
 ### seal_with_dek
 

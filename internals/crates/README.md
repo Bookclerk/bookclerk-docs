@@ -47,6 +47,7 @@ The crates the hosts are built from. Not a stable API.
 | [`bookclerk_discover`](bookclerk_discover/README.md) | Recommendations, embeddings, listening sync, and title request helpers |
 | [`bookclerk_enrich`](bookclerk_enrich/README.md) | Source-agnostic Audible metadata enrichment (catalog search, metadata providers, confidence scoring) |
 | [`bookclerk_integrations`](bookclerk_integrations/README.md) | Outbound integration framework (traits, registry, portal, claim tickets) |
+| [`bookclerk_keystore`](bookclerk_keystore/README.md) | OS keychain access for the Bookclerk library key: Keychain Services, Credential Manager and Secret Service |
 | [`bookclerk_library`](bookclerk_library/README.md) | Library database schema, migrations, and book records |
 | [`bookclerk_media`](bookclerk_media/README.md) | Clear-media packaging: remux, metadata fix-up, and MP3 encode (no DRM) |
 | [`bookclerk_migrate`](bookclerk_migrate/README.md) | Import/export classic Libation Files and native Bookclerk backups |

@@ -101,6 +101,7 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`LookupError`](#lookuperror) | enum | Why a lookup or delete did not succeed. |
 | [`LookupReplyError`](#lookupreplyerror) | enum | Why a collector answer was refused. |
 | [`AudioQuality`](#audioquality) | enum | Audible download bitrate tier (`high` / `normal` in TOML). |
+| [`KeyStoreKind`](#keystorekind) | enum | Where an install keeps the library's data-encryption key. |
 | [`NodeApiMode`](#nodeapimode) | enum | How branch nodes may reach the node API (`[daemon.node_api] mode`). |
 | [`replace_file`](#replace_file) | function | Replace `to` with `from`, both in the same directory. `to` may already exist; on Windows this goes through `MoveFileExW` with `MOVEFILE_REPLACE_EXISTING \| MOVEFILE_WRITE_THROUGH` (see the module docs). The moved file keeps its own permissions, so a `0600` staging file lands as a `0600` target. |
 | [`parse_cache_setting`](#parse_cache_setting) | function | Parses one `cache.*` setting. |
@@ -2346,6 +2347,7 @@ Implements: `Clone`, `Debug`, `Eq`, `PartialEq`, `Serialize`
 ```rust
 pub struct AuthConfig {
     pub password: Option<String>,
+    pub key_store: Option<KeyStoreKind>,
     pub oidc: OidcBrokerConfig,
 }
 ```
@@ -2362,6 +2364,11 @@ daemon config reload — no GUI in this surface.
 
 - `password`: Optional passphrase wrapping `master.key`. Prefer `BOOKCLERK_AUTH_PASSWORD`
   env (wins when both are set). Registered for log redaction on load.
+- `key_store`: Where this install keeps the library's data-encryption key
+  (`[auth].key_store`). Unset means the host's default: the OS keychain
+  for the desktop app, the `master.key` file for the daemon and CLI.
+  Set, it is required: a keychain that can't be reached is an error
+  rather than a fallback to the file.
 - `oidc`: Optional upstream OIDC/OAuth identity broker (`[auth.oidc]`).
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
@@ -3964,6 +3971,34 @@ Audible download bitrate tier (`high` / `normal` in TOML).
 - `Normal`: Standard / lower bitrate when the store offers a choice.
 
 Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### KeyStoreKind
+
+```rust
+pub enum KeyStoreKind {
+    File,
+    Keychain,
+}
+```
+
+Where an install keeps the library's data-encryption key.
+
+**Variants**
+
+- `File`: `{files_dir}/master.key` holds the key itself (`BCK1`, or `BCK2`
+  under the auth password).
+- `Keychain`: The OS keychain (Keychain Services, Credential Manager or Secret
+  Service) holds the key; `master.key` only names the item (`BCK3`).
+
+#### KeyStoreKind::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+The setting's spelling: `file` or `keychain`.
+
+Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `FromStr`, `PartialEq`, `Serialize`
 
 ### NodeApiMode
 
