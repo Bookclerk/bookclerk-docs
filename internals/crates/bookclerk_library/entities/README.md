@@ -33,6 +33,8 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`contributors`](contributors.md): SeaORM entity for the `contributors` table (text primary key).
 - [`copy_grants`](copy_grants.md): SeaORM entity for `copy_grants`: one reader's leave to download the copy this library holds of one edition. Written by `control_plane::copies`.
 - [`credits`](credits.md): SeaORM entity for the `credits` table (composite primary key).
+- [`destination_feeds`](destination_feeds.md): SeaORM entity for `destination_feeds`: how each output destination's outside changes are followed, and how healthy that is (storage destinations ADR, `docs/adr/storage-destinations.md`, decision 5).
+- [`destination_objects`](destination_objects.md): SeaORM entity for `destination_objects`: the last known state of every object at each output destination (storage destinations ADR, `docs/adr/storage-destinations.md`, decision 5).
 - [`discover_candidates`](discover_candidates.md): SeaORM entity for the `discover_candidates` table.
 - [`discover_feeds`](discover_feeds.md): SeaORM entity for the `discover_feeds` table.
 - [`discover_fetches`](discover_fetches.md): SeaORM entity for the `discover_fetches` table.

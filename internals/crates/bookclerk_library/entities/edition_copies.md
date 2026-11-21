@@ -46,7 +46,7 @@ Row shape for this table (`DeriveEntityModel`).
 
 - `edition_id`: The edition (`editions.id`).
 - `destination`: The destination's plugin instance id.
-- `state`: Where the copy stands (`CopyState::as_str`): `stored`, `pending` or
+- `state`: Where the copy stands (`CopyState::as_str`): `stored`, `pending`, `missing` or
   `failed`.
 - `storage_key`: The edition's primary audio key on this destination; set once
   stored, and kept from an earlier stored copy while a later write is

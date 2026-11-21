@@ -4390,6 +4390,14 @@ Host-evaluated provenance (`platform_bundled`, `verified_staged`, `installed`, â
 settings: PluginSettingOption[];
 ```
 
+##### storage\_sync?
+
+```ts
+storage_sync?: StorageSyncView;
+```
+
+How a storage destination follows outside changes; absent until its first sync pass.
+
 ***
 
 ### PortalBrand
@@ -5754,6 +5762,79 @@ pending: number;
 ```ts
 storage_backend: string;
 ```
+
+***
+
+### StorageSyncView
+
+How a destination notices changes made outside Bookclerk: its change feed
+and its scheduled listings.
+
+#### Properties
+
+##### feed\_checked\_at?
+
+```ts
+feed_checked_at?: string;
+```
+
+RFC 3339 time the feed was last read.
+
+##### feed\_error?
+
+```ts
+feed_error?: string;
+```
+
+The last feed failure.
+
+##### feed\_state
+
+```ts
+feed_state: "off" | "healthy" | "gap" | "failing";
+```
+
+`off` (listings alone), `healthy`, `gap` (a listing runs at once) or `failing`.
+
+##### listed\_at?
+
+```ts
+listed_at?: string;
+```
+
+RFC 3339 time the last listing finished.
+
+##### listing\_error?
+
+```ts
+listing_error?: string;
+```
+
+Why the last listing failed or its removals were held back.
+
+##### listing\_in\_progress
+
+```ts
+listing_in_progress: boolean;
+```
+
+True while a listing is in progress.
+
+##### next\_listing\_at?
+
+```ts
+next_listing_at?: string;
+```
+
+RFC 3339 time the next scheduled listing is due.
+
+##### objects
+
+```ts
+objects: number;
+```
+
+Files the destination held after the last listing or feed page.
 
 ***
 

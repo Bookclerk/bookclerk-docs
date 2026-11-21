@@ -1116,6 +1116,7 @@ Status `200`: The `core.output` settings.
     "chapter_layout": "tree",
     "overwrite_existing": false,
     "multi_destination": "sync_missing",
+    "missing_files": "mark_missing",
     "bad_book_action": "ask",
     "split_mp3_max_mb": 100,
     "minimum_file_duration_minutes": 1,
@@ -1429,6 +1430,15 @@ Schema:
                 "refetch_all"
               ],
               "example": "sync_missing"
+            },
+            "missing_files": {
+              "type": "string",
+              "description": "What happens to a stored copy whose file disappears from its\ndestination outside Bookclerk. Absent in documents written before\nthe setting existed, which read as the default.",
+              "enum": [
+                "mark_missing",
+                "restore"
+              ],
+              "example": "mark_missing"
             },
             "bad_book_action": {
               "type": "string",
@@ -1882,6 +1892,7 @@ Status `200`: The settings after the change, or a `replayed: true` note with the
     "chapter_layout": "tree",
     "overwrite_existing": false,
     "multi_destination": "sync_missing",
+    "missing_files": "mark_missing",
     "bad_book_action": "ask",
     "split_mp3_max_mb": 100,
     "minimum_file_duration_minutes": 1,
@@ -2197,6 +2208,15 @@ Schema:
                     "refetch_all"
                   ],
                   "example": "sync_missing"
+                },
+                "missing_files": {
+                  "type": "string",
+                  "description": "What happens to a stored copy whose file disappears from its\ndestination outside Bookclerk. Absent in documents written before\nthe setting existed, which read as the default.",
+                  "enum": [
+                    "mark_missing",
+                    "restore"
+                  ],
+                  "example": "mark_missing"
                 },
                 "bad_book_action": {
                   "type": "string",

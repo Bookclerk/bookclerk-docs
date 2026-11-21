@@ -155,6 +155,8 @@ the external guest RPC. This crate owns the greenfield schema
 | [`BookPage`](#bookpage) | struct | One page of books plus the unpaged match count. |
 | [`CandidateRef`](#candidateref) | struct | One title a store returned for a subject, as written: the shared listing it is, plus why the subject got it. |
 | [`CatalogEnrichmentFields`](#catalogenrichmentfields) | struct | Durable catalog enrichment fields (blurbs, subjects, provenance). |
+| [`ChangedObject`](#changedobject) | struct | One object whose row changed after a reader's last sequence. |
+| [`DestinationFeed`](#destinationfeed) | struct | How one destination's outside changes are followed. |
 | [`EditionAcquisition`](#editionacquisition) | struct | An edition's acquire state (`edition_acquisitions`). |
 | [`EditionAsin`](#editionasin) | struct | An ASIN a catalog match found for an edition. |
 | [`EditionCopy`](#editioncopy) | struct | One edition's copy at one destination. |
@@ -165,6 +167,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`FileProbe`](#fileprobe) | struct | What a probe found in one stored audio file, and where the copy came from (`edition_files`). |
 | [`HeldIdentifiers`](#heldidentifiers) | struct | Which of a set of store identifiers belong to titles the library holds. |
 | [`LibraryStore`](#librarystore) | struct | Handle to the Bookclerk library database. |
+| [`LostCopies`](#lostcopies) | struct | What `LibraryStore::lose_copies` did with the stored copies whose file is gone. |
 | [`NewBook`](#newbook) | struct | Input for inserting / updating a book from sync. |
 | [`NewListeningProgress`](#newlisteningprogress) | struct | Input for upserting listening progress. |
 | [`NewTitleRequest`](#newtitlerequest) | struct | Input for creating a title request / wishlist row. |
@@ -172,6 +175,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`QueueRank`](#queuerank) | struct | The taste ranking of one queue entry, as the ranking job computed it. |
 | [`SavedFilterRecord`](#savedfilterrecord) | struct | Saved Lucene-style quick filter. |
 | [`ScannedTitle`](#scannedtitle) | struct | One title a storefront scan reported. |
+| [`SeenObject`](#seenobject) | struct | One object as a listing or a change feed reports it. |
 | [`StoreCallHit`](#storecallhit) | struct | One listing a cached storefront call answered. |
 | [`StoredCandidate`](#storedcandidate) | struct | One stored storefront candidate of a subject: the shared listing joined with what is personal to the subject. |
 | [`StoredDiscoverTaste`](#storeddiscovertaste) | struct | One subject's stored Discover taste. |
@@ -219,6 +223,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`SplitOutcome`](#splitoutcome) | enum | What `LibraryStore::split_work` did. |
 | [`CopyState`](#copystate) | enum | Where an edition's copy at one destination stands. |
 | [`DiscoverSubject`](#discoversubject) | enum | Whose Discover shelves a stored row belongs to. |
+| [`FeedState`](#feedstate) | enum | The state of a destination's change feed. |
 | [`FileOwner`](#fileowner) | enum | Who a recorded file key belongs to. |
 | [`FileRole`](#filerole) | enum | What a recorded file is. |
 | [`HoldingSelection`](#holdingselection) | enum | Which holdings of one account a removal takes. |
@@ -397,6 +402,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`HOLDING_REMOVED`](#holding_removed) | constant | Event type published when a holding is removed. |
 | [`MAX_COPY_ATTEMPTS`](#max_copy_attempts) | constant | Failed attempts after which a pending copy turns `CopyState::Failed` and is no longer retried in the background. |
 | [`MAX_QUEUE_REASONS`](#max_queue_reasons) | constant | Most taste reasons one stored row keeps, so a row stays small whatever the ranking explains. |
+| [`OBJECT_TOMBSTONE_DAYS`](#object_tombstone_days) | constant | Days a removed object's tombstone is kept for readers that page changes. |
 | [`CLAIM_REDEEM_NONCE_HEX_LEN`](#claim_redeem_nonce_hex_len) | constant | Hex length of a browser-generated claim-redeem nonce (32 bytes). |
 
 ## Re-exports
@@ -6015,6 +6021,103 @@ Durable catalog enrichment fields (blurbs, subjects, provenance).
 
 Implements: `Clone`, `Debug`, `Default`
 
+### ChangedObject
+
+```rust
+pub struct ChangedObject {
+    pub key: String,
+    pub changed_seq: i64,
+    pub removed: bool,
+    pub size: u64,
+}
+```
+
+One object whose row changed after a reader's last sequence.
+
+**Fields**
+
+- `key`: The object's key at the destination.
+- `changed_seq`: The change sequence that changed the row.
+- `removed`: True when the object is gone.
+- `size`: Size in bytes when last seen.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### DestinationFeed
+
+```rust
+pub struct DestinationFeed {
+    pub destination: String,
+    pub seq: i64,
+    pub feed_state: FeedState,
+    pub feed_cursor: Option<String>,
+    pub feed_error: Option<String>,
+    pub feed_checked_at: Option<DateTime<Utc>>,
+    pub listing_seq: Option<i64>,
+    pub listing_cursor: Option<String>,
+    pub listing_started_at: Option<DateTime<Utc>>,
+    pub listed_at: Option<DateTime<Utc>>,
+    pub next_listing_at: Option<DateTime<Utc>>,
+    pub listing_error: Option<String>,
+    pub objects: u64,
+    pub checked_seq: i64,
+    pub listing_base: Option<u64>,
+    pub revision: i64,
+}
+```
+
+How one destination's outside changes are followed.
+
+**Fields**
+
+- `destination`: The destination's plugin instance id.
+- `seq`: The last change sequence number handed out.
+- `feed_state`: The change feed's state.
+- `feed_cursor`: The feed cursor to read from next; `None` before the first read.
+- `feed_error`: The last feed failure.
+- `feed_checked_at`: When the feed was last read.
+- `listing_seq`: Sequence of the listing in progress; `None` between listings.
+- `listing_cursor`: Cursor of the next page of the listing in progress.
+- `listing_started_at`: When the listing in progress, or the last one, started.
+- `listed_at`: When the last listing finished.
+- `next_listing_at`: When the next scheduled listing is due.
+- `listing_error`: Why the last listing failed or its removals were not applied.
+- `objects`: Objects the destination held after the last listing or feed page.
+- `checked_seq`: The last sequence the copy check read changes up to.
+- `listing_base`: Objects known when the listing in progress started, which its
+  removal guard is judged against; `None` between listings.
+- `revision`: The row revision this value was read at (0 before the first save);
+  [`LibraryStore::save_destination_feed`](#librarystoresave_destination_feed) refuses a save from an older
+  one.
+
+#### DestinationFeed::new
+
+```rust
+pub fn new(destination: &str) -> Self
+```
+
+A destination never followed before: no feed read, no listing.
+
+#### DestinationFeed::next_seq
+
+```rust
+pub fn next_seq(&mut self) -> i64
+```
+
+Takes the next change sequence number.
+
+#### DestinationFeed::listing_due
+
+```rust
+pub fn listing_due(&self, now: DateTime<Utc>) -> bool
+```
+
+Whether a listing should run at `now`: one is in progress, none has
+finished yet, the feed is not healthy while a feed is in use, or the
+scheduled one is due.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### EditionAcquisition
 
 ```rust
@@ -6103,8 +6206,9 @@ pub fn wants_attempt(&self, now: DateTime<Utc>) -> bool
 ```
 
 Whether an acquire at `now` should write this copy: a pending copy
-whose delay has passed. A stored copy needs nothing, a failed one
-waits for the operator, and a pending one waits out its delay.
+whose delay has passed. A stored copy needs nothing, a failed or
+missing one waits for an acquire of its title, and a pending one
+waits out its delay.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
@@ -6724,6 +6828,279 @@ How many listings were deleted.
 ##### Errors
 
 Returns the database error.
+
+#### LibraryStore::destination_feed
+
+```rust
+pub async fn destination_feed(&self, destination: &str) -> Result<Option<DestinationFeed>>
+```
+
+How `destination`'s outside changes are followed; `None` before its
+first sync pass (or for a stored state this build does not know).
+
+##### Errors
+
+Returns an error when the read fails.
+
+#### LibraryStore::destination_feeds
+
+```rust
+pub async fn destination_feeds(&self) -> Result<Vec<DestinationFeed>>
+```
+
+Every destination's feed row, ordered by destination.
+
+##### Errors
+
+Returns an error when the read fails.
+
+#### LibraryStore::save_destination_feed
+
+```rust
+pub async fn save_destination_feed(&self, feed: &mut DestinationFeed) -> Result<()>
+```
+
+Writes `feed`, replacing the destination's row, and moves
+`feed.revision` to the revision written.
+
+The write is a compare-and-swap on the revision `feed` was read at:
+a first save inserts the row, and a later one updates it only while
+nobody else saved since. A sync pass whose lease another node took
+therefore fails at its next save instead of overwriting the new
+holder's progress.
+
+##### Errors
+
+Returns [`LibraryError::Conflict`](#libraryerror) when the row changed since
+`feed` was read, or the error of a failed write.
+
+#### LibraryStore::record_seen_objects
+
+```rust
+pub async fn record_seen_objects(
+    &self,
+    destination: &str,
+    seq: i64,
+    objects: &[SeenObject],
+    now: DateTime<Utc>,
+) -> Result<u64>
+```
+
+Records that `destination` holds `objects`, as a listing page or a
+feed page numbered `seq` reported them.
+
+Each object is marked seen at `seq`. One that is new, was removed,
+or whose size or signature differs from its row is recorded as
+changed at `seq`; an unchanged one keeps its `changed_seq`. A row a
+later page or listing already wrote is left as it is.
+
+##### Returns
+
+How many objects changed.
+
+##### Errors
+
+Returns an error when a read or a write fails.
+
+#### LibraryStore::remove_seen_objects
+
+```rust
+pub async fn remove_seen_objects(
+    &self,
+    destination: &str,
+    seq: i64,
+    keys: &[String],
+    now: DateTime<Utc>,
+) -> Result<u64>
+```
+
+Records that the objects at `keys` are gone from `destination`, as
+a feed page numbered `seq` reported. A key with no row, already
+removed, or written by a later page or listing is left alone.
+
+##### Returns
+
+How many objects were marked removed.
+
+##### Errors
+
+Returns an error when a write fails.
+
+#### LibraryStore::unlisted_object_count
+
+```rust
+pub async fn unlisted_object_count(
+    &self,
+    destination: &str,
+    listing_seq: i64,
+) -> Result<u64>
+```
+
+Objects `destination` is known to hold that the listing numbered
+`listing_seq` has not seen: the ones [`Self::finish_listing`](#librarystorefinish_listing) would
+mark removed.
+
+##### Errors
+
+Returns an error when the read fails.
+
+#### LibraryStore::known_object_count
+
+```rust
+pub async fn known_object_count(&self, destination: &str) -> Result<u64>
+```
+
+Objects `destination` is known to hold now.
+
+##### Errors
+
+Returns an error when the read fails.
+
+#### LibraryStore::finish_listing
+
+```rust
+pub async fn finish_listing(
+    &self,
+    destination: &str,
+    listing_seq: i64,
+    now: DateTime<Utc>,
+) -> Result<u64>
+```
+
+Ends the listing numbered `listing_seq` of `destination`: every
+object it did not see is marked removed at `listing_seq`.
+
+##### Returns
+
+How many objects were marked removed.
+
+##### Errors
+
+Returns an error when the write fails.
+
+#### LibraryStore::keep_unlisted_objects
+
+```rust
+pub async fn keep_unlisted_objects(
+    &self,
+    destination: &str,
+    listing_seq: i64,
+) -> Result<()>
+```
+
+Marks every object `destination` holds as seen by the listing
+numbered `listing_seq`, without recording a change: used when a
+listing's removals are held back, so the next listing compares
+against the same set.
+
+##### Errors
+
+Returns an error when the write fails.
+
+#### LibraryStore::changed_objects
+
+```rust
+pub async fn changed_objects(
+    &self,
+    destination: &str,
+    after: (i64, Option<&str>),
+    limit: u64,
+) -> Result<Vec<ChangedObject>>
+```
+
+Up to `limit` objects of `destination` whose rows changed after
+`after`: a change sequence, or a sequence and the last key read in
+it to continue a page. Ordered by sequence, then key.
+
+##### Errors
+
+Returns an error when the read fails.
+
+#### LibraryStore::prune_object_tombstones
+
+```rust
+pub async fn prune_object_tombstones(&self, before: DateTime<Utc>) -> Result<u64>
+```
+
+Deletes tombstones of objects removed before `before`.
+
+##### Returns
+
+How many tombstones were deleted.
+
+##### Errors
+
+Returns an error when the delete fails.
+
+#### LibraryStore::lose_copies
+
+```rust
+pub async fn lose_copies(
+    &self,
+    destination: &str,
+    keys: &[String],
+    action: MissingFileAction,
+    now: DateTime<Utc>,
+) -> Result<LostCopies>
+```
+
+Records that the files at `keys` are gone from `destination`.
+
+Every stored copy whose primary audio key is one of them is looked
+at. When another audio file of its edition is recorded at the
+destination (`edition_files`) and the destination still holds it
+(the file was moved or renamed), the copy now names that key.
+Otherwise `action` decides:
+
+- [`MissingFileAction::Restore`]: the copy turns pending, due at
+  `now`, so the next copy retry writes it again.
+- [`MissingFileAction::MarkMissing`]: the copy turns missing and is
+  left alone. When no destination holds a stored copy of the edition
+  any more, the edition is no longer acquired (its title's acquire
+  status turns not acquired), so a member can ask for it again.
+
+##### Errors
+
+Returns an error when a read or a write fails.
+
+#### LibraryStore::release_missing_editions
+
+```rust
+pub async fn release_missing_editions(&self, destination: &str) -> Result<u64>
+```
+
+Releases every edition with a missing copy at `destination` that is
+still acquired although no destination holds a stored copy of it:
+the state a failed release in [`Self::lose_copies`](#librarystorelose_copies) leaves behind,
+since the copy is already missing and no later loss names it.
+
+##### Returns
+
+How many editions turned not acquired.
+
+##### Errors
+
+Returns an error when a read or a write fails.
+
+#### LibraryStore::unlisted_copy_keys
+
+```rust
+pub async fn unlisted_copy_keys(&self, destination: &str) -> Result<(Vec<String>, u64)>
+```
+
+The primary audio keys of `destination`'s stored copies that have no
+present object row there: files a finished listing did not see
+(including ones that were gone before the destination was first
+listed, which leave no tombstone), in key order.
+
+##### Returns
+
+The missing keys, and how many distinct keys the destination's stored
+copies name.
+
+##### Errors
+
+Returns an error when a read fails.
 
 #### LibraryStore::replace_discover_candidates
 
@@ -14654,6 +15031,29 @@ Returns an error when the operation fails.
 
 Implements: `Clone`, `Debug`
 
+### LostCopies
+
+```rust
+pub struct LostCopies {
+    pub restoring: u64,
+    pub missing: u64,
+    pub not_acquired: u64,
+}
+```
+
+What [`LibraryStore::lose_copies`](#librarystorelose_copies) did with the stored copies whose file
+is gone.
+
+**Fields**
+
+- `restoring`: Copies that turned pending for the copy retry to write again
+  (`output.missing_files = restore`).
+- `missing`: Copies marked missing (`output.missing_files = mark_missing`).
+- `not_acquired`: Editions that turned not acquired because no destination holds a
+  stored copy of them any more.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Eq`, `PartialEq`
+
 ### NewBook
 
 ```rust
@@ -14983,6 +15383,30 @@ One title a storefront scan reported.
   only the flat row is known.
 
 Implements: `Clone`, `Debug`, `From<NewBook>`
+
+### SeenObject
+
+```rust
+pub struct SeenObject {
+    pub key: String,
+    pub size: u64,
+    pub signature: Option<String>,
+    pub modified_at_ms: Option<u64>,
+}
+```
+
+One object as a listing or a change feed reports it.
+
+**Fields**
+
+- `key`: The object's key at the destination.
+- `size`: Object size in bytes.
+- `signature`: The backend's opaque change signature, else its entity tag; `None`
+  when it gave neither, and then a change of size alone counts as a
+  change.
+- `modified_at_ms`: Last modification time in UTC unix milliseconds, when known.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ### StoreCallHit
 
@@ -16690,6 +17114,7 @@ pub enum CopyState {
     Stored,
     Pending,
     Failed,
+    Missing,
 }
 ```
 
@@ -16702,11 +17127,14 @@ Where an edition's copy at one destination stands.
   retried once its delay has passed.
 - `Failed`: The copy failed [`MAX_COPY_ATTEMPTS`](#max_copy_attempts) times in a row and is no
   longer retried on its own.
+- `Missing`: The destination's file disappeared outside Bookclerk and
+  `output.missing_files` is `mark_missing`: the copy is left alone
+  until an acquire of the title writes it again.
 
 #### CopyState::ALL
 
 ```rust
-pub const ALL: [Self; 3] = _
+pub const ALL: [Self; 4] = _
 ```
 
 Every state, in stored order (the `edition_copies.state` CHECK list).
@@ -16772,6 +17200,56 @@ pub fn key(&self) -> String
 The subject's stored key, the inverse of [`Self::parse`](#discoversubjectparse).
 
 Implements: `Clone`, `Debug`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`
+
+### FeedState
+
+```rust
+pub enum FeedState {
+    Off,
+    Healthy,
+    Gap,
+    Failing,
+}
+```
+
+The state of a destination's change feed.
+
+**Variants**
+
+- `Off`: The destination's plugin has no change feed (or it is not turned
+  on); scheduled listings alone notice outside changes.
+- `Healthy`: The feed answered and said it missed nothing; listings run rarely.
+- `Gap`: The feed said it may have missed changes; a listing runs at once.
+- `Failing`: Reading the feed failed; a listing runs at once and the feed is
+  tried again on the next pass.
+
+#### FeedState::ALL
+
+```rust
+pub const ALL: [Self; 4] = _
+```
+
+Every state, in stored order (the `destination_feeds.feed_state`
+CHECK list).
+
+#### FeedState::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+The stored spelling.
+
+#### FeedState::parse
+
+```rust
+pub fn parse(stored: &str) -> Option<Self>
+```
+
+The state a stored spelling names; `None` for one this build does
+not know.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`
 
 ### FileOwner
 
@@ -19229,6 +19707,14 @@ pub const MAX_QUEUE_REASONS: usize = 6;
 
 Most taste reasons one stored row keeps, so a row stays small whatever
 the ranking explains.
+
+### OBJECT_TOMBSTONE_DAYS
+
+```rust
+pub const OBJECT_TOMBSTONE_DAYS: i64 = 30;
+```
+
+Days a removed object's tombstone is kept for readers that page changes.
 
 ### CLAIM_REDEEM_NONCE_HEX_LEN
 

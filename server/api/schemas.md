@@ -1688,6 +1688,13 @@ PUT body for the host-wide second-factor policy.
 
 - `require_second_factor` *boolean*, **required** — When true, password login requires TOTP or the user must use a passkey.
 
+## MissingFileAction
+
+What happens to a stored copy whose file disappears from its destination
+outside Bookclerk (noticed by the destination's change feed or listing).
+
+Type: one of `mark_missing`, `restore`
+
 ## MultiDestinationMode
 
 Behavior when some output destinations already have a title and others do not.
@@ -2137,6 +2144,7 @@ instead of being silently truncated on the next write.
 - `chapter_layout` *string*, **required** — Preferred chapter API layout (`tree`, `flat`, or `both`).
 - `overwrite_existing` *boolean*, **required** — Re-acquire when media already exists at the destination.
 - `multi_destination` *[`MultiDestinationMode`](#multidestinationmode)*, **required** — Policy when only some enabled destinations have a title.
+- `missing_files` *[`MissingFileAction`](#missingfileaction)* — What happens to a stored copy whose file disappears from its destination outside Bookclerk. Absent in documents written before the setting existed, which read as the default.
 - `bad_book_action` *[`BadBookAction`](#badbookaction)*, **required** — Operator action when a title fails to acquire.
 - `split_mp3_max_mb` *integer (int32)*, **required** — Max MP3 part size in MiB for `split_mp3_by_size`. At least 0.
 - `minimum_file_duration_minutes` *integer (int32)*, **required** — Drop chapter splits shorter than this many minutes. At least 0.
@@ -2653,6 +2661,7 @@ One plugin instance with its schema, document, and deployments.
 - `config` *[`InstanceConfigView`](#instanceconfigview) or null* — Current document, when the instance has one.
 - `deployments` *array of [`PluginDeploymentView`](#plugindeploymentview)*, **required** — Deployment rows across nodes.
 - `placement` *[`PlacementView`](#placementview) or null* — Scheduler placement; absent when the instance is hand-managed.
+- `storage_sync` *[`StorageSyncView`](#storagesyncview) or null* — How outside changes at this destination are followed; absent until a storage instance's first sync pass.
 
 ## PluginPlacementChanged
 
@@ -2716,6 +2725,7 @@ Settings UI group for one discovered or loaded plugin.
 - `config_revision` *integer (int64) or null* — Instance document revision for compare-and-swap writes.
 - `deployment` *[`PluginDeploymentView`](#plugindeploymentview) or null* — This node's deployment of the instance, when one exists.
 - `placement` *[`PlacementView`](#placementview) or null* — Scheduler placement; absent when the instance is hand-managed (the Enabled switch applies only then).
+- `storage_sync` *[`StorageSyncView`](#storagesyncview) or null* — How outside changes at this destination are followed; absent for other plugins and before a destination's first sync pass.
 - `present_on` *array of string* — Nodes whose deployment of the instance is `present`.
 
 ## PluginUninstalled
@@ -3558,6 +3568,26 @@ Library and daemon snapshot for `GET /api/status`.
 A fresh second factor for a shared branch consent. `Debug` prints no code.
 
 Type: object
+
+## StorageFeedState
+
+The state of a destination's change feed, as the API reports it.
+
+Type: one of `off`, `healthy`, `gap`, `failing`
+
+## StorageSyncView
+
+How a destination notices changes made outside Bookclerk: its change
+feed's state and its listings (storage destinations ADR, decision 5).
+
+- `feed_state` *[`StorageFeedState`](#storagefeedstate)*, **required** — The change feed's state: `off` (no feed; listings alone), `healthy`, `gap` (the feed may have missed changes; a listing runs at once) or `failing` (reading the feed failed; listings cover it).
+- `feed_error` *string or null* — The last feed failure.
+- `feed_checked_at` *string or null* — RFC 3339 time the feed was last read.
+- `listed_at` *string or null* — RFC 3339 time the last listing finished.
+- `next_listing_at` *string or null* — RFC 3339 time the next scheduled listing is due.
+- `listing_in_progress` *boolean*, **required** — True while a listing is in progress (it continues on the next pass).
+- `listing_error` *string or null* — Why the last listing failed or its removals were held back.
+- `objects` *integer (int64)*, **required** — Files the destination held after the last listing or feed page. At least 0.
 
 ## StoredReportView
 

@@ -4128,6 +4128,7 @@ pub struct OutputSettingsV1 {
     pub chapter_layout: String,
     pub overwrite_existing: bool,
     pub multi_destination: MultiDestinationMode,
+    pub missing_files: MissingFileAction,
     pub bad_book_action: BadBookAction,
     pub split_mp3_max_mb: u32,
     pub minimum_file_duration_minutes: u32,
@@ -4181,6 +4182,9 @@ instead of being silently truncated on the next write.
 - `chapter_layout`: Preferred chapter API layout (`tree`, `flat`, or `both`).
 - `overwrite_existing`: Re-acquire when media already exists at the destination.
 - `multi_destination`: Policy when only some enabled destinations have a title.
+- `missing_files`: What happens to a stored copy whose file disappears from its
+  destination outside Bookclerk. Absent in documents written before
+  the setting existed, which read as the default.
 - `bad_book_action`: Operator action when a title fails to acquire.
 - `split_mp3_max_mb`: Max MP3 part size in MiB for `split_mp3_by_size`.
 - `minimum_file_duration_minutes`: Drop chapter splits shorter than this many minutes.

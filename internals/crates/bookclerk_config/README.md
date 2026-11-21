@@ -86,6 +86,7 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`OidcProvisionMode`](#oidcprovisionmode) | enum | How an upstream provider decides who may become a first-party User. |
 | [`ResolveOperatorTokenEnv`](#resolveoperatortokenenv) | enum | How an operator token was resolved from env (config-layer only). |
 | [`BadBookAction`](#badbookaction) | enum | How to handle acquire failures (`BadBook` setting). |
+| [`MissingFileAction`](#missingfileaction) | enum | What happens to a stored copy whose file disappears from its destination outside Bookclerk (noticed by the destination's change feed or listing). |
 | [`MultiDestinationMode`](#multidestinationmode) | enum | Behavior when some output destinations already have a title and others do not. |
 | [`CopyFormat`](#copyformat) | enum | The format of one copy of a book. |
 | [`PathLengthMeasure`](#pathlengthmeasure) | enum | How to measure path component length when truncating. |
@@ -1418,6 +1419,7 @@ pub struct OutputConfig {
     pub chapter_layout: String,
     pub overwrite_existing: bool,
     pub multi_destination: MultiDestinationMode,
+    pub missing_files: MissingFileAction,
     pub in_progress: Option<PathBuf>,
     pub bad_book_action: BadBookAction,
     pub split_mp3_max_mb: u32,
@@ -1474,6 +1476,8 @@ in `config.toml`.
 - `multi_destination`: When multiple destinations are enabled and only some already have the
   title: copy from a present dest, re-fetch into missing only, or re-fetch
   into every destination.
+- `missing_files`: What happens to a stored copy whose file disappears from its
+  destination outside Bookclerk.
 - `in_progress`: Scratch directory for in-progress work; relative to files_dir.
 - `bad_book_action`: Operator action when a title fails to acquire (`ask` / `abort` / `retry` / `ignore`).
 - `split_mp3_max_mb`: Max MP3 part size in MiB when format is `split_mp3_by_size`.
@@ -3364,6 +3368,44 @@ How to handle acquire failures (`BadBook` setting).
 - `Abort`: Stop the acquire batch on the first hard failure.
 - `Retry`: Retry the failed title before giving up.
 - `Ignore`: Skip the failed title and continue the batch.
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
+
+### MissingFileAction
+
+```rust
+pub enum MissingFileAction {
+    MarkMissing,
+    Restore,
+}
+```
+
+What happens to a stored copy whose file disappears from its destination
+outside Bookclerk (noticed by the destination's change feed or listing).
+
+**Variants**
+
+- `MarkMissing`: The copy is marked missing and left alone. When no destination holds
+  the edition any more, it is no longer acquired, so a member can ask
+  for it again. Default.
+- `Restore`: The copy turns pending and the background retry writes it again.
+
+#### MissingFileAction::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+The stored spelling.
+
+#### MissingFileAction::parse
+
+```rust
+pub fn parse(value: &str) -> Option<Self>
+```
+
+The action a spelling names, ignoring ASCII case and taking `-` for
+`_`; `None` for any other value.
 
 Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 

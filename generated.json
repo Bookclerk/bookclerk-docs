@@ -167,6 +167,8 @@
     "internals/crates/bookclerk_library/entities/contributors",
     "internals/crates/bookclerk_library/entities/copy_grants",
     "internals/crates/bookclerk_library/entities/credits",
+    "internals/crates/bookclerk_library/entities/destination_feeds",
+    "internals/crates/bookclerk_library/entities/destination_objects",
     "internals/crates/bookclerk_library/entities/discover_candidates",
     "internals/crates/bookclerk_library/entities/discover_feeds",
     "internals/crates/bookclerk_library/entities/discover_fetches",

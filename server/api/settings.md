@@ -131,6 +131,16 @@ Status `200`: The settings.
         "scheduled_at": "2026-10-28T19:07:00Z",
         "updated_at": "2026-10-28T19:05:00Z"
       },
+      "storage_sync": {
+        "feed_state": "off",
+        "feed_error": "the notification queue refused the request: access denied",
+        "feed_checked_at": "2026-11-20T21:00:00Z",
+        "listed_at": "2026-11-20T18:00:00Z",
+        "next_listing_at": "2026-11-21T00:00:00Z",
+        "listing_in_progress": false,
+        "listing_error": "the listing missed 412 of 1832 known files; removals were not applied",
+        "objects": 1832
+      },
       "present_on": [
         "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a"
       ]
@@ -555,6 +565,86 @@ Schema:
                     "type": "string",
                     "description": "RFC 3339 time of the last intent write.",
                     "example": "2026-10-28T19:05:00Z"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "storage_sync": {
+            "oneOf": [
+              {
+                "type": "object",
+                "description": "How outside changes at this destination are followed; absent for\nother plugins and before a destination's first sync pass.",
+                "required": [
+                  "feed_state",
+                  "listing_in_progress",
+                  "objects"
+                ],
+                "properties": {
+                  "feed_state": {
+                    "type": "string",
+                    "description": "The change feed's state: `off` (no feed; listings alone), `healthy`,\n`gap` (the feed may have missed changes; a listing runs at once) or\n`failing` (reading the feed failed; listings cover it).",
+                    "enum": [
+                      "off",
+                      "healthy",
+                      "gap",
+                      "failing"
+                    ]
+                  },
+                  "feed_error": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "The last feed failure.",
+                    "example": "the notification queue refused the request: access denied"
+                  },
+                  "feed_checked_at": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "RFC 3339 time the feed was last read.",
+                    "example": "2026-11-20T21:00:00Z"
+                  },
+                  "listed_at": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "RFC 3339 time the last listing finished.",
+                    "example": "2026-11-20T18:00:00Z"
+                  },
+                  "next_listing_at": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "RFC 3339 time the next scheduled listing is due.",
+                    "example": "2026-11-21T00:00:00Z"
+                  },
+                  "listing_in_progress": {
+                    "type": "boolean",
+                    "description": "True while a listing is in progress (it continues on the next\npass).",
+                    "example": false
+                  },
+                  "listing_error": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Why the last listing failed or its removals were held back.",
+                    "example": "the listing missed 412 of 1832 known files; removals were not applied"
+                  },
+                  "objects": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "Files the destination held after the last listing or feed page.",
+                    "example": 1832,
+                    "minimum": 0
                   }
                 }
               },
@@ -902,6 +992,16 @@ Status `200`: The settings after the change.
         "scheduled_at": "2026-10-28T19:07:00Z",
         "updated_at": "2026-10-28T19:05:00Z"
       },
+      "storage_sync": {
+        "feed_state": "off",
+        "feed_error": "the notification queue refused the request: access denied",
+        "feed_checked_at": "2026-11-20T21:00:00Z",
+        "listed_at": "2026-11-20T18:00:00Z",
+        "next_listing_at": "2026-11-21T00:00:00Z",
+        "listing_in_progress": false,
+        "listing_error": "the listing missed 412 of 1832 known files; removals were not applied",
+        "objects": 1832
+      },
       "present_on": [
         "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a"
       ]
@@ -1326,6 +1426,86 @@ Schema:
                     "type": "string",
                     "description": "RFC 3339 time of the last intent write.",
                     "example": "2026-10-28T19:05:00Z"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "storage_sync": {
+            "oneOf": [
+              {
+                "type": "object",
+                "description": "How outside changes at this destination are followed; absent for\nother plugins and before a destination's first sync pass.",
+                "required": [
+                  "feed_state",
+                  "listing_in_progress",
+                  "objects"
+                ],
+                "properties": {
+                  "feed_state": {
+                    "type": "string",
+                    "description": "The change feed's state: `off` (no feed; listings alone), `healthy`,\n`gap` (the feed may have missed changes; a listing runs at once) or\n`failing` (reading the feed failed; listings cover it).",
+                    "enum": [
+                      "off",
+                      "healthy",
+                      "gap",
+                      "failing"
+                    ]
+                  },
+                  "feed_error": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "The last feed failure.",
+                    "example": "the notification queue refused the request: access denied"
+                  },
+                  "feed_checked_at": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "RFC 3339 time the feed was last read.",
+                    "example": "2026-11-20T21:00:00Z"
+                  },
+                  "listed_at": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "RFC 3339 time the last listing finished.",
+                    "example": "2026-11-20T18:00:00Z"
+                  },
+                  "next_listing_at": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "RFC 3339 time the next scheduled listing is due.",
+                    "example": "2026-11-21T00:00:00Z"
+                  },
+                  "listing_in_progress": {
+                    "type": "boolean",
+                    "description": "True while a listing is in progress (it continues on the next\npass).",
+                    "example": false
+                  },
+                  "listing_error": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Why the last listing failed or its removals were held back.",
+                    "example": "the listing missed 412 of 1832 known files; removals were not applied"
+                  },
+                  "objects": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "Files the destination held after the last listing or feed page.",
+                    "example": 1832,
+                    "minimum": 0
                   }
                 }
               },
