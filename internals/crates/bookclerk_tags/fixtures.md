@@ -8,6 +8,8 @@ the reader.
 | --- | --- | --- |
 | [`mp4_box`](#mp4_box) | function | A box of `kind` around `body`. |
 | [`tagged_m4b`](#tagged_m4b) | function | An M4B: ftyp, an mdat with fake audio and two chapter samples, then moov with an audio track, a text chapter track, chpl and ilst. |
+| [`tagged_m4b_with_audio_config`](#tagged_m4b_with_audio_config) | function | `tagged_m4b` whose `mp4a` sample entry carries `asc` as its MPEG-4 `AudioSpecificConfig` (stereo, 44.1 kHz in the entry itself). |
+| [`tagged_m4b_with_sample_entry`](#tagged_m4b_with_sample_entry) | function | `tagged_m4b` whose audio sample entry is of type `kind` (stereo, 44.1 kHz in the entry itself) with `child` as its one child box. |
 | [`tagged_mp3`](#tagged_mp3) | function | A tagged MP3: an ID3v2.4 tag and a few silent frames. |
 | [`vorbis_comments`](#vorbis_comments) | function | A Vorbis comment block body (vendor `vendor`) holding `items`. |
 | [`tagged_flac`](#tagged_flac) | function | A FLAC file: 10 s at 44.1 kHz, three comments, two chapters, a cover. |
@@ -36,6 +38,33 @@ pub fn tagged_m4b() -> Vec<u8>
 
 An M4B: ftyp, an mdat with fake audio and two chapter samples, then
 moov with an audio track, a text chapter track, chpl and ilst.
+
+#### Panics
+
+Never: the fixed sizes all fit their fields.
+
+### tagged_m4b_with_audio_config
+
+```rust
+pub fn tagged_m4b_with_audio_config(asc: &[u8]) -> Vec<u8>
+```
+
+[`tagged_m4b`](#tagged_m4b) whose `mp4a` sample entry carries `asc` as its MPEG-4
+`AudioSpecificConfig` (stereo, 44.1 kHz in the entry itself).
+
+#### Panics
+
+When `asc` is longer than 100 bytes, which a one-byte descriptor length
+cannot hold here.
+
+### tagged_m4b_with_sample_entry
+
+```rust
+pub fn tagged_m4b_with_sample_entry(kind: &[u8; 4], child: &[u8]) -> Vec<u8>
+```
+
+[`tagged_m4b`](#tagged_m4b) whose audio sample entry is of type `kind` (stereo,
+44.1 kHz in the entry itself) with `child` as its one child box.
 
 #### Panics
 

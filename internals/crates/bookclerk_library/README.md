@@ -152,6 +152,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`AcquireTitlePage`](#acquiretitlepage) | struct | One page of `LibraryStore::acquire_titles_page`. |
 | [`AcquiredTitleKey`](#acquiredtitlekey) | struct | One account's title of an edition acquired with a stored file, without its metadata. |
 | [`AcquiredTitleKeyPage`](#acquiredtitlekeypage) | struct | One page of `AcquiredTitleKey`s. |
+| [`AudioStream`](#audiostream) | struct | What a probe found about the audio stream of one file, besides its `FileProbe`: the encoding, channels, sample rate and the running time a player sees. |
 | [`BookPage`](#bookpage) | struct | One page of books plus the unpaged match count. |
 | [`CandidateRef`](#candidateref) | struct | One title a store returned for a subject, as written: the shared listing it is, plus why the subject got it. |
 | [`CatalogEnrichmentFields`](#catalogenrichmentfields) | struct | Durable catalog enrichment fields (blurbs, subjects, provenance). |
@@ -172,6 +173,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`NewListeningProgress`](#newlisteningprogress) | struct | Input for upserting listening progress. |
 | [`NewTitleRequest`](#newtitlerequest) | struct | Input for creating a title request / wishlist row. |
 | [`NewTitleRequestSource`](#newtitlerequestsource) | struct | Input for upserting a per-storefront wishlist snapshot. |
+| [`ProbedAudioFile`](#probedaudiofile) | struct | One audio file of an edition as `LibraryStore::edition_audio_files` reads it back. |
 | [`QueueRank`](#queuerank) | struct | The taste ranking of one queue entry, as the ranking job computed it. |
 | [`SavedFilterRecord`](#savedfilterrecord) | struct | Saved Lucene-style quick filter. |
 | [`ScannedTitle`](#scannedtitle) | struct | One title a storefront scan reported. |
@@ -5958,6 +5960,44 @@ One page of [`AcquiredTitleKey`](#acquiredtitlekey)s.
 
 Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
 
+### AudioStream
+
+```rust
+pub struct AudioStream {
+    pub codec: Option<AudioCodec>,
+    pub format: AudioFormat,
+    pub duration_ms: Option<u64>,
+}
+```
+
+What a probe found about the audio stream of one file, besides its
+[`FileProbe`]: the encoding, channels, sample rate and the running time
+a player sees.
+
+Each value is `None` when the file's headers do not state it; nothing
+is decoded to find them.
+
+**Fields**
+
+- `codec`: The audio encoding.
+- `format`: Channels, sample rate and, for AAC, the profile.
+- `duration_ms`: The playable running time in milliseconds, as the container states
+  it after edit lists and encoder priming; never zero
+  ([`Self::is_well_formed`](#audiostreamis_well_formed)).
+
+#### AudioStream::is_well_formed
+
+```rust
+pub fn is_well_formed(&self) -> bool
+```
+
+True when every stated value is in range: channels and a sample
+rate above zero and within the tag reader's limits, an AAC profile
+only on AAC, and a running time above zero that a database integer
+holds and [`bookclerk_tags::MAX_DURATION_MS`](../bookclerk_tags/README.md#max_duration_ms) allows.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Eq`, `PartialEq`
+
 ### BookPage
 
 ```rust
@@ -7964,6 +8004,48 @@ a later write replaced.
 ##### Errors
 
 Returns an error when `probe` is not well formed or the write fails.
+
+#### LibraryStore::set_edition_file_stream
+
+```rust
+pub async fn set_edition_file_stream(
+    &self,
+    destination: &str,
+    key: &str,
+    owner: &FileOwner,
+    stream: &AudioStream,
+) -> Result<bool>
+```
+
+Stores what a probe found about the audio stream of `owner`'s file
+at `key` on `destination` ([`AudioStream`](#audiostream)), beside the probe
+[`Self::set_edition_file_probe`](#librarystoreset_edition_file_probe) stores.
+
+The row is changed only while `owner` still holds the key, as for
+the probe.
+
+##### Returns
+
+`true` when the row was `owner`'s and now carries `stream`.
+
+##### Errors
+
+Returns an error when `stream` is not well formed
+([`AudioStream::is_well_formed`](#audiostreamis_well_formed)) or the write fails.
+
+#### LibraryStore::edition_audio_files
+
+```rust
+pub async fn edition_audio_files(&self, edition_id: &str) -> Result<Vec<ProbedAudioFile>>
+```
+
+Every audio file (primary audio, parts and chapters) recorded for
+edition `edition_id`, on every destination, with what the last probe
+of each found ([`ProbedAudioFile`](#probedaudiofile)), in destination then key order.
+
+##### Errors
+
+Returns an error when the read fails.
 
 #### LibraryStore::edition_file_probe
 
@@ -15326,6 +15408,36 @@ pub fn decode_html_entities(&mut self)
 Decode HTML entities in human-readable metadata fields.
 
 Implements: `Clone`, `Debug`, `Default`
+
+### ProbedAudioFile
+
+```rust
+pub struct ProbedAudioFile {
+    pub destination: String,
+    pub storage_key: String,
+    pub role: FileRole,
+    pub copy: Option<OutputCopy>,
+    pub probe: Option<FileProbe>,
+    pub stream: AudioStream,
+}
+```
+
+One audio file of an edition as [`LibraryStore::edition_audio_files`](#librarystoreedition_audio_files)
+reads it back.
+
+**Fields**
+
+- `destination`: Output destination id (`local`, `s3`).
+- `storage_key`: Storage key on that destination.
+- `role`: Primary audio, a part or a chapter file.
+- `copy`: The library copy (`output.copies`) the file belongs to; `None` for
+  an upload or a copy this build cannot read.
+- `probe`: What the last probe found; `None` until the file has been probed.
+- `stream`: What the last probe found about the stream; all `None` until the
+  file has been probed, or for a probe from before streams were
+  stored.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ### QueueRank
 

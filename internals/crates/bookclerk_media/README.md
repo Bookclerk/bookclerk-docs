@@ -551,6 +551,9 @@ pub struct AudioProbe {
     pub content_type: &'static str,
     pub bitrate_kbps: Option<u32>,
     pub lossless: bool,
+    pub codec: Option<AudioCodec>,
+    pub format: AudioFormat,
+    pub duration_ms: Option<u64>,
 }
 ```
 
@@ -565,6 +568,13 @@ What a probe found in one audio file.
   no running time.
 - `lossless`: True when the audio encoding is lossless (FLAC, ALAC). An MP4 file
   whose encoding the reader does not know counts as lossy.
+- `codec`: The audio encoding, when the tag reader knows it.
+- `format`: Channels, sample rate and AAC profile, as far as the headers state
+  them.
+- `duration_ms`: The running time a player sees, in milliseconds, as the container
+  states it (an MP4's movie duration, which edit lists shape; an Opus
+  stream's samples past its pre-skip). `None` when the file states
+  none, never zero.
 
 #### AudioProbe::from_record
 

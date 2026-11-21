@@ -24,6 +24,7 @@ FLAC (Vorbis comments, `PICTURE`, `STREAMINFO`) and Ogg Opus or Vorbis
 | Item | Kind | Summary |
 | --- | --- | --- |
 | [`TagReader`](#tagreader) | struct | Reads one file's tags, asking for the bytes it needs. |
+| [`AudioFormat`](#audioformat) | struct | What a stream's headers state about its audio, besides the codec. |
 | [`Chapter`](#chapter) | struct | One chapter mark. |
 | [`Duration`](#duration) | struct | A running time and how it was found. |
 | [`EmbeddedCover`](#embeddedcover) | struct | Where the embedded cover is and what it is, without its bytes. |
@@ -33,6 +34,7 @@ FLAC (Vorbis comments, `PICTURE`, `STREAMINFO`) and Ogg Opus or Vorbis
 | [`TagRecord`](#tagrecord) | struct | The metadata one file carries in its own container. |
 | [`ByteSpan`](#bytespan) | struct | A range of bytes in a file. |
 | [`Poll`](#poll) | enum | What `TagReader::poll` wants next. |
+| [`AacProfile`](#aacprofile) | enum | The AAC profiles a library tells apart, from the audio object type of an MPEG-4 `AudioSpecificConfig`. |
 | [`AudioCodec`](#audiocodec) | enum | The audio encodings the reader tells apart. |
 | [`ChapterSource`](#chaptersource) | enum | Which structure a file's chapters were read from. |
 | [`Container`](#container) | enum | The container formats the reader understands. |
@@ -42,7 +44,9 @@ FLAC (Vorbis comments, `PICTURE`, `STREAMINFO`) and Ogg Opus or Vorbis
 | [`TagField`](#tagfield) | enum | The field a `TagEntry` fills. |
 | [`TagError`](#tagerror) | enum | Why a file's tags could not be read. |
 | [`read_all`](#read_all) | function | Reads a whole in-memory file in one pass. |
+| [`MAX_CHANNELS`](#max_channels) | constant | Most channels a record may claim: above any layout an audiobook or a surround mix uses, so a larger value means a corrupt header. |
 | [`MAX_DURATION_MS`](#max_duration_ms) | constant | Longest running time a record may claim: 10,000 hours, in milliseconds. |
+| [`MAX_SAMPLE_RATE_HZ`](#max_sample_rate_hz) | constant | Highest sample rate a record may claim, in hertz (768 kHz, the top of any PCM or FLAC stream). |
 | [`REGION_HASH_VERSION`](#region_hash_version) | constant | Version of the region digest this reader computes (`RegionDigest::version`). |
 | [`MAX_ENTRIES`](#max_entries) | constant | Most text entries a record carries; the rest are dropped and the record marked truncated. |
 | [`MAX_VALUE_BYTES`](#max_value_bytes) | constant | Longest value an entry carries, in bytes; longer values are cut at a character boundary and the record marked truncated. |
@@ -126,6 +130,41 @@ Supplies the bytes of one span the last [`Poll::Need`](#poll) asked for.
 `offset` with that length; the reader is then done with that error.
 
 Implements: `Debug`
+
+### AudioFormat
+
+```rust
+pub struct AudioFormat {
+    pub channels: Option<u8>,
+    pub sample_rate_hz: Option<u32>,
+    pub aac_profile: Option<AacProfile>,
+}
+```
+
+What a stream's headers state about its audio, besides the codec.
+
+Each value is `None` when the headers do not state it. Nothing is
+decoded to find these, so an AAC stream that signals HE-AAC only
+implicitly (in its first frames) reads as [`AacProfile::Lc`](#aacprofile).
+
+**Fields**
+
+- `channels`: Output channels: 1 for mono, 2 for stereo; at most [`MAX_CHANNELS`](#max_channels).
+- `sample_rate_hz`: Output sample rate in hertz (for HE-AAC, the rate after spectral
+  band replication; for Opus, the encoder's input rate when the stream
+  states it); at most [`MAX_SAMPLE_RATE_HZ`](#max_sample_rate_hz).
+- `aac_profile`: The AAC profile, for an AAC stream whose decoder configuration names
+  one the reader knows.
+
+#### AudioFormat::is_unknown
+
+```rust
+pub fn is_unknown(&self) -> bool
+```
+
+True when the headers stated none of the values.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
 ### Chapter
 
@@ -256,6 +295,7 @@ pub struct TagRecord {
     pub chapter_source: Option<ChapterSource>,
     pub duration: Option<Duration>,
     pub codec: Option<AudioCodec>,
+    pub format: AudioFormat,
     pub cover: Option<EmbeddedCover>,
     pub region: RegionDigest,
     pub truncated: bool,
@@ -278,6 +318,8 @@ field may appear more than once (several artists, several genres).
 - `codec`: How the audio is encoded, when the container names an encoding the
   reader knows; `None` for an MP4 file with no audio track or with one
   in another encoding.
+- `format`: Channels, sample rate and AAC profile of the audio, as far as the
+  stream's headers state them.
 - `cover`: The embedded cover picture, when there is one.
 - `region`: Digest of the bytes that hold the metadata.
 - `truncated`: True when entries, chapters or values were cut to fit the limits, so
@@ -351,6 +393,56 @@ What [`TagReader::poll`](#tagreaderpoll) wants next.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### AacProfile
+
+```rust
+pub enum AacProfile {
+    Lc,
+    He,
+    HeV2,
+    Xhe,
+}
+```
+
+The AAC profiles a library tells apart, from the audio object type of
+an MPEG-4 `AudioSpecificConfig`.
+
+**Variants**
+
+- `Lc`: AAC Low Complexity (object type 2), what most stores sell.
+- `He`: HE-AAC: AAC with spectral band replication (object type 5).
+- `HeV2`: HE-AAC v2: HE-AAC with parametric stereo (object type 29).
+- `Xhe`: Extended HE-AAC, the USAC codec (object type 42).
+
+#### AacProfile::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+The profile's name as records and the web API spell it (`lc`, `he`,
+`he_v2`, `xhe`), the same as its serialized form.
+
+#### AacProfile::parse
+
+```rust
+pub fn parse(name: &str) -> Option<Self>
+```
+
+The profile [`Self::as_str`](#aacprofileas_str) spells `name`, or `None` for a name
+this build does not know.
+
+#### AacProfile::from_object_type
+
+```rust
+pub fn from_object_type(object_type: u8) -> Option<Self>
+```
+
+The profile of MPEG-4 audio object type `object_type`, when it is
+one of the four.
+
+Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`
+
 ### AudioCodec
 
 ```rust
@@ -391,6 +483,15 @@ pub fn as_str(self) -> &'static str
 
 The codec's name as records and the web API spell it (`aac`,
 `opus`, `eac3`, ...), the same as its serialized form.
+
+#### AudioCodec::parse
+
+```rust
+pub fn parse(name: &str) -> Option<Self>
+```
+
+The codec [`Self::as_str`](#audiocodecas_str) spells `name`, or `None` for a name this
+build does not know.
 
 #### AudioCodec::is_lossless
 
@@ -530,6 +631,7 @@ pub enum RecordError {
     ChapterSource,
     Duration,
     Codec,
+    Format,
     CoverSpan,
     RegionLen,
     RegionVersion(u16),
@@ -548,6 +650,8 @@ Why a [`TagRecord`](#tagrecord) from the worker was refused.
 - `Duration`: A duration over [`MAX_DURATION_MS`](#max_duration_ms).
 - `Codec`: A codec the container cannot hold (an MP3 or FLAC file always holds
   its own).
+- `Format`: Channels or a sample rate of zero or over the limits, or an AAC
+  profile on audio that is not AAC.
 - `CoverSpan`: A cover span outside the file or of the wrong length.
 - `RegionLen`: A region digest that covers more bytes than the file has.
 - `RegionVersion`: A region digest of another version.
@@ -664,6 +768,15 @@ The [`TagError`](#tagerror) the reader would report.
 
 ## Constants
 
+### MAX_CHANNELS
+
+```rust
+pub const MAX_CHANNELS: u8 = 32;
+```
+
+Most channels a record may claim: above any layout an audiobook or a
+surround mix uses, so a larger value means a corrupt header.
+
 ### MAX_DURATION_MS
 
 ```rust
@@ -673,6 +786,15 @@ pub const MAX_DURATION_MS: u64 = _;
 Longest running time a record may claim: 10,000 hours, in milliseconds.
 
 Far beyond any real audiobook; a larger value means a corrupt header.
+
+### MAX_SAMPLE_RATE_HZ
+
+```rust
+pub const MAX_SAMPLE_RATE_HZ: u32 = 768_000;
+```
+
+Highest sample rate a record may claim, in hertz (768 kHz, the top of
+any PCM or FLAC stream).
 
 ### REGION_HASH_VERSION
 
