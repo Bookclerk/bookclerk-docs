@@ -6182,6 +6182,54 @@ title?: string | null;
 
 ***
 
+### UserAdminControls
+
+An Administrator's switches as `GET /api/users/{id}/admin-controls` reports them.
+
+#### Properties
+
+##### applies
+
+```ts
+applies: boolean;
+```
+
+True only for an Administrator; an Owner may always do everything.
+
+##### defaults
+
+```ts
+defaults: AdminControls;
+```
+
+The library's default for every Administrator.
+
+##### effective
+
+```ts
+effective: AdminControls;
+```
+
+What applies to the user now (all off for anyone who isn't an Administrator or Owner).
+
+##### overrides
+
+```ts
+overrides: AdminControlOverrides;
+```
+
+The switches set for this Administrator alone.
+
+##### user\_id
+
+```ts
+user_id: number;
+```
+
+The user.
+
+***
+
 ### UserControls
 
 A patron's member controls as `GET /api/users/{id}/controls` reports them.
@@ -6812,6 +6860,53 @@ type AcquireStatus = "not_acquired" | "queued" | "downloading" | "acquired" | "e
 ```
 
 Pipeline acquire state for a library book row.
+
+***
+
+### AdminControl
+
+```ts
+type AdminControl = 
+  | "manage_members"
+  | "set_patron_limits"
+  | "library_scan"
+  | "run_jobs"
+  | "fix_catalog"
+  | "invite_branches"
+  | "approve_requests";
+```
+
+One thing an Owner may allow or refuse an Administrator.
+
+***
+
+### AdminControlOverrides
+
+```ts
+type AdminControlOverrides = Partial<Record<AdminControl, boolean>>;
+```
+
+One Administrator's overrides; a missing switch follows the library's default.
+
+***
+
+### AdminControls
+
+```ts
+type AdminControls = Record<AdminControl, boolean>;
+```
+
+A value for every Administrator switch (`true` = allowed).
+
+***
+
+### AdminSwitchChoice
+
+```ts
+type AdminSwitchChoice = "on" | "off" | "default";
+```
+
+What a change does to one of an Administrator's switches.
 
 ***
 
@@ -8553,6 +8648,26 @@ The page and the next page's cursor.
 
 ***
 
+### getDefaultAdminControls()
+
+```ts
+function getDefaultAdminControls(): Promise<{
+  controls: AdminControls;
+}>;
+```
+
+Reads the library's default Administrator switches.
+
+#### Returns
+
+`Promise`\<\{
+  `controls`: [`AdminControls`](#admincontrols);
+\}\>
+
+The default.
+
+***
+
 ### getDefaultControls()
 
 ```ts
@@ -8590,6 +8705,28 @@ Reads the library's default patron scope.
 \}\>
 
 The default.
+
+***
+
+### getUserAdminControls()
+
+```ts
+function getUserAdminControls(id): Promise<UserAdminControls>;
+```
+
+Reads what an Administrator may do.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `id` | `number` | The user. |
+
+#### Returns
+
+`Promise`\<[`UserAdminControls`](#useradmincontrols)\>
+
+The default, the Administrator's overrides and what applies.
 
 ***
 
@@ -9035,6 +9172,35 @@ Session cookie on success, or an MFA challenge when TOTP is enabled.
 
 ***
 
+### patchDefaultAdminControls()
+
+```ts
+function patchDefaultAdminControls(changes): Promise<{
+  controls: AdminControls;
+}>;
+```
+
+Changes some of the library's default Administrator switches (Owner or operator only).
+
+Only the named switches change, so a concurrent edit of another switch
+is kept.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `changes` | `Partial`\<[`AdminControls`](#admincontrols)\> | The switches to change and their new values. |
+
+#### Returns
+
+`Promise`\<\{
+  `controls`: [`AdminControls`](#admincontrols);
+\}\>
+
+The default after the change.
+
+***
+
 ### patchPreferences()
 
 ```ts
@@ -9146,6 +9312,32 @@ Updates a first-party user role, status, or profile fields.
 `Promise`\<[`UserMutationResponse`](#usermutationresponse)\>
 
 Patched user row.
+
+***
+
+### patchUserAdminControls()
+
+```ts
+function patchUserAdminControls(id, changes): Promise<UserAdminControls>;
+```
+
+Changes some switches for one Administrator (Owner or operator only).
+
+Only the named switches change, so a concurrent edit of another switch
+is kept.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `id` | `number` | The user. |
+| `changes` | `Partial`\<`Record`\<[`AdminControl`](#admincontrol), [`AdminSwitchChoice`](#adminswitchchoice)\>\> | `on` or `off` for them alone, or `default` to follow the library's default. |
+
+#### Returns
+
+`Promise`\<[`UserAdminControls`](#useradmincontrols)\>
+
+The switches after the change.
 
 ***
 

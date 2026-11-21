@@ -4888,6 +4888,1455 @@ Schema:
 
 A `text/plain` body: a string.
 
+## `GET /api/users/default-admin-controls`
+
+Reads the library's default Administrator switches.
+
+**Access:** No auth layer. Routes that need a caller say so in `security`; the handler checks it.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Responses
+
+- `200` — The default switches. Body: [`DefaultAdminControlsJson`](schemas.md#defaultadmincontrolsjson) (`application/json`)
+  - `controls` *[`AdminControls`](schemas.md#admincontrols)*, **required** — The switches every Administrator follows unless set for them alone.
+- `401` — The caller is not signed in. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `403` — The caller is not an Owner or Administrator. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The switches could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/users/default-admin-controls' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/users/default-admin-controls' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/users/default-admin-controls",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/users/default-admin-controls", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/users/default-admin-controls")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The default switches.
+
+```json
+{
+  "controls": {
+    "manage_members": true,
+    "set_patron_limits": true,
+    "library_scan": false,
+    "run_jobs": true,
+    "fix_catalog": true,
+    "invite_branches": true,
+    "approve_requests": true
+  }
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "The library's default Administrator switches as the switch routes\nreport them.",
+  "required": [
+    "controls"
+  ],
+  "properties": {
+    "controls": {
+      "type": "object",
+      "description": "The switches every Administrator follows unless set for them alone.",
+      "properties": {
+        "manage_members": {
+          "type": "boolean",
+          "description": "May manage Members ([`AdminControl::ManageMembers`]).",
+          "example": true
+        },
+        "set_patron_limits": {
+          "type": "boolean",
+          "description": "May set patron limits ([`AdminControl::SetPatronLimits`]).",
+          "example": true
+        },
+        "library_scan": {
+          "type": "boolean",
+          "description": "May scan and acquire library-wide ([`AdminControl::LibraryScan`]).",
+          "example": false
+        },
+        "run_jobs": {
+          "type": "boolean",
+          "description": "May run the job queue ([`AdminControl::RunJobs`]).",
+          "example": true
+        },
+        "fix_catalog": {
+          "type": "boolean",
+          "description": "May fix the catalog ([`AdminControl::FixCatalog`]).",
+          "example": true
+        },
+        "invite_branches": {
+          "type": "boolean",
+          "description": "May invite branches ([`AdminControl::InviteBranches`]).",
+          "example": true
+        },
+        "approve_requests": {
+          "type": "boolean",
+          "description": "May approve interlibrary requests ([`AdminControl::ApproveRequests`]).",
+          "example": true
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "unauthorized"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `403`: The caller is not an Owner or Administrator.
+
+```json
+{
+  "error": "forbidden"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `500`: The switches could not be read.
+
+```json
+{
+  "error": "the administrator's switches could not be read or written"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `PATCH /api/users/default-admin-controls`
+
+Changes the named default Administrator switches; the others keep
+their stored value. Every Administrator follows the change at once,
+except in the switches set for them alone. Only an Owner or the
+operator may.
+
+**Access:** No auth layer. Routes that need a caller say so in `security`; the handler checks it.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Request body
+
+`application/json`: [`PatchDefaultAdminControls`](schemas.md#patchdefaultadmincontrols)
+
+- `changes` *[`DefaultSwitchChanges`](schemas.md#defaultswitchchanges)*, **required** — The default switches to change and their new values. Switches it does not name keep their stored value, so two Owners editing different switches do not undo each other.
+
+### Responses
+
+- `200` — The default switches after the change. Body: [`DefaultAdminControlsJson`](schemas.md#defaultadmincontrolsjson) (`application/json`)
+  - `controls` *[`AdminControls`](schemas.md#admincontrols)*, **required** — The switches every Administrator follows unless set for them alone.
+- `400` — The body names a switch that does not exist. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`); string (`text/plain`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `401` — The caller is not signed in. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `403` — The caller is not an Owner or the operator. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `409` — The default kept changing underneath the write; retry. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `500` — The switches could not be written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/users/default-admin-controls' \
+    -X PATCH \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"changes": {}}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/users/default-admin-controls' `
+    -Method Patch `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{"changes": {}}'
+```
+
+```python
+import requests
+
+response = requests.patch(
+    "http://127.0.0.1:8787/api/users/default-admin-controls",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={"changes": {}},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/users/default-admin-controls", {
+  method: "PATCH",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({"changes": {}}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .patch("http://127.0.0.1:8787/api/users/default-admin-controls")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({"changes": {}}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The default switches after the change.
+
+```json
+{
+  "controls": {
+    "manage_members": true,
+    "set_patron_limits": true,
+    "library_scan": false,
+    "run_jobs": true,
+    "fix_catalog": true,
+    "invite_branches": true,
+    "approve_requests": true
+  }
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "The library's default Administrator switches as the switch routes\nreport them.",
+  "required": [
+    "controls"
+  ],
+  "properties": {
+    "controls": {
+      "type": "object",
+      "description": "The switches every Administrator follows unless set for them alone.",
+      "properties": {
+        "manage_members": {
+          "type": "boolean",
+          "description": "May manage Members ([`AdminControl::ManageMembers`]).",
+          "example": true
+        },
+        "set_patron_limits": {
+          "type": "boolean",
+          "description": "May set patron limits ([`AdminControl::SetPatronLimits`]).",
+          "example": true
+        },
+        "library_scan": {
+          "type": "boolean",
+          "description": "May scan and acquire library-wide ([`AdminControl::LibraryScan`]).",
+          "example": false
+        },
+        "run_jobs": {
+          "type": "boolean",
+          "description": "May run the job queue ([`AdminControl::RunJobs`]).",
+          "example": true
+        },
+        "fix_catalog": {
+          "type": "boolean",
+          "description": "May fix the catalog ([`AdminControl::FixCatalog`]).",
+          "example": true
+        },
+        "invite_branches": {
+          "type": "boolean",
+          "description": "May invite branches ([`AdminControl::InviteBranches`]).",
+          "example": true
+        },
+        "approve_requests": {
+          "type": "boolean",
+          "description": "May approve interlibrary requests ([`AdminControl::ApproveRequests`]).",
+          "example": true
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
+```
+
+Status `400`: The body names a switch that does not exist. As `text/plain`, when the body is not syntactically valid JSON.
+
+```json
+{
+  "error": "unknown field `fly`"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "unauthorized"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `403`: The caller is not an Owner or the operator. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "only an Owner can change what Administrators may do"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `409`: The default kept changing underneath the write; retry.
+
+```json
+{
+  "error": "core.admin_controls kept changing; retry"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: missing field `changes` at line 1 column 2
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `500`: The switches could not be written.
+
+```json
+{
+  "error": "the administrator's switches could not be read or written"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `GET /api/users/{id}/admin-controls`
+
+Reads what an Administrator may do: the library's default, their own
+overrides, and what applies. An Administrator may read their own.
+
+**Access:** No auth layer. Routes that need a caller say so in `security`; the handler checks it.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Parameters
+
+- `id` (path) *integer (int64)*, **required** — User id.
+
+### Responses
+
+- `200` — The user's switches. Body: [`UserAdminControlsJson`](schemas.md#useradmincontrolsjson) (`application/json`)
+  - `user_id` *integer (int64)*, **required** — The user (`users.id`).
+  - `defaults` *[`AdminControls`](schemas.md#admincontrols)*, **required** — The library's default for every Administrator.
+  - `overrides` *[`AdminControlOverrides`](schemas.md#admincontroloverrides)*, **required** — The switches set for this Administrator alone; the others follow the default.
+  - `effective` *[`AdminControls`](schemas.md#admincontrols)*, **required** — What applies to the user now: everything for an Owner, nothing for a disabled user or a Member, and the default with the overrides applied for an Administrator.
+  - `applies` *boolean*, **required** — Whether the switches limit the user's role: true only for an Administrator.
+- `401` — The caller is not signed in. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `403` — The caller is not an Owner, and not the Administrator asking about themselves. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `404` — No such user. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The switches could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/users/<id>/admin-controls' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/users/<id>/admin-controls' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/users/<id>/admin-controls",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/users/<id>/admin-controls", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/users/<id>/admin-controls")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The user's switches.
+
+```json
+{
+  "user_id": 4,
+  "defaults": {
+    "manage_members": true,
+    "set_patron_limits": true,
+    "library_scan": false,
+    "run_jobs": true,
+    "fix_catalog": true,
+    "invite_branches": true,
+    "approve_requests": true
+  },
+  "overrides": {
+    "manage_members": null,
+    "set_patron_limits": null,
+    "library_scan": false,
+    "run_jobs": null,
+    "fix_catalog": null,
+    "invite_branches": null,
+    "approve_requests": null
+  },
+  "effective": {
+    "manage_members": true,
+    "set_patron_limits": true,
+    "library_scan": false,
+    "run_jobs": true,
+    "fix_catalog": true,
+    "invite_branches": true,
+    "approve_requests": true
+  },
+  "applies": true
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An Administrator's switches as the switch routes report them.",
+  "required": [
+    "user_id",
+    "defaults",
+    "overrides",
+    "effective",
+    "applies"
+  ],
+  "properties": {
+    "user_id": {
+      "type": "integer",
+      "format": "int64",
+      "description": "The user (`users.id`).",
+      "example": 4
+    },
+    "defaults": {
+      "type": "object",
+      "description": "The library's default for every Administrator.",
+      "properties": {
+        "manage_members": {
+          "type": "boolean",
+          "description": "May manage Members ([`AdminControl::ManageMembers`]).",
+          "example": true
+        },
+        "set_patron_limits": {
+          "type": "boolean",
+          "description": "May set patron limits ([`AdminControl::SetPatronLimits`]).",
+          "example": true
+        },
+        "library_scan": {
+          "type": "boolean",
+          "description": "May scan and acquire library-wide ([`AdminControl::LibraryScan`]).",
+          "example": false
+        },
+        "run_jobs": {
+          "type": "boolean",
+          "description": "May run the job queue ([`AdminControl::RunJobs`]).",
+          "example": true
+        },
+        "fix_catalog": {
+          "type": "boolean",
+          "description": "May fix the catalog ([`AdminControl::FixCatalog`]).",
+          "example": true
+        },
+        "invite_branches": {
+          "type": "boolean",
+          "description": "May invite branches ([`AdminControl::InviteBranches`]).",
+          "example": true
+        },
+        "approve_requests": {
+          "type": "boolean",
+          "description": "May approve interlibrary requests ([`AdminControl::ApproveRequests`]).",
+          "example": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "overrides": {
+      "type": "object",
+      "description": "The switches set for this Administrator alone; the others follow\nthe default.",
+      "properties": {
+        "manage_members": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Overrides [`AdminControls::manage_members`].",
+          "example": null
+        },
+        "set_patron_limits": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Overrides [`AdminControls::set_patron_limits`].",
+          "example": null
+        },
+        "library_scan": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Overrides [`AdminControls::library_scan`].",
+          "example": false
+        },
+        "run_jobs": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Overrides [`AdminControls::run_jobs`].",
+          "example": null
+        },
+        "fix_catalog": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Overrides [`AdminControls::fix_catalog`].",
+          "example": null
+        },
+        "invite_branches": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Overrides [`AdminControls::invite_branches`].",
+          "example": null
+        },
+        "approve_requests": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Overrides [`AdminControls::approve_requests`].",
+          "example": null
+        }
+      },
+      "additionalProperties": false
+    },
+    "effective": {
+      "type": "object",
+      "description": "What applies to the user now: everything for an Owner, nothing for\na disabled user or a Member, and the default with the\noverrides applied for an Administrator.",
+      "properties": {
+        "manage_members": {
+          "type": "boolean",
+          "description": "May manage Members ([`AdminControl::ManageMembers`]).",
+          "example": true
+        },
+        "set_patron_limits": {
+          "type": "boolean",
+          "description": "May set patron limits ([`AdminControl::SetPatronLimits`]).",
+          "example": true
+        },
+        "library_scan": {
+          "type": "boolean",
+          "description": "May scan and acquire library-wide ([`AdminControl::LibraryScan`]).",
+          "example": false
+        },
+        "run_jobs": {
+          "type": "boolean",
+          "description": "May run the job queue ([`AdminControl::RunJobs`]).",
+          "example": true
+        },
+        "fix_catalog": {
+          "type": "boolean",
+          "description": "May fix the catalog ([`AdminControl::FixCatalog`]).",
+          "example": true
+        },
+        "invite_branches": {
+          "type": "boolean",
+          "description": "May invite branches ([`AdminControl::InviteBranches`]).",
+          "example": true
+        },
+        "approve_requests": {
+          "type": "boolean",
+          "description": "May approve interlibrary requests ([`AdminControl::ApproveRequests`]).",
+          "example": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "applies": {
+      "type": "boolean",
+      "description": "Whether the switches limit the user's role: true only for an\nAdministrator.",
+      "example": true
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "unauthorized"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `403`: The caller is not an Owner, and not the Administrator asking about themselves.
+
+```json
+{
+  "error": "only an Owner can change what Administrators may do"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `404`: No such user.
+
+```json
+{
+  "error": "user 4 not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `500`: The switches could not be read.
+
+```json
+{
+  "error": "the administrator's switches could not be read or written"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `PATCH /api/users/{id}/admin-controls`
+
+Changes the named switches for one Administrator; every switch it does
+not name keeps what it had. Only an Owner or the operator
+may, and switches stored for someone who is not an Administrator apply
+only if their role changes to Administrator.
+
+**Access:** No auth layer. Routes that need a caller say so in `security`; the handler checks it.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Parameters
+
+- `id` (path) *integer (int64)*, **required** — User id.
+
+### Request body
+
+`application/json`: [`PatchUserAdminControls`](schemas.md#patchuseradmincontrols)
+
+- `changes` *[`OverrideSwitchChanges`](schemas.md#overrideswitchchanges)*, **required** — The switches to change for this Administrator: `on` or `off` sets the switch for them alone, `default` follows the library's default again. Switches it does not name keep what they had, so two Owners editing different switches do not undo each other.
+
+### Responses
+
+- `200` — The user's switches after the change. Body: [`UserAdminControlsJson`](schemas.md#useradmincontrolsjson) (`application/json`)
+  - `user_id` *integer (int64)*, **required** — The user (`users.id`).
+  - `defaults` *[`AdminControls`](schemas.md#admincontrols)*, **required** — The library's default for every Administrator.
+  - `overrides` *[`AdminControlOverrides`](schemas.md#admincontroloverrides)*, **required** — The switches set for this Administrator alone; the others follow the default.
+  - `effective` *[`AdminControls`](schemas.md#admincontrols)*, **required** — What applies to the user now: everything for an Owner, nothing for a disabled user or a Member, and the default with the overrides applied for an Administrator.
+  - `applies` *boolean*, **required** — Whether the switches limit the user's role: true only for an Administrator.
+- `400` — The body names a switch that does not exist. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`); string (`text/plain`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `401` — The caller is not signed in. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `403` — The caller is not an Owner or the operator. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `404` — No such user. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `409` — The switches kept changing underneath the write; retry. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `500` — The switches could not be written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/users/<id>/admin-controls' \
+    -X PATCH \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"changes": {}}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/users/<id>/admin-controls' `
+    -Method Patch `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{"changes": {}}'
+```
+
+```python
+import requests
+
+response = requests.patch(
+    "http://127.0.0.1:8787/api/users/<id>/admin-controls",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={"changes": {}},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/users/<id>/admin-controls", {
+  method: "PATCH",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({"changes": {}}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .patch("http://127.0.0.1:8787/api/users/<id>/admin-controls")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({"changes": {}}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The user's switches after the change.
+
+```json
+{
+  "user_id": 4,
+  "defaults": {
+    "manage_members": true,
+    "set_patron_limits": true,
+    "library_scan": false,
+    "run_jobs": true,
+    "fix_catalog": true,
+    "invite_branches": true,
+    "approve_requests": true
+  },
+  "overrides": {
+    "manage_members": null,
+    "set_patron_limits": null,
+    "library_scan": false,
+    "run_jobs": null,
+    "fix_catalog": null,
+    "invite_branches": null,
+    "approve_requests": null
+  },
+  "effective": {
+    "manage_members": true,
+    "set_patron_limits": true,
+    "library_scan": false,
+    "run_jobs": true,
+    "fix_catalog": true,
+    "invite_branches": true,
+    "approve_requests": true
+  },
+  "applies": true
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An Administrator's switches as the switch routes report them.",
+  "required": [
+    "user_id",
+    "defaults",
+    "overrides",
+    "effective",
+    "applies"
+  ],
+  "properties": {
+    "user_id": {
+      "type": "integer",
+      "format": "int64",
+      "description": "The user (`users.id`).",
+      "example": 4
+    },
+    "defaults": {
+      "type": "object",
+      "description": "The library's default for every Administrator.",
+      "properties": {
+        "manage_members": {
+          "type": "boolean",
+          "description": "May manage Members ([`AdminControl::ManageMembers`]).",
+          "example": true
+        },
+        "set_patron_limits": {
+          "type": "boolean",
+          "description": "May set patron limits ([`AdminControl::SetPatronLimits`]).",
+          "example": true
+        },
+        "library_scan": {
+          "type": "boolean",
+          "description": "May scan and acquire library-wide ([`AdminControl::LibraryScan`]).",
+          "example": false
+        },
+        "run_jobs": {
+          "type": "boolean",
+          "description": "May run the job queue ([`AdminControl::RunJobs`]).",
+          "example": true
+        },
+        "fix_catalog": {
+          "type": "boolean",
+          "description": "May fix the catalog ([`AdminControl::FixCatalog`]).",
+          "example": true
+        },
+        "invite_branches": {
+          "type": "boolean",
+          "description": "May invite branches ([`AdminControl::InviteBranches`]).",
+          "example": true
+        },
+        "approve_requests": {
+          "type": "boolean",
+          "description": "May approve interlibrary requests ([`AdminControl::ApproveRequests`]).",
+          "example": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "overrides": {
+      "type": "object",
+      "description": "The switches set for this Administrator alone; the others follow\nthe default.",
+      "properties": {
+        "manage_members": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Overrides [`AdminControls::manage_members`].",
+          "example": null
+        },
+        "set_patron_limits": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Overrides [`AdminControls::set_patron_limits`].",
+          "example": null
+        },
+        "library_scan": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Overrides [`AdminControls::library_scan`].",
+          "example": false
+        },
+        "run_jobs": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Overrides [`AdminControls::run_jobs`].",
+          "example": null
+        },
+        "fix_catalog": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Overrides [`AdminControls::fix_catalog`].",
+          "example": null
+        },
+        "invite_branches": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Overrides [`AdminControls::invite_branches`].",
+          "example": null
+        },
+        "approve_requests": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Overrides [`AdminControls::approve_requests`].",
+          "example": null
+        }
+      },
+      "additionalProperties": false
+    },
+    "effective": {
+      "type": "object",
+      "description": "What applies to the user now: everything for an Owner, nothing for\na disabled user or a Member, and the default with the\noverrides applied for an Administrator.",
+      "properties": {
+        "manage_members": {
+          "type": "boolean",
+          "description": "May manage Members ([`AdminControl::ManageMembers`]).",
+          "example": true
+        },
+        "set_patron_limits": {
+          "type": "boolean",
+          "description": "May set patron limits ([`AdminControl::SetPatronLimits`]).",
+          "example": true
+        },
+        "library_scan": {
+          "type": "boolean",
+          "description": "May scan and acquire library-wide ([`AdminControl::LibraryScan`]).",
+          "example": false
+        },
+        "run_jobs": {
+          "type": "boolean",
+          "description": "May run the job queue ([`AdminControl::RunJobs`]).",
+          "example": true
+        },
+        "fix_catalog": {
+          "type": "boolean",
+          "description": "May fix the catalog ([`AdminControl::FixCatalog`]).",
+          "example": true
+        },
+        "invite_branches": {
+          "type": "boolean",
+          "description": "May invite branches ([`AdminControl::InviteBranches`]).",
+          "example": true
+        },
+        "approve_requests": {
+          "type": "boolean",
+          "description": "May approve interlibrary requests ([`AdminControl::ApproveRequests`]).",
+          "example": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "applies": {
+      "type": "boolean",
+      "description": "Whether the switches limit the user's role: true only for an\nAdministrator.",
+      "example": true
+    }
+  }
+}
+```
+
+Status `400`: The body names a switch that does not exist. As `text/plain`, when the body is not syntactically valid JSON.
+
+```json
+{
+  "error": "unknown field `fly`"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "unauthorized"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `403`: The caller is not an Owner or the operator. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "only an Owner can change what Administrators may do"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `404`: No such user.
+
+```json
+{
+  "error": "user 4 not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `409`: The switches kept changing underneath the write; retry.
+
+```json
+{
+  "error": "the administrator's switches kept changing; retry"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: missing field `changes` at line 1 column 2
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `500`: The switches could not be written.
+
+```json
+{
+  "error": "the administrator's switches could not be read or written"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
 ## `POST /api/users/{id}/claim-ticket`
 
 Mint a fresh local claim ticket for an active first-party user.

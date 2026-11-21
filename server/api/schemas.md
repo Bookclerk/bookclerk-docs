@@ -60,6 +60,38 @@ Generic mutation result with success flag, message, and optional job id.
 - `library_id` *string*, **required** — The library (parent library id) to add the connections to.
 - `accounts` *array of [`AccountRef`](#accountref)*, **required** — The person's accounts to add; 1 to 64.
 
+## AdminControlOverrides
+
+One Administrator's overrides: a value for some switches, and the
+library's default for the rest (an absent or `null` field).
+
+- `manage_members` *boolean or null* — Overrides [`AdminControls::manage_members`].
+- `set_patron_limits` *boolean or null* — Overrides [`AdminControls::set_patron_limits`].
+- `library_scan` *boolean or null* — Overrides [`AdminControls::library_scan`].
+- `run_jobs` *boolean or null* — Overrides [`AdminControls::run_jobs`].
+- `fix_catalog` *boolean or null* — Overrides [`AdminControls::fix_catalog`].
+- `invite_branches` *boolean or null* — Overrides [`AdminControls::invite_branches`].
+- `approve_requests` *boolean or null* — Overrides [`AdminControls::approve_requests`].
+
+## AdminControls
+
+A value for each switch: the library's default, or what applies to one
+Administrator.
+
+- `manage_members` *boolean* — May manage Members ([`AdminControl::ManageMembers`]).
+- `set_patron_limits` *boolean* — May set patron limits ([`AdminControl::SetPatronLimits`]).
+- `library_scan` *boolean* — May scan and acquire library-wide ([`AdminControl::LibraryScan`]).
+- `run_jobs` *boolean* — May run the job queue ([`AdminControl::RunJobs`]).
+- `fix_catalog` *boolean* — May fix the catalog ([`AdminControl::FixCatalog`]).
+- `invite_branches` *boolean* — May invite branches ([`AdminControl::InviteBranches`]).
+- `approve_requests` *boolean* — May approve interlibrary requests ([`AdminControl::ApproveRequests`]).
+
+## AdminSwitchChoice
+
+What a change does to one switch of one Administrator.
+
+Type: one of `on`, `off`, `default`
+
 ## ApiError
 
 An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.
@@ -781,6 +813,13 @@ Body for copying library rows between database plugins.
 - `force` *boolean* — When true, overwrite a destination that is not empty.
 - `apply` *boolean* — Update `[database].plugin` in config.toml after a successful copy.
 
+## DefaultAdminControlsJson
+
+The library's default Administrator switches as the switch routes
+report them.
+
+- `controls` *[`AdminControls`](#admincontrols)*, **required** — The switches every Administrator follows unless set for them alone.
+
 ## DefaultControlsJson
 
 The library's default member controls as the control routes report
@@ -793,6 +832,19 @@ them.
 The library's default scope as the scope routes report it.
 
 - `scope` *[`PatronScope`](#patronscope)*, **required** — The scope patrons without their own follow.
+
+## DefaultSwitchChanges
+
+Changes to some of the library's default switches: a new value for
+each named switch; an absent switch keeps its stored value.
+
+- `manage_members` *boolean or null* — New default for [`AdminControl::ManageMembers`].
+- `set_patron_limits` *boolean or null* — New default for [`AdminControl::SetPatronLimits`].
+- `library_scan` *boolean or null* — New default for [`AdminControl::LibraryScan`].
+- `run_jobs` *boolean or null* — New default for [`AdminControl::RunJobs`].
+- `fix_catalog` *boolean or null* — New default for [`AdminControl::FixCatalog`].
+- `invite_branches` *boolean or null* — New default for [`AdminControl::InviteBranches`].
+- `approve_requests` *boolean or null* — New default for [`AdminControl::ApproveRequests`].
 
 ## DeliveryBacklog
 
@@ -2103,6 +2155,20 @@ instead of being silently truncated on the next write.
 - `replacement_characters` *array of [`ReplacementRule`](#replacementrule)*, **required** — Explicit find/replace rules for path segments.
 - `max_filename_length` *integer (int32)*, **required** — Max length per path segment (`0` disables truncation). At least 0.
 
+## OverrideSwitchChanges
+
+Changes to some of one Administrator's overrides: `on` or `off` for
+them alone, or `default` to follow the library's default again; an
+absent switch keeps what it had.
+
+- `manage_members` *[`AdminSwitchChoice`](#adminswitchchoice) or null* — Change to [`AdminControl::ManageMembers`].
+- `set_patron_limits` *[`AdminSwitchChoice`](#adminswitchchoice) or null* — Change to [`AdminControl::SetPatronLimits`].
+- `library_scan` *[`AdminSwitchChoice`](#adminswitchchoice) or null* — Change to [`AdminControl::LibraryScan`].
+- `run_jobs` *[`AdminSwitchChoice`](#adminswitchchoice) or null* — Change to [`AdminControl::RunJobs`].
+- `fix_catalog` *[`AdminSwitchChoice`](#adminswitchchoice) or null* — Change to [`AdminControl::FixCatalog`].
+- `invite_branches` *[`AdminSwitchChoice`](#adminswitchchoice) or null* — Change to [`AdminControl::InviteBranches`].
+- `approve_requests` *[`AdminSwitchChoice`](#adminswitchchoice) or null* — Change to [`AdminControl::ApproveRequests`].
+
 ## OwnerBootstrapped
 
 JSON body after the first Owner was created.
@@ -2231,6 +2297,12 @@ JSON body after a password was set.
 - `ok` *boolean*, **required** — Always `true` on this success path.
 - `revoked_sessions` *integer (int64)*, **required** — Portal sessions of that user revoked by the change (the caller signs in again). At least 0.
 
+## PatchDefaultAdminControls
+
+`PATCH /api/users/default-admin-controls` body.
+
+- `changes` *[`DefaultSwitchChanges`](#defaultswitchchanges)*, **required** — The default switches to change and their new values. Switches it does not name keep their stored value, so two Owners editing different switches do not undo each other.
+
 ## PatchPreferencesBody
 
 Partial preferences update; omitted fields keep their stored values.
@@ -2257,6 +2329,12 @@ Body for `PATCH /api/settings`.
 
 - `settings` *array of [`SettingsUpdate`](#settingsupdate)*, **required** — Key/value pairs to validate, persist, and reload.
 - `expected_output_revision` *integer (int64) or null* — `core.output` document revision the client read (`output_revision` in `GET /api/settings`). When set and stale, an `output.*` update is rejected with 409.
+
+## PatchUserAdminControls
+
+`PATCH /api/users/{id}/admin-controls` body.
+
+- `changes` *[`OverrideSwitchChanges`](#overrideswitchchanges)*, **required** — The switches to change for this Administrator: `on` or `off` sets the switch for them alone, `default` follows the library's default again. Switches it does not name keep what they had, so two Owners editing different switches do not undo each other.
 
 ## PatchUserRequest
 
@@ -3825,6 +3903,16 @@ One file of an upload.
 - `outcome` *string*, **required** — What became of it: `pending`, `expanded` (an archive), `matched`, `needs_review`, `duplicate`, `refused` or `failed`.
 - `reason` *string or null* — Why it was refused or failed, as a stable code.
 - `editionId` *string or null* — The edition it was stored under.
+
+## UserAdminControlsJson
+
+An Administrator's switches as the switch routes report them.
+
+- `user_id` *integer (int64)*, **required** — The user (`users.id`).
+- `defaults` *[`AdminControls`](#admincontrols)*, **required** — The library's default for every Administrator.
+- `overrides` *[`AdminControlOverrides`](#admincontroloverrides)*, **required** — The switches set for this Administrator alone; the others follow the default.
+- `effective` *[`AdminControls`](#admincontrols)*, **required** — What applies to the user now: everything for an Owner, nothing for a disabled user or a Member, and the default with the overrides applied for an Administrator.
+- `applies` *boolean*, **required** — Whether the switches limit the user's role: true only for an Administrator.
 
 ## UserChangeConflict
 

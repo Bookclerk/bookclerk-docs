@@ -122,6 +122,10 @@ Library users and their claim tickets.
 | [`PUT /api/users/default-controls`](users.md#put-apiusersdefault-controls) | Replaces the library's default member controls. Every Member follows the change at once, except in the controls set for them alone; Administrators do not follow the default. |
 | [`GET /api/users/{id}/controls`](users.md#get-apiusersidcontrols) | Reads what a patron may do: the library's default, their own overrides, and what applies. |
 | [`PUT /api/users/{id}/controls`](users.md#put-apiusersidcontrols) | Sets the controls that differ for one patron; every other control follows the library's default for a Member and is allowed for an Administrator. |
+| [`GET /api/users/default-admin-controls`](users.md#get-apiusersdefault-admin-controls) | Reads the library's default Administrator switches. |
+| [`PATCH /api/users/default-admin-controls`](users.md#patch-apiusersdefault-admin-controls) | Changes the named default Administrator switches; the others keep their stored value. Every Administrator follows the change at once, except in the switches set for them alone. Only an Owner or the operator may. |
+| [`GET /api/users/{id}/admin-controls`](users.md#get-apiusersidadmin-controls) | Reads what an Administrator may do: the library's default, their own overrides, and what applies. An Administrator may read their own. |
+| [`PATCH /api/users/{id}/admin-controls`](users.md#patch-apiusersidadmin-controls) | Changes the named switches for one Administrator; every switch it does not name keeps what it had. Only an Owner or the operator may, and switches stored for someone who is not an Administrator apply only if their role changes to Administrator. |
 | [`POST /api/users/{id}/claim-ticket`](users.md#post-apiusersidclaim-ticket) | Mint a fresh local claim ticket for an active first-party user. |
 | [`POST /api/users/{id}/reset-password`](users.md#post-apiusersidreset-password) | Invalidate a user's password, revoke sessions, and mint a claim ticket for reset. |
 | [`GET /api/avatars/gravatar/{hash}`](users.md#get-apiavatarsgravatarhash) | Serves a user's Gravatar as a 128 px JPEG through the cover service. |

@@ -153,6 +153,7 @@
     "internals/crates/bookclerk_library/entities/account_scan_state",
     "internals/crates/bookclerk_library/entities/account_shares",
     "internals/crates/bookclerk_library/entities/accounts",
+    "internals/crates/bookclerk_library/entities/admin_controls",
     "internals/crates/bookclerk_library/entities/bookclerk_receipts",
     "internals/crates/bookclerk_library/entities/bookmarks",
     "internals/crates/bookclerk_library/entities/books",

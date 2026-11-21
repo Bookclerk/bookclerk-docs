@@ -19,6 +19,7 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`account_scan_state`](account_scan_state.md): SeaORM entity for `account_scan_state`: where each account's storefront scan stands between passes and between pages.
 - [`account_shares`](account_shares.md): SeaORM entity for the `account_shares` table: where a store account travelled with its person (`control_plane::carried_accounts`).
 - [`accounts`](accounts.md): SeaORM entity for the `accounts` table.
+- [`admin_controls`](admin_controls.md): SeaORM entity for the `admin_controls` table: one Administrator's overrides of the library's default Administrator switches, set by an Owner or the operator.
 - [`bookclerk_receipts`](bookclerk_receipts.md): SeaORM entity for durable atomic result receipts.
 - [`bookmarks`](bookmarks.md): SeaORM entity for `bookmarks`: places one person marked in one edition. Written by `crate::LibraryStore`'s playback methods (`store::playback`).
 - [`books`](books.md): SeaORM entity for the `books` table.

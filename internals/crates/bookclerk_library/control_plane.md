@@ -11,6 +11,11 @@ See `docs/adr/control-plane.md`.
 
 | Item | Kind | Summary |
 | --- | --- | --- |
+| [`AdminControlOverrides`](#admincontroloverrides) | struct | One Administrator's overrides: a value for some switches, and the library's default for the rest (an absent or `null` field). |
+| [`AdminControls`](#admincontrols) | struct | A value for each switch: the library's default, or what applies to one Administrator. |
+| [`AssignedAdminControls`](#assignedadmincontrols) | struct | A user's switches: the library's default, their overrides, and what applies to them. |
+| [`DefaultSwitchChanges`](#defaultswitchchanges) | struct | Changes to some of the library's default switches: a new value for each named switch; an absent switch keeps its stored value. |
+| [`OverrideSwitchChanges`](#overrideswitchchanges) | struct | Changes to some of one Administrator's overrides: `on` or `off` for them alone, or `default` to follow the library's default again; an absent switch keeps what it had. |
 | [`BranchTitle`](#branchtitle) | struct | One title a branch shares, as the owner's Settings → Branches lists it. |
 | [`BranchTitleCounts`](#branchtitlecounts) | struct | Counts of one branch's shared titles. |
 | [`CatalogSessionOpened`](#catalogsessionopened) | struct | An opened catalog session (`begin_catalog`). |
@@ -165,6 +170,8 @@ See `docs/adr/control-plane.md`.
 | [`ControlPlaneSession`](#controlplanesession) | struct | Identity, secret root, and the authoritative events document for this process. |
 | [`LinkRevoked`](#linkrevoked) | enum | What `revoke_account_link` did. |
 | [`SignInLink`](#signinlink) | enum | What `link_signed_in_account` did. |
+| [`AdminControl`](#admincontrol) | enum | One power an Administrator may be allowed or refused. |
+| [`AdminSwitchChoice`](#adminswitchchoice) | enum | What a change does to one switch of one Administrator. |
 | [`CatalogAccept`](#catalogaccept) | enum | Outcome of `accept_catalog_batch`. |
 | [`CatalogBegin`](#catalogbegin) | enum | Outcome of `begin_catalog`. |
 | [`RequestFinished`](#requestfinished) | enum | What `finish_branch_request` did. |
@@ -219,6 +226,17 @@ See `docs/adr/control-plane.md`.
 | [`account_slot`](#account_slot) | function | The `bookclerk_slots` key that serializes writes to one store account's sign-in and link. |
 | [`link_signed_in_account`](#link_signed_in_account) | function | Finishes an allowed store login: marks the account active with scans on and links it to `identity_id`, in one atomic batch under the account's write lock, only while the account's sign-in is stored and no other identity holds it. |
 | [`revoke_account_link`](#revoke_account_link) | function | Revokes the account `identity_id` holds: in one atomic batch under the account's write lock, marks it `revoked` with scans off, deletes its integration secrets, forgets which branch kept its login for this library (its `node:` shares and their sign-in revisions), and removes the link. Every statement applies only while the identity's link exists, and the link goes last, so the batch refuses as a whole once the link is gone. |
+| [`admin_control_overrides`](#admin_control_overrides) | function | The overrides stored for `user_id` (none when there is no row). |
+| [`admin_may`](#admin_may) | function | Whether `user_id` may use `control` here. An unknown user may not. |
+| [`administrator_switch_allows`](#administrator_switch_allows) | function | Whether an Administrator's switch lets `user_id` do `control`, for an action other roles are allowed or refused by their own rules: true for any role but Administrator (and for an active Administrator whose switch is on), false for an unknown user. |
+| [`assigned_admin_controls`](#assigned_admin_controls) | function | The switches of `user`: the library's default, their overrides, and what applies to them. |
+| [`change_admin_control_overrides`](#change_admin_control_overrides) | function | Changes only the named overrides of `user_id`: each attempt applies `changes` to the row it read and writes it back only if the row is still what it read, so a concurrent edit of another switch is kept rather than overwritten. |
+| [`change_default_admin_controls`](#change_default_admin_controls) | function | Changes only the named default switches under compare-and-swap: each attempt applies `changes` to the stored default it read, so a concurrent edit of another switch is kept rather than overwritten. |
+| [`default_admin_controls`](#default_admin_controls) | function | The library's default Administrator switches: the stored document, or every switch on. |
+| [`effective_admin_controls`](#effective_admin_controls) | function | What applies to `user` given the library's default and their overrides: everything for an active Owner, the overrides over the default for an active Administrator, and nothing for anyone else (a user who is not active or a Member). |
+| [`load_default_admin_controls`](#load_default_admin_controls) | function | Loads the library's default Administrator switches document. |
+| [`set_admin_control_overrides`](#set_admin_control_overrides) | function | Replaces the overrides of `user_id`; with none, the Administrator follows the library's default for every switch again. |
+| [`set_default_admin_controls`](#set_default_admin_controls) | function | Replaces the library's default Administrator switches under compare-and-swap, creating the document when absent and retrying a few times on a concurrent edit. |
 | [`load_artifact_blob`](#load_artifact_blob) | function | Reads an archive stored by `put_artifact_blob`. |
 | [`put_artifact_blob`](#put_artifact_blob) | function | Stores a small archive and returns its `blob:sha256:<hex>` URL. |
 | [`accept_catalog_batch`](#accept_catalog_batch) | function | Records one batch of `node_id`'s shared titles under `fence`, then the cursor after it. Every title is checked before any is written; a title this library already holds for the branch's owner is skipped. Each other title is resolved into the library model and held by the branch (`holding_added` when new), and the holding's share state is written in one transaction with the cursor, each statement gated on the fence still being live, the branch still sharing and its credential live. A holding is stamped with the pass under way, and with `done` (the last batch of a pass) while a pass from the start is under way, the branch's holdings the pass did not name are removed (`withdrawn`) and the pass ends; `done` on a resumed incremental pass changes nothing more. |
@@ -608,6 +626,7 @@ See `docs/adr/control-plane.md`.
 | [`HeldBookKey`](#heldbookkey) | type alias | A book this library holds, by store identity: `(plugin_key, stored marketplace, stored product id, account_id)`. |
 | [`LiveRevisions`](#liverevisions) | type alias | Every topic's revision, in `LiveTopic::ALL` order. |
 | [`AccountKey`](#accountkey) | type alias | A store account, keyed as in `accounts`: `(plugin_key, account_id)`. |
+| [`ADMIN_CONTROLS_NAMESPACE`](#admin_controls_namespace) | constant | Namespace of the library document that holds the library's default Administrator switches. |
 | [`MAX_ARTIFACT_BLOB_BYTES`](#max_artifact_blob_bytes) | constant | Largest archive stored in the library, in bytes. |
 | [`DETACHED_LEFT`](#detached_left) | constant | Removal reason: the branch left the library (or was revoked). |
 | [`DETACHED_STOPPED_SHARING`](#detached_stopped_sharing) | constant | Removal reason: the branch turned "Share this branch's books" off. |
@@ -732,6 +751,250 @@ See `docs/adr/control-plane.md`.
 - [`cache::MIN_CACHE_BUDGET_BYTES`](../bookclerk_config/README.md#min_cache_budget_bytes)
 
 ## Structs
+
+### AdminControlOverrides
+
+```rust
+pub struct AdminControlOverrides {
+    pub manage_members: Option<bool>,
+    pub set_patron_limits: Option<bool>,
+    pub library_scan: Option<bool>,
+    pub run_jobs: Option<bool>,
+    pub fix_catalog: Option<bool>,
+    pub invite_branches: Option<bool>,
+    pub approve_requests: Option<bool>,
+}
+```
+
+One Administrator's overrides: a value for some switches, and the
+library's default for the rest (an absent or `null` field).
+
+**Fields**
+
+- `manage_members`: Overrides [`AdminControls::manage_members`](#admincontrols).
+- `set_patron_limits`: Overrides [`AdminControls::set_patron_limits`](#admincontrols).
+- `library_scan`: Overrides [`AdminControls::library_scan`](#admincontrols).
+- `run_jobs`: Overrides [`AdminControls::run_jobs`](#admincontrols).
+- `fix_catalog`: Overrides [`AdminControls::fix_catalog`](#admincontrols).
+- `invite_branches`: Overrides [`AdminControls::invite_branches`](#admincontrols).
+- `approve_requests`: Overrides [`AdminControls::approve_requests`](#admincontrols).
+
+#### AdminControlOverrides::get
+
+```rust
+pub fn get(&self, control: AdminControl) -> Option<bool>
+```
+
+The override of `control`, if any.
+
+#### AdminControlOverrides::set
+
+```rust
+pub fn set(&mut self, control: AdminControl, value: Option<bool>)
+```
+
+Sets or clears (`None`) the override of `control`.
+
+#### AdminControlOverrides::is_empty
+
+```rust
+pub fn is_empty(&self) -> bool
+```
+
+True when no switch is overridden.
+
+#### AdminControlOverrides::apply
+
+```rust
+pub fn apply(&self, defaults: AdminControls) -> AdminControls
+```
+
+`defaults` with these overrides applied.
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
+
+### AdminControls
+
+```rust
+pub struct AdminControls {
+    pub manage_members: bool,
+    pub set_patron_limits: bool,
+    pub library_scan: bool,
+    pub run_jobs: bool,
+    pub fix_catalog: bool,
+    pub invite_branches: bool,
+    pub approve_requests: bool,
+}
+```
+
+A value for each switch: the library's default, or what applies to one
+Administrator.
+
+**Fields**
+
+- `manage_members`: May manage Members ([`AdminControl::ManageMembers`](#admincontrol)).
+- `set_patron_limits`: May set patron limits ([`AdminControl::SetPatronLimits`](#admincontrol)).
+- `library_scan`: May scan and acquire library-wide ([`AdminControl::LibraryScan`](#admincontrol)).
+- `run_jobs`: May run the job queue ([`AdminControl::RunJobs`](#admincontrol)).
+- `fix_catalog`: May fix the catalog ([`AdminControl::FixCatalog`](#admincontrol)).
+- `invite_branches`: May invite branches ([`AdminControl::InviteBranches`](#admincontrol)).
+- `approve_requests`: May approve interlibrary requests ([`AdminControl::ApproveRequests`](#admincontrol)).
+
+#### AdminControls::all
+
+```rust
+pub fn all(value: bool) -> Self
+```
+
+Every switch set to `value`.
+
+#### AdminControls::allows
+
+```rust
+pub fn allows(&self, control: AdminControl) -> bool
+```
+
+Whether `control` is allowed.
+
+#### AdminControls::set
+
+```rust
+pub fn set(&mut self, control: AdminControl, value: bool)
+```
+
+Sets `control` to `value`.
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
+
+### AssignedAdminControls
+
+```rust
+pub struct AssignedAdminControls {
+    pub defaults: AdminControls,
+    pub overrides: AdminControlOverrides,
+    pub effective: AdminControls,
+}
+```
+
+A user's switches: the library's default, their overrides, and what
+applies to them.
+
+**Fields**
+
+- `defaults`: The library's default.
+- `overrides`: The user's own overrides.
+- `effective`: What applies to the user: everything for an active Owner, the
+  default with the overrides applied for an active Administrator, and
+  nothing for anyone else.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
+### DefaultSwitchChanges
+
+```rust
+pub struct DefaultSwitchChanges {
+    pub manage_members: Option<bool>,
+    pub set_patron_limits: Option<bool>,
+    pub library_scan: Option<bool>,
+    pub run_jobs: Option<bool>,
+    pub fix_catalog: Option<bool>,
+    pub invite_branches: Option<bool>,
+    pub approve_requests: Option<bool>,
+}
+```
+
+Changes to some of the library's default switches: a new value for
+each named switch; an absent switch keeps its stored value.
+
+**Fields**
+
+- `manage_members`: New default for [`AdminControl::ManageMembers`](#admincontrol).
+- `set_patron_limits`: New default for [`AdminControl::SetPatronLimits`](#admincontrol).
+- `library_scan`: New default for [`AdminControl::LibraryScan`](#admincontrol).
+- `run_jobs`: New default for [`AdminControl::RunJobs`](#admincontrol).
+- `fix_catalog`: New default for [`AdminControl::FixCatalog`](#admincontrol).
+- `invite_branches`: New default for [`AdminControl::InviteBranches`](#admincontrol).
+- `approve_requests`: New default for [`AdminControl::ApproveRequests`](#admincontrol).
+
+#### DefaultSwitchChanges::get
+
+```rust
+pub fn get(&self, control: AdminControl) -> Option<bool>
+```
+
+The change named for `control`, if any.
+
+#### DefaultSwitchChanges::set
+
+```rust
+pub fn set(&mut self, control: AdminControl, value: Option<bool>)
+```
+
+Names (or, with `None`, stops naming) a change for `control`.
+
+#### DefaultSwitchChanges::with
+
+```rust
+pub fn with(self, control: AdminControl, value: bool) -> Self
+```
+
+`control` changed to `value`, for building a change.
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
+
+### OverrideSwitchChanges
+
+```rust
+pub struct OverrideSwitchChanges {
+    pub manage_members: Option<AdminSwitchChoice>,
+    pub set_patron_limits: Option<AdminSwitchChoice>,
+    pub library_scan: Option<AdminSwitchChoice>,
+    pub run_jobs: Option<AdminSwitchChoice>,
+    pub fix_catalog: Option<AdminSwitchChoice>,
+    pub invite_branches: Option<AdminSwitchChoice>,
+    pub approve_requests: Option<AdminSwitchChoice>,
+}
+```
+
+Changes to some of one Administrator's overrides: `on` or `off` for
+them alone, or `default` to follow the library's default again; an
+absent switch keeps what it had.
+
+**Fields**
+
+- `manage_members`: Change to [`AdminControl::ManageMembers`](#admincontrol).
+- `set_patron_limits`: Change to [`AdminControl::SetPatronLimits`](#admincontrol).
+- `library_scan`: Change to [`AdminControl::LibraryScan`](#admincontrol).
+- `run_jobs`: Change to [`AdminControl::RunJobs`](#admincontrol).
+- `fix_catalog`: Change to [`AdminControl::FixCatalog`](#admincontrol).
+- `invite_branches`: Change to [`AdminControl::InviteBranches`](#admincontrol).
+- `approve_requests`: Change to [`AdminControl::ApproveRequests`](#admincontrol).
+
+#### OverrideSwitchChanges::get
+
+```rust
+pub fn get(&self, control: AdminControl) -> Option<AdminSwitchChoice>
+```
+
+The change named for `control`, if any.
+
+#### OverrideSwitchChanges::set
+
+```rust
+pub fn set(&mut self, control: AdminControl, value: Option<AdminSwitchChoice>)
+```
+
+Names (or, with `None`, stops naming) a change for `control`.
+
+#### OverrideSwitchChanges::with
+
+```rust
+pub fn with(self, control: AdminControl, value: AdminSwitchChoice) -> Self
+```
+
+`control` changed to `value`, for building a change.
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### BranchTitle
 
@@ -5630,6 +5893,96 @@ What [`link_signed_in_account`](#link_signed_in_account) did.
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
+### AdminControl
+
+```rust
+pub enum AdminControl {
+    ManageMembers,
+    SetPatronLimits,
+    LibraryScan,
+    RunJobs,
+    FixCatalog,
+    InviteBranches,
+    ApproveRequests,
+}
+```
+
+One power an Administrator may be allowed or refused.
+
+**Variants**
+
+- `ManageMembers`: Invite Members, change their details, disable or delete them, reset
+  their passwords and mint claim tickets. Off, the Administrator still
+  sees the user list.
+- `SetPatronLimits`: Set patron scopes and member controls, for one Member and the
+  library's defaults. Off, the Administrator still reads them.
+- `LibraryScan`: Scan and acquire for every store account, plus the legacy `/scan`
+  and `/acquire`. Off, the Administrator scans and acquires only with
+  the store accounts linked to them, like a Member.
+- `RunJobs`: Cancel jobs; retry, acknowledge, cancel or resume event deliveries;
+  run a listening sync. Off, the Administrator still watches jobs and
+  queues.
+- `FixCatalog`: Pin listings, split works and resolve conflicts.
+- `InviteBranches`: Mint enrollment links for their own new nodes. Nodes they already
+  own keep running.
+- `ApproveRequests`: Approve interlibrary requests from branches and Members. Off,
+  requests wait for an Owner.
+
+#### AdminControl::ALL
+
+```rust
+pub const ALL: [Self; 7] = _
+```
+
+Every switch, in the order the editors list them.
+
+#### AdminControl::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+The switch's wire name (`manage_members`, `library_scan`, ...).
+
+#### AdminControl::parse
+
+```rust
+pub fn parse(raw: &str) -> Option<Self>
+```
+
+Parses a wire name.
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`, `ToSchema`
+
+### AdminSwitchChoice
+
+```rust
+pub enum AdminSwitchChoice {
+    On,
+    Off,
+    Default,
+}
+```
+
+What a change does to one switch of one Administrator.
+
+**Variants**
+
+- `On`: Allow the switch for this Administrator, whatever the default says.
+- `Off`: Refuse the switch for this Administrator, whatever the default says.
+- `Default`: Follow the library's default again.
+
+#### AdminSwitchChoice::value
+
+```rust
+pub fn value(self) -> Option<bool>
+```
+
+The stored override: `Some(true)`, `Some(false)`, or `None` to
+follow the default.
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
+
 ### CatalogAccept
 
 ```rust
@@ -6027,7 +6380,8 @@ Who is allowed to write a configuration document.
   document only. Built by [`super::verify_node_owner`](#verify_node_owner), which checks
   `nodes.owner_user_id`, so a caller cannot claim a node it does not own.
 - `LibraryOwner`: An active portal Owner. Writes the library's branch-enrollment switch
-  (`core.branch_enrollment`) only; every other document stays an
+  (`core.branch_enrollment`) and the default Administrator switches
+  (`core.admin_controls`) only; every other document stays an
   operator write. Built by [`super::verify_library_owner`](#verify_library_owner), which reads
   the user's stored role and status.
 - `PatronAdministrator`: An active portal Owner or Administrator. Writes the library's
@@ -7265,6 +7619,219 @@ What happened; see [`LinkRevoked`](#linkrevoked).
 
 Returns the write error. The batch may have committed when the reply
 was lost; retrying then answers [`LinkRevoked::NotLinked`](#linkrevoked).
+
+### admin_control_overrides
+
+```rust
+pub async fn admin_control_overrides(
+    store: &LibraryStore,
+    user_id: i64,
+) -> Result<AdminControlOverrides>
+```
+
+The overrides stored for `user_id` (none when there is no row).
+
+#### Errors
+
+Returns the read error, or an error when the stored row is invalid.
+
+### admin_may
+
+```rust
+pub async fn admin_may(
+    store: &LibraryStore,
+    user_id: i64,
+    control: AdminControl,
+) -> Result<bool>
+```
+
+Whether `user_id` may use `control` here. An unknown user may not.
+
+#### Errors
+
+Returns a read or parse error; callers fail closed on it.
+
+### administrator_switch_allows
+
+```rust
+pub async fn administrator_switch_allows(
+    store: &LibraryStore,
+    user_id: i64,
+    control: AdminControl,
+) -> Result<bool>
+```
+
+Whether an Administrator's switch lets `user_id` do `control`, for an
+action other roles are allowed or refused by their own rules: true for
+any role but Administrator (and for an active Administrator whose
+switch is on), false for an unknown user.
+
+#### Errors
+
+Returns a read or parse error; callers fail closed on it.
+
+### assigned_admin_controls
+
+```rust
+pub async fn assigned_admin_controls(
+    store: &LibraryStore,
+    user: &UserRecord,
+) -> Result<AssignedAdminControls>
+```
+
+The switches of `user`: the library's default, their overrides, and
+what applies to them.
+
+#### Errors
+
+Returns a read or parse error; callers fail closed on it.
+
+### change_admin_control_overrides
+
+```rust
+pub async fn change_admin_control_overrides(
+    store: &LibraryStore,
+    user_id: i64,
+    changes: &OverrideSwitchChanges,
+) -> Result<AssignedAdminControls>
+```
+
+Changes only the named overrides of `user_id`: each attempt applies
+`changes` to the row it read and writes it back only if the row is
+still what it read, so a concurrent edit of another switch is kept
+rather than overwritten.
+
+The caller has already checked that the actor is the operator or an
+Owner. With no override left, the row is deleted and the Administrator
+follows the library's default for every switch.
+
+#### Errors
+
+Returns [`LibraryError::NotFound`](README.md#libraryerror) for an unknown user,
+[`LibraryError::Conflict`](README.md#libraryerror) when the row keeps changing underneath, or
+the read or write error.
+
+### change_default_admin_controls
+
+```rust
+pub async fn change_default_admin_controls(
+    store: &LibraryStore,
+    actor: &ConfigActor,
+    changes: &DefaultSwitchChanges,
+) -> Result<ConfigurationDocument<AdminControls>>
+```
+
+Changes only the named default switches under compare-and-swap: each
+attempt applies `changes` to the stored default it read, so a
+concurrent edit of another switch is kept rather than overwritten.
+
+#### Arguments
+
+* `store` - The library database.
+* `actor` - Who is writing: the operator or a verified Owner
+  ([`super::verify_library_owner`](#verify_library_owner)).
+* `changes` - The switches to change and their new values.
+
+#### Errors
+
+Returns an error when the actor may not write, or
+[`LibraryError::Conflict`](README.md#libraryerror) when the document keeps changing underneath.
+
+### default_admin_controls
+
+```rust
+pub async fn default_admin_controls(store: &LibraryStore) -> Result<AdminControls>
+```
+
+The library's default Administrator switches: the stored document, or
+every switch on.
+
+#### Errors
+
+Returns the read or parse error.
+
+### effective_admin_controls
+
+```rust
+pub fn effective_admin_controls(
+    user: &UserRecord,
+    defaults: AdminControls,
+    overrides: AdminControlOverrides,
+) -> AdminControls
+```
+
+What applies to `user` given the library's default and their
+overrides: everything for an active Owner, the overrides over the
+default for an active Administrator, and nothing for anyone else (a
+user who is not active or a Member).
+
+### load_default_admin_controls
+
+```rust
+pub async fn load_default_admin_controls(
+    store: &LibraryStore,
+) -> Result<Option<ConfigurationDocument<AdminControls>>>
+```
+
+Loads the library's default Administrator switches document.
+
+#### Returns
+
+The stored document, or `None` when nobody has written one: every
+switch is then on.
+
+#### Errors
+
+Returns the read error, or an error when the stored document is invalid
+or of an unknown schema.
+
+### set_admin_control_overrides
+
+```rust
+pub async fn set_admin_control_overrides(
+    store: &LibraryStore,
+    user_id: i64,
+    overrides: AdminControlOverrides,
+) -> Result<AssignedAdminControls>
+```
+
+Replaces the overrides of `user_id`; with none, the Administrator
+follows the library's default for every switch again.
+
+The caller has already checked that the actor is the operator or an
+Owner. One atomic batch updates the stored row, inserts it when there is
+none, or deletes it when no switch is overridden.
+
+#### Errors
+
+Returns [`LibraryError::NotFound`](README.md#libraryerror) for an unknown user, or the read or
+write error.
+
+### set_default_admin_controls
+
+```rust
+pub async fn set_default_admin_controls(
+    store: &LibraryStore,
+    actor: &ConfigActor,
+    controls: AdminControls,
+) -> Result<ConfigurationDocument<AdminControls>>
+```
+
+Replaces the library's default Administrator switches under
+compare-and-swap, creating the document when absent and retrying a few
+times on a concurrent edit.
+
+#### Arguments
+
+* `store` - The library database.
+* `actor` - Who is writing: the operator or a verified Owner
+  ([`super::verify_library_owner`](#verify_library_owner)).
+* `controls` - The new default.
+
+#### Errors
+
+Returns an error when the actor may not write, or
+[`LibraryError::Conflict`](README.md#libraryerror) when the document keeps changing underneath.
 
 ### load_artifact_blob
 
@@ -14717,6 +15284,15 @@ pub type AccountKey = (String, String);
 A store account, keyed as in `accounts`: `(plugin_key, account_id)`.
 
 ## Constants
+
+### ADMIN_CONTROLS_NAMESPACE
+
+```rust
+pub const ADMIN_CONTROLS_NAMESPACE: &str = "core.admin_controls";
+```
+
+Namespace of the library document that holds the library's default
+Administrator switches.
 
 ### MAX_ARTIFACT_BLOB_BYTES
 
