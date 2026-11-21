@@ -24,13 +24,16 @@ CONNECT mux; ambient `AF_INET`/`AF_INET6` is denied by the sibling jail. See
 | Item | Kind | Summary |
 | --- | --- | --- |
 | [`EgressPolicy`](#egresspolicy) | struct | Initial-host allowlist with redirect, TCP, and address-space policy. |
+| [`PendingSettingDestination`](#pendingsettingdestination) | struct | A destination a network setting names that awaits the operator's approval (`EgressPolicy::pending_settings`). |
 | [`TcpGrant`](#tcpgrant) | struct | One TCP grant in the injected policy (`host` + `ports`). |
 | [`host_user_agent`](#host_user_agent) | function | The honest `User-Agent` hosts send for guest requests: `bookclerk/<version> (+https://bookclerk.app)`. |
 | [`manifest_needs_python`](#manifest_needs_python) | function | Returns `true` when the manifest declares a Python workerd guest. |
 | [`with_python_runtime_hosts`](#with_python_runtime_hosts) | function | Appends `PYODIDE_EGRESS_HOSTS` when `needs_python` and mode is outbound. |
 | [`consent_domains_for`](#consent_domains_for) | function | Builds the consent / egress domain list for a manifest. |
 | [`normalize_hostname`](#normalize_hostname) | function | Normalizes a hostname with IDNA ToASCII (fail closed). |
-| [`normalize_domain_pattern`](#normalize_domain_pattern) | function | Normalizes an allowlist pattern (`*.example.com`, exact host, or `ANY_PUBLIC_HOST`) via IDNA. |
+| [`normalize_domain_pattern`](#normalize_domain_pattern) | function | Normalizes an allowlist pattern (`*.example.com`, exact host, or `ANY_PUBLIC_HOST`) via IDNA, keeping an optional port. |
+| [`split_domain_entry`](#split_domain_entry) | function | Splits a `domains` allowlist entry into its host pattern and optional port. |
+| [`normalize_local_name`](#normalize_local_name) | function | Normalizes a `EgressPolicy::local_names` entry: one exact host name (IDNA-normalized, never a wildcard, a port or a restricted name such as `localhost`) or one local-network IP literal (`crate::is_local_network`, canonical spelling, IPv4-mapped IPv6 unwrapped). |
 | [`normalize_tcp_host`](#normalize_tcp_host) | function | Normalizes a TCP grant host: an exact host or `*.` wildcard, never `ANY_PUBLIC_HOST` (raw sockets are granted host by host). |
 | [`normalize_own_user_agent_host`](#normalize_own_user_agent_host) | function | Normalizes a host that may keep a guest's own `User-Agent`: a `normalize_tcp_host` pattern with no comma once normalized. |
 | [`host_matches`](#host_matches) | function | True when an IDNA-normalized request host is covered by an allowlist pattern. |
@@ -38,6 +41,7 @@ CONNECT mux; ambient `AF_INET`/`AF_INET6` is denied by the sibling jail. See
 | [`ANY_PUBLIC_HOST`](#any_public_host) | constant | The `domains` entry that grants every public hostname (`"*"`). |
 | [`PYODIDE_EGRESS_HOSTS`](#pyodide_egress_hosts) | constant | Hosts Pyodide / Cloudflare Python Workers commonly fetch on first boot (runtime index + micropip). |
 | [`HOST_USER_AGENT_URL`](#host_user_agent_url) | constant | Home page named in `host_user_agent`, so a site operator who sees the agent in their logs can find out what sent it. |
+| [`FETCH_DEFAULT_PORTS`](#fetch_default_ports) | constant | Ports a fetch allowlist entry without an explicit port grants: plain HTTP and HTTPS. |
 
 ## Structs
 
@@ -54,6 +58,8 @@ pub struct EgressPolicy {
     pub address_cidrs: Vec<String>,
     pub user_agent: Option<String>,
     pub own_user_agent_hosts: Vec<String>,
+    pub local_names: Vec<String>,
+    pub pending_settings: Vec<PendingSettingDestination>,
 }
 ```
 
@@ -104,6 +110,21 @@ Serialized as camelCase for injection into workerd `EGRESS_POLICY`.
 - `own_user_agent_hosts`: Approved hosts (exact or `*.` wildcard, never `*`) where the guest's
   own `User-Agent` is kept; see [`Self::keeps_own_user_agent`](#egresspolicykeeps_own_user_agent). Wire
   name: `ownUserAgentHosts`.
+- `local_names`: Host names that may resolve to a local-network address
+  ([`crate::is_local_network`]: RFC 1918, shared CGNAT space, IPv6 ULA)
+  without a CIDR grant; see [`Self::allows_ip_for`](#egresspolicyallows_ip_for).
+  
+  Each entry is one exact, IDNA-normalized host name (no wildcard, no
+  port) or one local-network IP literal, which then grants a connection
+  to exactly that address. The binding is to the entry: another name
+  that resolves to the same address gains nothing. The host fills this from
+  approved settings whose value names a host (a server address on the
+  operator's LAN). Loopback and link-local addresses still need an
+  explicit CIDR. Wire name: `localNames`.
+- `pending_settings`: Destinations that network settings name but the operator has not
+  approved yet. They grant nothing: a refused connection to one says
+  which setting names it (`network_not_granted`), so the operator knows
+  what to approve. Wire name: `pendingSettings`.
 
 #### EgressPolicy::from_network
 
@@ -218,6 +239,24 @@ subrequest cap).
 Used when allowlist normalization fails (`from_*` helpers) or when
 network mode is deny.
 
+#### EgressPolicy::pending_setting_for
+
+```rust
+pub fn pending_setting_for(
+    &self,
+    host: &str,
+    port: u16,
+) -> Option<&PendingSettingDestination>
+```
+
+The pending network setting whose destination is `host:port`, for a
+refusal that names it.
+
+##### Arguments
+
+* `host` - The refused host, as the guest asked for it.
+* `port` - The refused port.
+
 #### EgressPolicy::effective_user_agent
 
 ```rust
@@ -316,6 +355,34 @@ pub fn allows_ip(&self, ip: IpAddr) -> bool
 
 True when `ip` is the public Internet or an explicit CIDR grant.
 
+#### EgressPolicy::allows_ip_for
+
+```rust
+pub fn allows_ip_for(&self, host: &str, ip: IpAddr) -> bool
+```
+
+True when a connection to `host` may use the resolved address `ip`.
+
+[`Self::allows_ip`](#egresspolicyallows_ip), plus one widening: when `host` is a name listed
+in [`Self::local_names`](#egresspolicy), a local-network address
+([`crate::is_local_network`](address.md#is_local_network)) is allowed too, so a setting that names
+a LAN server by host name works when local DNS answers with a private
+address. Loopback, link-local and other special addresses are never
+widened this way.
+
+Callers resolve `host` once, check every address with this method and
+dial only an address that passed, so a later DNS answer cannot swap
+in another address.
+
+##### Arguments
+
+* `host` - The name the connection was asked for (or an IP literal).
+* `ip` - One resolved address for it.
+
+##### Returns
+
+`true` when the address may be dialed for that name.
+
 #### EgressPolicy::allows_tcp
 
 ```rust
@@ -337,6 +404,51 @@ Deny mode always returns `false`. Outbound mode requires
 allowlist unless [`Self::allow_undeclared_public_redirects`](#egresspolicy) is set,
 in which case only public destinations (plus explicit CIDRs) pass.
 
+#### EgressPolicy::allows_fetch
+
+```rust
+pub fn allows_fetch(&self, host: &str, port: u16) -> bool
+```
+
+Whether a direct (non-redirect) fetch to `host:port` is permitted.
+
+[`Self::allows_initial`](#egresspolicyallows_initial) plus the port rule: an entry that names a
+port grants that port only, and one that names none grants
+[`FETCH_DEFAULT_PORTS`](#fetch_default_ports).
+
+##### Arguments
+
+* `host` - Request hostname or IP literal.
+* `port` - The request's effective port (the scheme default when the
+  URL names none).
+
+##### Returns
+
+`true` when outbound mode allows the fetch.
+
+#### EgressPolicy::allows_redirect_to
+
+```rust
+pub fn allows_redirect_to(&self, host: &str, port: u16, hop_index: u32) -> bool
+```
+
+Whether a redirect hop to `host:port` is permitted.
+
+[`Self::allows_redirect`](#egresspolicyallows_redirect) plus the port rule: a hop to a declared host
+needs a port that entry grants; an undeclared public hop
+([`Self::allow_undeclared_public_redirects`](#egresspolicy)) is limited to
+[`FETCH_DEFAULT_PORTS`](#fetch_default_ports).
+
+##### Arguments
+
+* `host` - Hop hostname or IP literal.
+* `port` - The hop's effective port.
+* `hop_index` - 0-based redirect hop.
+
+##### Returns
+
+`true` when outbound mode allows the hop.
+
 #### EgressPolicy::allows_isolate_tunnel
 
 ```rust
@@ -349,12 +461,11 @@ A workerd guest's outbound traffic leaves its jail through the host's
 `CONNECT` proxy, one tunnel per `fetch()` request or `connect()`
 socket. The jail labels nothing the host can trust, so the host can't
 tell which call opened a tunnel. It therefore admits the union of what
-either call may reach: a TCP grant for `host:port`, a fetch host
-([`Self::allows_initial`](#egresspolicyallows_initial)), or a host a redirect could reach
-([`Self::allows_redirect`](#egresspolicyallows_redirect) at hop 0, which covers
-[`Self::allow_undeclared_public_redirects`](#egresspolicy)). Fetch grants name hosts,
-not ports, so a fetch host is admitted on any port. The resolved
-addresses still have to pass [`Self::allows_ip`](#egresspolicyallows_ip) before the host dials.
+either call may reach on that port: a TCP grant for `host:port`, a
+fetch entry that grants `host:port` ([`Self::allows_fetch`](#egresspolicyallows_fetch)), or a
+redirect hop to it ([`Self::allows_redirect_to`](#egresspolicyallows_redirect_to) at hop 0). The
+resolved addresses still have to pass [`Self::allows_ip`](#egresspolicyallows_ip) before the
+host dials.
 
 The isolate's own egress worker enforces the narrower per-call rules
 (the fetch allowlist, each redirect hop, the subrequest budget). This
@@ -387,6 +498,31 @@ CamelCase JSON (`mode`, `domains`, `maxRedirects`, optional
 `subrequests`).
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### PendingSettingDestination
+
+```rust
+pub struct PendingSettingDestination {
+    pub setting: String,
+    pub destination: String,
+    pub host: String,
+    pub port: u16,
+}
+```
+
+A destination a network setting names that awaits the operator's
+approval ([`EgressPolicy::pending_settings`](#egresspolicy)).
+
+**Fields**
+
+- `setting`: The setting key.
+- `destination`: The destination as the consent form shows it
+  (`https://abs.home.lan:13378`, `db.home.lan:5432`).
+- `host`: The host: an IDNA-normalized name or canonical IP literal (no
+  brackets).
+- `port`: The port, 1-65535.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`
 
 ### TcpGrant
 
@@ -525,11 +661,15 @@ pub fn normalize_domain_pattern(pattern: &str) -> Option<String>
 ```
 
 Normalizes an allowlist pattern (`*.example.com`, exact host, or
-[`ANY_PUBLIC_HOST`](#any_public_host)) via IDNA.
+[`ANY_PUBLIC_HOST`](#any_public_host)) via IDNA, keeping an optional port.
 
 The `*.` prefix is preserved; only the suffix is ToASCII-normalized. A bare
-`*` stays [`ANY_PUBLIC_HOST`](#any_public_host). Percent-encoded patterns and empty patterns
-return `None`.
+`*` stays [`ANY_PUBLIC_HOST`](#any_public_host) and never takes a port. An entry may end in
+`:port` (`api.example.com:8443`, `[2001:db8::1]:8080`): it then grants
+that port only, while an entry without one grants the web ports 80 and
+443 (see [`FETCH_DEFAULT_PORTS`](#fetch_default_ports)). The port must be canonical decimal
+(no sign, no leading zero, 1-65535). Percent-encoded patterns and empty
+patterns return `None`.
 
 #### Arguments
 
@@ -540,6 +680,60 @@ return `None`.
 
 Normalized pattern suitable for storage on [`EgressPolicy::domains`](#egresspolicydomains), or
 `None` on failure.
+
+### split_domain_entry
+
+```rust
+pub fn split_domain_entry(entry: &str) -> Option<(&str, Option<u16>)>
+```
+
+Splits a `domains` allowlist entry into its host pattern and optional
+port.
+
+`[v6]` and `[v6]:port` carry IPv6 literals; otherwise a final `:digits`
+is the port when the rest holds no other colon (a bare IPv6 literal has
+several and no port). An entry with no port grants
+[`FETCH_DEFAULT_PORTS`](#fetch_default_ports).
+
+#### Arguments
+
+* `entry` - A `domains` entry, normalized or as written.
+
+#### Returns
+
+The host pattern (IPv6 without brackets) and the port, or `None` when a
+port is present but not canonical decimal in 1-65535, or a bracket is
+unterminated.
+
+#### Examples
+
+```rust
+use bookclerk_plugin_manifest::split_domain_entry;
+
+assert_eq!(split_domain_entry("abs.example.com:13378"), Some(("abs.example.com", Some(13378))));
+assert_eq!(split_domain_entry("[2606:4700::1]:9000"), Some(("2606:4700::1", Some(9000))));
+assert_eq!(split_domain_entry("api.example.com"), Some(("api.example.com", None)));
+assert_eq!(split_domain_entry("api.example.com:0443"), None);
+```
+
+### normalize_local_name
+
+```rust
+pub fn normalize_local_name(host: &str) -> Option<String>
+```
+
+Normalizes a [`EgressPolicy::local_names`](#egresspolicy) entry: one exact host name
+(IDNA-normalized, never a wildcard, a port or a restricted name such as
+`localhost`) or one local-network IP literal ([`crate::is_local_network`](address.md#is_local_network),
+canonical spelling, IPv4-mapped IPv6 unwrapped).
+
+#### Arguments
+
+* `host` - The host a setting value names.
+
+#### Returns
+
+The normalized entry, or `None` when it is neither.
 
 ### normalize_tcp_host
 
@@ -662,3 +856,12 @@ pub const HOST_USER_AGENT_URL: &str = "https://bookclerk.app";
 
 Home page named in [`host_user_agent`](#host_user_agent), so a site operator who sees the
 agent in their logs can find out what sent it.
+
+### FETCH_DEFAULT_PORTS
+
+```rust
+pub const FETCH_DEFAULT_PORTS: [u16; 2] = _;
+```
+
+Ports a fetch allowlist entry without an explicit port grants: plain HTTP
+and HTTPS.

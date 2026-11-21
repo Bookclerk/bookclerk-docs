@@ -3636,6 +3636,16 @@ runtime: string;
 
 Guest runtime: `native` or `workerd`.
 
+##### setting\_destinations?
+
+```ts
+setting_destinations?: PluginSettingDestination[];
+```
+
+The destination each network setting names on each instance and whether it
+is approved. A `pending` row is unreachable until approved, and `covered` is
+false while one is.
+
 ##### summary
 
 ```ts
@@ -4213,6 +4223,112 @@ True when every row must have a value in this column.
 ```ts
 value_type: "string" | "number" | "boolean";
 ```
+
+***
+
+### PluginSettingDestination
+
+One network setting's destination on one plugin instance.
+
+#### Properties
+
+##### destination?
+
+```ts
+destination?: string;
+```
+
+`scheme://host:port` for a fetch, `host:port` for TCP; absent when unset or invalid.
+
+##### error?
+
+```ts
+error?: string;
+```
+
+Why the value names no destination, when `state` is `invalid`.
+
+##### instanceId?
+
+```ts
+instanceId?: string;
+```
+
+The instance whose settings name it; absent while the plugin has no instance.
+
+##### label
+
+```ts
+label: string;
+```
+
+The setting's label.
+
+##### network
+
+```ts
+network: "fetch" | "tcp";
+```
+
+`fetch` (HTTP requests) or `tcp` (a raw socket).
+
+##### scope?
+
+```ts
+scope?: SettingDestinationScope;
+```
+
+`name` may resolve to a local-network address for this name only;
+`localAddress` is exactly that one local-network address; `restricted`
+(loopback, link-local, `localhost`) also needs an address grant.
+
+##### setting
+
+```ts
+setting: string;
+```
+
+The setting key the grant is stored under.
+
+##### state
+
+```ts
+state: "approved" | "pending" | "unset" | "invalid";
+```
+
+Approval state of the destination.
+
+##### tls?
+
+```ts
+tls?: boolean;
+```
+
+True for an `https` fetch; false trusts the network's DNS answer.
+
+***
+
+### PluginSettingDestinationApproval
+
+A setting destination the operator approves, as the consent response shows it.
+
+#### Properties
+
+##### destination
+
+```ts
+destination: string;
+```
+
+The destination exactly as `PluginSettingDestination.destination` shows it.
+
+##### setting
+
+```ts
+setting: string;
+```
+
+The setting key.
 
 ***
 
@@ -7306,6 +7422,16 @@ One stored cell of a `table` setting row.
 
 ***
 
+### SettingDestinationScope
+
+```ts
+type SettingDestinationScope = "name" | "publicAddress" | "localAddress" | "restricted";
+```
+
+Where a setting's destination points, which decides how the grant reaches it.
+
+***
+
 ### SettingRow
 
 ```ts
@@ -7626,7 +7752,8 @@ The consent row after approval.
 function approvePluginConsent(
    id, 
    grant?, 
-   pluginKey?
+   pluginKey?, 
+   settingDestinations?
 ): Promise<PluginConsentResponse>;
 ```
 
@@ -7653,6 +7780,7 @@ Approves network consent for a plugin.
 | `grant.subrequests?` | `number` | - |
 | `grant.tcp?` | `object`[] | - |
 | `pluginKey?` | `string` | Provenance-qualified PluginKey when the alias is ambiguous. |
+| `settingDestinations?` | [`PluginSettingDestinationApproval`](#pluginsettingdestinationapproval)[] | Setting destinations to approve; one left out stays pending, and omitting the list keeps earlier approvals that a setting still names. |
 
 #### Returns
 

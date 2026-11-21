@@ -7,6 +7,8 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | Item | Kind | Summary |
 | --- | --- | --- |
 | [`ObjectChangeKind`](#objectchangekind) | enum |  |
+| [`SettingNetworkKind`](#settingnetworkkind) | enum |  |
+| [`SettingGrantState`](#settinggrantstate) | enum |  |
 | [`PluginErrorCode`](#pluginerrorcode) | enum |  |
 | [`Entrypoint`](#entrypoint) | enum |  |
 | [`PortalAuthMode`](#portalauthmode) | enum |  |
@@ -74,6 +76,7 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | [`MAX_SOCKET_URL_BYTES`](#max_socket_url_bytes) | constant |  |
 | [`MAX_SOCKET_HEADERS`](#max_socket_headers) | constant |  |
 | [`MAX_KV_METADATA_BYTES`](#max_kv_metadata_bytes) | constant |  |
+| [`MAX_NETWORK_GRANT_ENTRIES`](#max_network_grant_entries) | constant |  |
 | [`MAX_PLUGIN_MIGRATION_OPS`](#max_plugin_migration_ops) | constant |  |
 | [`MAX_PLUGIN_MIGRATION_TOTAL_OPS`](#max_plugin_migration_total_ops) | constant |  |
 | [`MAX_PLUGIN_MIGRATION_REGISTRATION_BYTES`](#max_plugin_migration_registration_bytes) | constant |  |
@@ -121,6 +124,8 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`oidc_clients_reply`](oidc_clients_reply.md)
 - [`extensible_config`](extensible_config.md)
 - [`bindings`](bindings.md)
+- [`network_grant`](network_grant.md)
+- [`setting_network_grant`](setting_network_grant.md)
 - [`entrypoints`](entrypoints.md)
 - [`entrypoints_reply`](entrypoints_reply.md)
 - [`job_invocation`](job_invocation.md)
@@ -393,6 +398,30 @@ pub enum ObjectChangeKind {
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<ObjectChangeKind>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
 
+### SettingNetworkKind
+
+```rust
+pub enum SettingNetworkKind {
+    Fetch = 0,
+    Tcp = 1,
+}
+```
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<SettingNetworkKind>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
+
+### SettingGrantState
+
+```rust
+pub enum SettingGrantState {
+    Approved = 0,
+    Pending = 1,
+    Unset = 2,
+    Invalid = 3,
+}
+```
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<SettingGrantState>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
+
 ### PluginErrorCode
 
 ```rust
@@ -411,6 +440,7 @@ pub enum PluginErrorCode {
     Conflict = 11,
     LimitExceeded = 12,
     RateLimited = 13,
+    NetworkNotGranted = 14,
 }
 ```
 
@@ -1007,6 +1037,12 @@ pub const MAX_SOCKET_HEADERS: u32 = 16;
 
 ```rust
 pub const MAX_KV_METADATA_BYTES: u32 = 1024;
+```
+
+### MAX_NETWORK_GRANT_ENTRIES
+
+```rust
+pub const MAX_NETWORK_GRANT_ENTRIES: u32 = 256;
 ```
 
 ### MAX_PLUGIN_MIGRATION_OPS

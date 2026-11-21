@@ -60,6 +60,7 @@ assert_eq!(manifest.id, "echo");
 
 - [`address::address_allowed`](address.md#address_allowed)
 - [`address::canonical_ip`](address.md#canonical_ip)
+- [`address::is_local_network`](address.md#is_local_network)
 - [`address::is_public_internet`](address.md#is_public_internet)
 - [`address::is_restricted_hostname`](address.md#is_restricted_hostname)
 - [`address::workerd_network_allow`](address.md#workerd_network_allow)
@@ -74,13 +75,17 @@ assert_eq!(manifest.id, "echo");
 - [`egress::manifest_needs_python`](egress.md#manifest_needs_python)
 - [`egress::normalize_domain_pattern`](egress.md#normalize_domain_pattern)
 - [`egress::normalize_hostname`](egress.md#normalize_hostname)
+- [`egress::normalize_local_name`](egress.md#normalize_local_name)
 - [`egress::normalize_own_user_agent_host`](egress.md#normalize_own_user_agent_host)
 - [`egress::normalize_tcp_host`](egress.md#normalize_tcp_host)
+- [`egress::split_domain_entry`](egress.md#split_domain_entry)
 - [`egress::with_python_runtime_hosts`](egress.md#with_python_runtime_hosts)
 - [`egress::EgressPolicy`](egress.md#egresspolicy)
+- [`egress::PendingSettingDestination`](egress.md#pendingsettingdestination)
 - [`egress::TcpGrant`](egress.md#tcpgrant)
 - [`egress::ANY_PUBLIC_HOST`](egress.md#any_public_host)
 - [`egress::DEFAULT_MAX_REDIRECTS`](egress.md#default_max_redirects)
+- [`egress::FETCH_DEFAULT_PORTS`](egress.md#fetch_default_ports)
 - [`egress::HOST_USER_AGENT_URL`](egress.md#host_user_agent_url)
 - [`egress::PYODIDE_EGRESS_HOSTS`](egress.md#pyodide_egress_hosts)
 - [`error::Error`](error.md#error)
@@ -93,6 +98,10 @@ assert_eq!(manifest.id, "echo");
 - [`logo::LogoKind`](logo.md#logokind)
 - [`logo::LOGO_EXTENSIONS`](logo.md#logo_extensions)
 - [`logo::MAX_EMBEDDED_LOGO_BYTES`](logo.md#max_embedded_logo_bytes)
+- [`setting_network::derive_setting_destination`](setting_network.md#derive_setting_destination)
+- [`setting_network::DestinationScope`](setting_network.md#destinationscope)
+- [`setting_network::SettingDestination`](setting_network.md#settingdestination)
+- [`setting_network::SettingDestinationError`](setting_network.md#settingdestinationerror)
 - [`workerd_contract::apply_author_compatibility_date`](workerd_contract.md#apply_author_compatibility_date)
 - [`workerd_contract::module_load_key`](workerd_contract.md#module_load_key)
 - [`workerd_contract::validate_author_compatibility_date`](workerd_contract.md#validate_author_compatibility_date)
@@ -154,6 +163,7 @@ assert_eq!(manifest.id, "echo");
 - [`types::DEFAULT_KV_BINDING`](types.md#default_kv_binding)
 - [`types::DEFAULT_EVENTS_BINDING`](types.md#default_events_binding)
 - [`types::CONFIG_BINDING`](types.md#config_binding)
+- [`types::NETWORK_BINDING`](types.md#network_binding)
 - [`types::MAX_CRON_TRIGGERS`](types.md#max_cron_triggers)
 - [`types::TriggersManifest`](types.md#triggersmanifest)
 - [`types::CapabilitiesManifest`](types.md#capabilitiesmanifest)
@@ -196,6 +206,7 @@ assert_eq!(manifest.id, "echo");
 - [`fmt`](fmt.md): Canonical `plugin.toml` formatting for SDK `fmt` / `fmt --check`.
 - [`id`](id.md): Display-alias grammar shared by manifest parse, host registry, and SDKs.
 - [`logo`](logo.md): Plugin logo validation: remote `http(s)` URL or relative image path.
+- [`setting_network`](setting_network.md): Network destinations named by plugin settings.
 - [`types`](types.md): `plugin.toml` types: manifest root and nested capability / workerd tables.
 - [`workerd_contract`](workerd_contract.md): Author compatibility date, flag allowlist, and module-extension rules.
 

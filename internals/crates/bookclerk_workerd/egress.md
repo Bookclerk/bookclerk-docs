@@ -103,7 +103,8 @@ Maximum redirect hops after an allowed initial request.
 pub fn allowed_initial_hosts(&self) -> &[String]
 ```
 
-Hostnames the guest may dial before redirects.
+`domains` entries the guest may fetch before redirects: a host
+pattern with an optional `:port` (no port grants 80 and 443).
 
 #### EgressProxy::allows_initial_host
 

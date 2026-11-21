@@ -262,6 +262,26 @@ Union of `RESOLVED_SQL_TYPES` wire names.
 
 ***
 
+### SettingGrantState
+
+```ts
+type SettingGrantState = typeof SETTING_GRANT_STATES[number];
+```
+
+Union of `SETTING_GRANT_STATES` wire names.
+
+***
+
+### SettingNetworkKind
+
+```ts
+type SettingNetworkKind = typeof SETTING_NETWORK_KINDS[number];
+```
+
+Union of `SETTING_NETWORK_KINDS` wire names.
+
+***
+
 ### WorkKind
 
 ```ts
@@ -786,6 +806,17 @@ genre, a chapter title), in UTF-8 bytes.
 
 ***
 
+### MAX\_NETWORK\_GRANT\_ENTRIES
+
+```ts
+const MAX_NETWORK_GRANT_ENTRIES: 256;
+```
+
+Most entries in each list of a `NetworkGrant` (fetch hosts, TCP
+destinations, network settings).
+
+***
+
 ### MAX\_NOTIFICATION\_FIELD\_BYTES
 
 ```ts
@@ -1095,7 +1126,7 @@ Ordinal-ordered `ObjectChangeKind` wire names (index = Cap'n Proto ordinal).
 ### PLUGIN\_ERROR\_CODES
 
 ```ts
-const PLUGIN_ERROR_CODES: readonly ["invalid_params", "unauthorized", "forbidden", "not_found", "unavailable", "unsupported", "internal", "payload_too_large", "deadline_exceeded", "invalid_cursor", "cancelled", "conflict", "limit_exceeded", "rate_limited"];
+const PLUGIN_ERROR_CODES: readonly ["invalid_params", "unauthorized", "forbidden", "not_found", "unavailable", "unsupported", "internal", "payload_too_large", "deadline_exceeded", "invalid_cursor", "cancelled", "conflict", "limit_exceeded", "rate_limited", "network_not_granted"];
 ```
 
 Stable `PluginError.code` strings. Unknown future codes are forwarded
@@ -1149,6 +1180,30 @@ const RESOLVED_SQL_TYPES: readonly ["integer", "real", "text", "blob", "boolean"
 Resolved BookclerkSQL column type after type checking.
 
 Ordinal-ordered `ResolvedSqlType` wire names (index = Cap'n Proto ordinal).
+
+***
+
+### SETTING\_GRANT\_STATES
+
+```ts
+const SETTING_GRANT_STATES: readonly ["approved", "pending", "unset", "invalid"];
+```
+
+Where a network setting's destination stands.
+
+Ordinal-ordered `SettingGrantState` wire names (index = Cap'n Proto ordinal).
+
+***
+
+### SETTING\_NETWORK\_KINDS
+
+```ts
+const SETTING_NETWORK_KINDS: readonly ["fetch", "tcp"];
+```
+
+How a setting's destination is reached.
+
+Ordinal-ordered `SettingNetworkKind` wire names (index = Cap'n Proto ordinal).
 
 ***
 

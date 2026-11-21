@@ -169,6 +169,18 @@ pub fn get_notify(self) -> Result<Client>
 pub fn has_notify(&self) -> bool
 ```
 
+#### Reader::get_network
+
+```rust
+pub fn get_network(self) -> Result<Reader<'a>>
+```
+
+#### Reader::has_network
+
+```rust
+pub fn has_network(&self) -> bool
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -437,6 +449,30 @@ pub fn set_notify(&mut self, value: Client)
 pub fn has_notify(&self) -> bool
 ```
 
+#### Builder::get_network
+
+```rust
+pub fn get_network(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_network
+
+```rust
+pub fn set_network(&mut self, value: Reader<'_>) -> Result<()>
+```
+
+#### Builder::init_network
+
+```rust
+pub fn init_network(self) -> Builder<'a>
+```
+
+#### Builder::has_network
+
+```rust
+pub fn has_network(&self) -> bool
+```
+
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
 
 ### Pipeline
@@ -493,6 +529,12 @@ pub fn get_sockets(&self) -> Client
 
 ```rust
 pub fn get_notify(&self) -> Client
+```
+
+#### Pipeline::get_network
+
+```rust
+pub fn get_network(&self) -> Pipeline
 ```
 
 Implements: `FromTypelessPipeline`

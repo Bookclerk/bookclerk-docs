@@ -46,6 +46,16 @@ KV?: KvNamespaceBinding;
 
 `[[kv_namespaces]]` durable KV binding (default name).
 
+##### NETWORK?
+
+```ts
+NETWORK?: NetworkGrant;
+```
+
+The network grant in effect: fetch hosts, TCP destinations, and each
+network setting's destination with its approval state (`pending` until
+the operator approves it). Read-only; the host enforces the grant.
+
 ##### NOTIFY?
 
 ```ts

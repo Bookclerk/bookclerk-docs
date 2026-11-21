@@ -44,6 +44,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`PendingStructural`](#pendingstructural) | struct | Newly requested capabilities awaiting operator consent: structural ones, and network destinations wider than the stored grant. |
 | [`PluginGrant`](#plugingrant) | struct | One approved grant snapshot for a provenance-qualified plugin. |
 | [`PluginGrantStore`](#plugingrantstore) | struct | On-disk grant store. |
+| [`SettingNetworkOverlay`](#settingnetworkoverlay) | struct | Network destinations one spawn adds from approved network settings. |
 | [`AuthorizedLocalPackages`](#authorizedlocalpackages) | struct | Operator-placed archives keyed by canonical plugin key. |
 | [`DeploymentSpawn`](#deploymentspawn) | struct | Spawn request after config resolution. |
 | [`LiveDeploymentRuntime`](#livedeploymentruntime) | struct | Production runtime: spawn through the existing host adapters and register the session on the live registry. |
@@ -88,6 +89,8 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`PluginStorage`](#pluginstorage) | struct | `StorageBackend` over a plugin destination capability (streams, fail-closed scalars). |
 | [`RpcBackupOps`](#rpcbackupops) | struct | Send-safe backup primitives over a vat-held adapter session (or its open txn). |
 | [`SessionServices`](#sessionservices) | struct | Host services a session hands its guest as `Bindings` on every `PluginWorker.open`. |
+| [`InstanceSettingStatuses`](#instancesettingstatuses) | struct | The network-setting statuses of one plugin instance. |
+| [`SettingGrantStatus`](#settinggrantstatus) | struct | One network setting, the destination its value names, and its state. |
 | [`BrokerSockets`](#brokersockets) | struct | The `SOCKETS` binding a guest session hands out: the instance's broker. |
 | [`SocketBroker`](#socketbroker) | struct | The host's handle on one plugin instance's socket broker. |
 | [`SpawnPlan`](#spawnplan) | struct | Everything the spawn path needs to start one guest. |
@@ -250,6 +253,13 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`remote_row_changes`](#remote_row_changes) | function | `remote_request_changes` for a stored consent row: what the owner's current request asks for beyond the request the operator approved. |
 | [`remote_row_consent_state`](#remote_row_consent_state) | function | Evaluates a stored consent row: `remote_consent_state` over its grants, except that an approval of another archive (the owner changed the artifact URL or digest since the operator approved) needs approval again, whatever the grant. |
 | [`plugin_instance_key`](#plugin_instance_key) | function | Isolation key: different accounts never share a plugin isolate. |
+| [`apply_setting_destinations`](#apply_setting_destinations) | function | Adds every approved destination the instance's settings name to `grant`. |
+| [`approve_setting_destinations`](#approve_setting_destinations) | function | The approved setting destinations after the operator answers the form. |
+| [`destinations_in_use`](#destinations_in_use) | function | The destinations `rows` name, per setting key, for `approve_setting_destinations`'s `in_use`. |
+| [`library_setting_statuses`](#library_setting_statuses) | function | Judges the network settings of every instance of a plugin in the library. |
+| [`network_grant_binding`](#network_grant_binding) | function | The `NETWORK` binding a guest receives at `open`: the grant in effect (after `apply_setting_destinations` filled its setting overlay) and each network setting's destination and state. |
+| [`network_settings`](#network_settings) | function | The settings of `manifest` that declare `network`, in declaration order. |
+| [`setting_grant_statuses`](#setting_grant_statuses) | function | Derives the destination each network setting names in `settings`. |
 | [`note_spawn_stage`](#note_spawn_stage) | function | Record one secret-free startup line. |
 | [`purge_link_plugin_state`](#purge_link_plugin_state) | function | Deletes the plugin state this install kept for a library it no longer belongs to: `plugin-state/<link dir>/`, every plugin's `data`, `tmp` and session directories in it. |
 | [`recent_spawn_diagnostics`](#recent_spawn_diagnostics) | function | Bounded startup log for the current process. |
@@ -258,6 +268,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`SessionShutdown`](#sessionshutdown) | type alias | Shutdown hook invoked the moment a live session is fenced. |
 | [`Result`](#result) | type alias | Result alias for `PluginError`. |
 | [`GuestDatabaseFactory`](#guestdatabasefactory) | type alias | Send-safe constructor for a per-binding `bookclerk_plugin_sdk::GuestDatabase`. |
+| [`SettingDestinationMap`](#settingdestinationmap) | type alias | Per setting key, the destinations a plugin's instances name now. |
 | [`GRANT_WATCH_INTERVAL`](#grant_watch_interval) | constant | How often the daemon re-reads `plugin-grants.json` when no in-process notify fires. |
 | [`GRANTS_FILE`](#grants_file) | constant | Filename under `$BOOKCLERK_FILES_DIR` for persisted grants. |
 | [`GRANT_SCHEMA_VERSION`](#grant_schema_version) | constant | Current persisted `PluginGrant` document version. |
@@ -338,6 +349,9 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 - [`bookclerk_plugin_sdk::PRODUCT_API_VERSION`](../bookclerk_plugin_abi/README.md#product_api_version)
 - [`bookclerk_plugin_sdk::PROTOCOL_NAME`](../../../plugins/sdk/rust/protocol.md#protocol_name)
 - [`bookclerk_plugin_catalog::host_bookclerk_target`](../bookclerk_plugin_catalog/README.md#host_bookclerk_target)
+- [`bookclerk_plugin_manifest::derive_setting_destination`](../bookclerk_plugin_manifest/setting_network.md#derive_setting_destination)
+- [`bookclerk_plugin_manifest::DestinationScope`](../bookclerk_plugin_manifest/setting_network.md#destinationscope)
+- [`bookclerk_plugin_manifest::SettingDestination`](../bookclerk_plugin_manifest/setting_network.md#settingdestination)
 - [`bookclerk_plugin_manifest::TcpGrant`](../bookclerk_plugin_manifest/egress.md#tcpgrant)
 - [`bookclerk_plugin_sdk::JobCheckpoint`](../bookclerk_plugin_abi/README.md#jobcheckpoint)
 - [`bookclerk_plugin_sdk::JobInvocationLease`](../bookclerk_plugin_abi/README.md#jobinvocationlease)
@@ -368,6 +382,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 - [`manifest::WorkerdRuntimeManifest`](../bookclerk_plugin_manifest/types.md#workerdruntimemanifest)
 - [`manifest::ALL_ENTRYPOINTS`](../bookclerk_plugin_manifest/types.md#all_entrypoints)
 - [`manifest::MAX_EMBEDDED_LOGO_BYTES`](../bookclerk_plugin_manifest/logo.md#max_embedded_logo_bytes)
+- [`setting_grants::SettingGrantState`](../bookclerk_plugin_abi/network_grant.md#settinggrantstate)
 
 ## Traits
 
@@ -878,6 +893,8 @@ pub struct PluginGrant {
     pub cpu_rate_percent: Option<u32>,
     pub extra_processes: Option<u32>,
     pub approved_at: String,
+    pub setting_destinations: BTreeMap<String, BTreeSet<SettingDestination>>,
+    pub setting_network: SettingNetworkOverlay,
 }
 ```
 
@@ -973,6 +990,23 @@ One approved grant snapshot for a provenance-qualified plugin.
   Workerd guests omit this; the host applies default extra headroom only.
   Absolute Spec `active_processes` = overhead(runtime) + this value.
 - `approved_at`: RFC 3339 time when the operator approved this grant.
+- `setting_destinations`: Destinations derived from network settings
+  (`[[settings]] network = …`) that the operator approved, by setting
+  key.
+  
+  A destination is used only while an instance's value for that
+  setting still derives it ([`crate::apply_setting_destinations`](#apply_setting_destinations)), and
+  approving a setting again withdraws destinations no instance names
+  any more ([`crate::approve_setting_destinations`](#approve_setting_destinations)).
+- `setting_network`: What approved setting destinations add for this spawn.
+  
+  Filled at spawn by [`crate::apply_setting_destinations`](#apply_setting_destinations) from the
+  instance's values; never stored. [`Self::egress_policy`](#plugingrantegress_policy) adds it to
+  the stored network grant. It is kept apart from [`Self::domains`](#plugingrant) and
+  [`Self::tcp`](#plugingrant) so the effective authority a session records stays the
+  stored grant's: the approvals themselves are in
+  [`Self::setting_destinations`](#plugingrant) (part of the grant revision), and a
+  changed value changes the instance's configuration revision.
 
 #### PluginGrant::allows_event_consumer
 
@@ -1030,6 +1064,15 @@ pub fn egress_policy(&self) -> EgressPolicy
 ```
 
 Canonical typed network policy for workerd and the native socket proxy.
+
+#### PluginGrant::effective_domains
+
+```rust
+pub fn effective_domains(&self) -> BTreeSet<String>
+```
+
+The fetch allowlist this spawn uses: [`Self::domains`](#plugingrant) plus what
+approved setting destinations add.
 
 #### PluginGrant::approved_own_user_agent_hosts
 
@@ -1175,6 +1218,31 @@ provenance-qualified grant.
 * `grant` - Full consent snapshot to persist in memory (call [`Self::save`](#plugingrantstoresave) to flush).
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### SettingNetworkOverlay
+
+```rust
+pub struct SettingNetworkOverlay {
+    pub domains: BTreeSet<String>,
+    pub tcp: BTreeSet<TcpGrant>,
+    pub local_names: BTreeSet<String>,
+    pub pending: BTreeSet<PendingSettingDestination>,
+}
+```
+
+Network destinations one spawn adds from approved network settings.
+
+**Fields**
+
+- `domains`: Fetch `host:port` entries (`EgressPolicy::domains`).
+- `tcp`: Raw TCP grants (`EgressPolicy::tcp`).
+- `local_names`: Names and local-network addresses bound to the local network
+  (`EgressPolicy::local_names`).
+- `pending`: Destinations settings name that await approval; they grant nothing
+  and only let a refusal name its setting
+  (`EgressPolicy::pending_settings`).
+
+Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
 
 ### AuthorizedLocalPackages
 
@@ -4169,6 +4237,51 @@ Cap'n Proto to the native guest's stdio with no `bookclerk-workerd`.
 
 Implements: `Clone`, `Default`
 
+### InstanceSettingStatuses
+
+```rust
+pub struct InstanceSettingStatuses {
+    pub instance_id: Option<String>,
+    pub statuses: Vec<SettingGrantStatus>,
+}
+```
+
+The network-setting statuses of one plugin instance.
+
+**Fields**
+
+- `instance_id`: The instance; `None` when the plugin has no instance yet and the
+  statuses judge the settings' defaults.
+- `statuses`: One status per network setting, in declaration order.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### SettingGrantStatus
+
+```rust
+pub struct SettingGrantStatus {
+    pub key: String,
+    pub label: String,
+    pub network: SettingNetwork,
+    pub destination: Option<SettingDestination>,
+    pub error: Option<SettingDestinationError>,
+    pub state: SettingGrantState,
+}
+```
+
+One network setting, the destination its value names, and its state.
+
+**Fields**
+
+- `key`: The setting key.
+- `label`: The setting's label, falling back to the key.
+- `network`: Whether the value is fetched or dialed.
+- `destination`: The derived destination, when the value names one.
+- `error`: Why the value names no destination, for `SettingGrantState::Invalid`.
+- `state`: Where the grant stands.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### BrokerSockets
 
 ```rust
@@ -7032,6 +7145,160 @@ pub fn plugin_instance_key(plugin_id: &str, account_id: &str) -> String
 
 Isolation key: different accounts never share a plugin isolate.
 
+### apply_setting_destinations
+
+```rust
+pub fn apply_setting_destinations(
+    grant: &mut PluginGrant,
+    manifest: &PluginManifest,
+    settings: &Value,
+) -> Vec<SettingGrantStatus>
+```
+
+Adds every approved destination the instance's settings name to `grant`.
+
+A fetch destination adds its `host:port`, a TCP destination its host and
+port, and a name or local-network address its local binding, all to
+[`PluginGrant::setting_network`](#plugingrant). A
+destination is added only when the current value derives exactly what
+the operator approved for that setting. Nothing is added unless the grant
+is outbound.
+
+#### Arguments
+
+* `grant` - The covering grant for this spawn (mutated in place).
+* `manifest` - The plugin being spawned.
+* `settings` - The instance's effective settings (the spawn `CONFIG`).
+
+#### Returns
+
+The status of each network setting, for the plugin's feedback.
+
+### approve_setting_destinations
+
+```rust
+pub fn approve_setting_destinations(
+    existing: &BTreeMap<String, BTreeSet<SettingDestination>>,
+    manifest: &PluginManifest,
+    in_use: &BTreeMap<String, BTreeSet<SettingDestination>>,
+    approve: &BTreeMap<String, BTreeSet<SettingDestination>>,
+) -> BTreeMap<String, BTreeSet<SettingDestination>>
+```
+
+The approved setting destinations after the operator answers the form.
+
+For each network setting the result holds what is approved and still in
+use (`in_use` lists the destinations the instances' current values
+derive), plus each destination the operator approved now that is in use.
+Anything else is withdrawn: a value that changed no longer keeps its old
+destination, and a destination nobody named cannot be approved.
+
+#### Arguments
+
+* `existing` - The stored grant's approvals.
+* `manifest` - The plugin; only its network settings are kept.
+* `in_use` - Per setting key, the destinations the instances name now.
+* `approve` - Per setting key, the destinations the operator approved now.
+
+#### Returns
+
+The new [`PluginGrant::setting_destinations`](#plugingrant).
+
+### destinations_in_use
+
+```rust
+pub fn destinations_in_use(rows: &[InstanceSettingStatuses]) -> SettingDestinationMap
+```
+
+The destinations `rows` name, per setting key, for
+[`approve_setting_destinations`](#approve_setting_destinations)'s `in_use`.
+
+### library_setting_statuses
+
+```rust
+pub async fn library_setting_statuses(
+    library: &LibraryStore,
+    manifest: &PluginManifest,
+    plugin_key: &str,
+    grant: Option<&PluginGrant>,
+) -> Result<Vec<InstanceSettingStatuses>>
+```
+
+Judges the network settings of every instance of a plugin in the library.
+
+Each instance's configuration document is read and its defaults applied
+as at spawn; an instance without a document runs on its defaults, and a
+plugin with no instance yet is judged on its defaults alone. Nothing is
+read when the plugin declares no network setting.
+
+#### Arguments
+
+* `library` - The library holding the instances.
+* `manifest` - The plugin; its schema supplies the defaults.
+* `plugin_key` - The plugin's canonical key, which its instances carry.
+* `grant` - The stored grant, which decides approved against pending.
+
+#### Returns
+
+One entry per instance, oldest first.
+
+#### Errors
+
+Returns an error when the instances or a document cannot be read.
+
+### network_grant_binding
+
+```rust
+pub fn network_grant_binding(
+    grant: &PluginGrant,
+    statuses: &[SettingGrantStatus],
+) -> NetworkGrant
+```
+
+The `NETWORK` binding a guest receives at `open`: the grant in effect
+(after [`apply_setting_destinations`](#apply_setting_destinations) filled its setting overlay) and
+each network setting's destination and state.
+
+#### Arguments
+
+* `grant` - The effective spawn grant.
+* `statuses` - What [`apply_setting_destinations`](#apply_setting_destinations) returned for it.
+
+#### Returns
+
+The grant as the ABI carries it, within the schema's list bound.
+
+### network_settings
+
+```rust
+pub fn network_settings(manifest: &PluginManifest) -> impl Iterator<Item = &SettingSpec>
+```
+
+The settings of `manifest` that declare `network`, in declaration order.
+
+### setting_grant_statuses
+
+```rust
+pub fn setting_grant_statuses(
+    manifest: &PluginManifest,
+    settings: &Value,
+    grant: Option<&PluginGrant>,
+) -> Vec<SettingGrantStatus>
+```
+
+Derives the destination each network setting names in `settings`.
+
+#### Arguments
+
+* `manifest` - The plugin whose `[[settings]]` declare the networks.
+* `settings` - One instance's effective settings (defaults applied), as
+  the JSON object the guest's `CONFIG` carries.
+* `grant` - The stored grant, which decides approved against pending.
+
+#### Returns
+
+One status per network setting, in declaration order.
+
 ### note_spawn_stage
 
 ```rust
@@ -7150,6 +7417,14 @@ bindings cross into the vat task as factories and are constructed on the
 vat thread just before the per-job `PluginWorker.open`. The factory
 receives the job cancel flag and the host lease deadline so binding
 execute can abort and cap `deadlineUnixMs`.
+
+### SettingDestinationMap
+
+```rust
+pub type SettingDestinationMap = BTreeMap<String, BTreeSet<SettingDestination>>;
+```
+
+Per setting key, the destinations a plugin's instances name now.
 
 ## Constants
 

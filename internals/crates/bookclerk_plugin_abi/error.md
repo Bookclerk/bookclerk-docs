@@ -115,6 +115,21 @@ Convenience for [`PluginErrorCode::Unavailable`](#pluginerrorcode).
 Use for ambiguous transport failures (lost HTTP/RPC responses, timeouts)
 where the caller should retry the same idempotency key.
 
+#### PluginError::network_not_granted
+
+```rust
+pub fn network_not_granted(destination: &str, setting: Option<&str>) -> Self
+```
+
+Convenience for [`PluginErrorCode::NetworkNotGranted`](#pluginerrorcode).
+
+##### Arguments
+
+* `destination` - The refused `host:port`; stored as
+  `details.destination`.
+* `setting` - The network setting whose value names the destination
+  and awaits approval, when one does; stored as `details.setting`.
+
 #### PluginError::rate_limited
 
 ```rust
@@ -302,6 +317,7 @@ pub enum PluginErrorCode {
     Conflict,
     LimitExceeded,
     RateLimited,
+    NetworkNotGranted,
     Unknown,
 }
 ```
@@ -328,6 +344,9 @@ Serialized with `snake_case` wire names (`invalid_params`, `not_found`, …).
   names which one.
 - `RateLimited`: The backend asked the guest to slow down (HTTP 429 or its
   equivalent); [`PluginError::retry_after`](#pluginerrorretry_after) says for how long.
+- `NetworkNotGranted`: The network grant does not cover the destination; `details` names
+  it (`destination`) and the network setting that names it
+  (`setting`), when one does.
 - `Unknown`: Unrecognized wire code. See [`PluginError::wire_str`](#pluginerrorwire_str).
 
 #### PluginErrorCode::as_str

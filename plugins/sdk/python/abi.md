@@ -42,6 +42,8 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`OidcClientsReplyErr`](#oidcclientsreplyerr) | class | `OidcClientsReply` member `err`. |
 | [`ExtensibleConfig`](#extensibleconfig) | class | Plugin-specific extensible config. Not a substitute for typed ABI fields. |
 | [`Bindings`](#bindings) | class | Host-granted bindings for one `PluginWorker.open` (`env` in the Workers idiom). OS paths, FDs, and sockets are transport-private. Capability fields are null when the manifest does not declare (or the operator did not grant) the binding. |
+| [`NetworkGrant`](#networkgrant) | class | The network grant in effect for one `PluginWorker.open`. Read-only feedback: the host enforces the grant whatever the guest does with this. |
+| [`SettingNetworkGrant`](#settingnetworkgrant) | class | One network setting and the destination its value names. |
 | [`Entrypoints`](#entrypoints) | class | Exported entrypoints returned by `PluginWorker.open`. One capability per `plugin.toml` `entrypoints` entry / trigger; null when not exported. The host refuses an entrypoint the manifest or operator grant did not allow. |
 | [`EntrypointsReplyOk`](#entrypointsreplyok) | class | `EntrypointsReply` member `ok`. |
 | [`EntrypointsReplyErr`](#entrypointsreplyerr) | class | `EntrypointsReply` member `err`. |
@@ -388,6 +390,8 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`PluginMigrationsReplyErr`](#pluginmigrationsreplyerr) | class | `PluginMigrationsReply` member `err`. |
 | [`PluginWorker`](#pluginworker) | class | Plugin bootstrap capability: the guest's root object (Workers `default` export analogue). `describe()` first; `open()` once per invocation. |
 | [`ObjectChangeKind`](#objectchangekind) | constant | What happened to an object in a change feed. Unknown codes are kept and treated as `changed`. |
+| [`SettingNetworkKind`](#settingnetworkkind) | constant | How a setting's destination is reached. |
+| [`SettingGrantState`](#settinggrantstate) | constant | Where a network setting's destination stands. |
 | [`PluginErrorCode`](#pluginerrorcode) | constant | Stable `PluginError.code` strings. Unknown future codes are forwarded as-is; SDKs surface them as a local `unknown` while keeping the raw wire code. |
 | [`Entrypoint`](#entrypoint) | constant | Named entrypoint a plugin exports (Cloudflare Workers named-entrypoint analogue). Each value is a capability the host calls over RPC; triggers on the default entrypoint (`event`, `job`) are declared separately. |
 | [`PortalAuthMode`](#portalauthmode) | constant | Portal Accounts connect mode for storefronts. |
@@ -968,6 +972,39 @@ the binding.
 - `kv`: Named `[[kv_namespaces]]` bindings: one host-served durable namespace per binding, scoped to this plugin. Empty when the manifest declares none.
 - `sockets`: `SOCKETS`: host-brokered outbound WebSockets that stay open while the guest sleeps; null unless `[sockets]` is declared and granted. Null when the guest does not export this capability.
 - `notify`: `NOTIFY`: raises the notification types the plugin declares in `[[notifications.types]]`; null when it declares none. Null when the guest does not export this capability.
+- `network`: `NETWORK`: what the operator granted this plugin's network, including the destination each network setting names and whether it is approved, so a guest can tell an unapproved destination from an unreachable one.
+
+### NetworkGrant
+
+```python
+class NetworkGrant(TypedDict)
+```
+
+The network grant in effect for one `PluginWorker.open`. Read-only
+feedback: the host enforces the grant whatever the guest does with this.
+
+**Attributes**
+
+- `outbound`: True when the grant allows outbound connections; false for `deny`.
+- `domains`: Fetch destinations in effect, as `plugin.toml` `domains` entries (`host`, `*.host`, `host:port`, or `*` for any public host), including approved setting destinations; at most `maxNetworkGrantEntries`.
+- `tcp`: Raw TCP destinations in effect, as `host:port` (IPv6 in brackets), one per granted port; at most `maxNetworkGrantEntries`.
+- `settings`: One entry per `[[settings]]` entry that declares `network`, in declaration order; at most `maxNetworkGrantEntries`.
+
+### SettingNetworkGrant
+
+```python
+class SettingNetworkGrant(TypedDict)
+```
+
+One network setting and the destination its value names.
+
+**Attributes**
+
+- `key`: The setting key.
+- `network`: Whether the plugin fetches the destination or opens a socket to it.
+- `destination`: The destination as the consent form shows it: `scheme://host:port` for a fetch, `host:port` for TCP (IPv6 in brackets); empty when `state` is `unset` or `invalid`. Omitted when absent (wire zero value).
+- `state`: Where the destination stands.
+- `error`: Why the value names no destination, when `state` is `invalid`. Omitted when absent (wire zero value).
 
 ### Entrypoints
 
@@ -7616,6 +7653,22 @@ ObjectChangeKind = Literal['changed', 'upserted', 'removed']
 
 What happened to an object in a change feed. Unknown codes are kept and
 treated as `changed`.
+
+### SettingNetworkKind
+
+```python
+SettingNetworkKind = Literal['fetch', 'tcp']
+```
+
+How a setting's destination is reached.
+
+### SettingGrantState
+
+```python
+SettingGrantState = Literal['approved', 'pending', 'unset', 'invalid']
+```
+
+Where a network setting's destination stands.
 
 ### PluginErrorCode
 

@@ -15,6 +15,7 @@ pinned in the library database at enrollment.
 | [`SettingsSchema`](#settingsschema) | struct | The ordered `[[settings]]` list of one plugin. |
 | [`EffectiveConfig`](#effectiveconfig) | struct | Result of `SettingsSchema::effective_config`. |
 | [`SettingKind`](#settingkind) | enum | Value type of one setting. |
+| [`SettingNetwork`](#settingnetwork) | enum | How a string setting's value names a network destination (`network` in `[[settings]]`). |
 | [`is_valid_setting_key`](#is_valid_setting_key) | function | Grammar for setting keys and secret names: `^a-z{0,63}$`. |
 | [`SETTINGS_SCHEMA_VERSION`](#settings_schema_version) | constant | Schema revision of `SettingsSchema` as pinned in the database. |
 | [`MAX_SETTINGS`](#max_settings) | constant | Maximum `[[settings]]` entries one manifest may declare. |
@@ -55,6 +56,8 @@ pub struct SettingSpec {
     pub required: bool,
     pub description: Option<String>,
     pub columns: Vec<SettingSpec>,
+    pub network: Option<SettingNetwork>,
+    pub default_port: Option<u16>,
 }
 ```
 
@@ -74,6 +77,12 @@ One `[[settings]]` entry.
   otherwise. Each column is a scalar entry: its `key` names the record
   field, `required` means every row must have a value (from the row or
   the column `default`), and it declares no columns of its own.
+- `network`: Whether the value names a network destination the plugin may reach
+  once the operator approves it. Only a top-level
+  [`SettingKind::String`](#settingkind) setting may declare it.
+- `default_port`: Port used when a [`Self::network`](#settingspec) value names none: required for a
+  bare `tcp` host, and replaces 443 for a bare `fetch` host. Allowed only
+  with `network`; 1-65535.
 
 #### SettingSpec::label_or_key
 
@@ -333,6 +342,41 @@ True for the kinds a table column may have: string, bool, integer
 and enum.
 
 Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `Hash`, `PartialEq`, `Serialize`
+
+### SettingNetwork
+
+```rust
+pub enum SettingNetwork {
+    Fetch,
+    Tcp,
+}
+```
+
+How a string setting's value names a network destination
+(`network` in `[[settings]]`).
+
+A setting that declares one may widen the plugin's network grant: the host
+derives the destination from the value an operator saves and lists it on
+the consent form, and the plugin reaches it only once it is approved.
+
+**Variants**
+
+- `Fetch`: An HTTP(S) URL the plugin fetches (`https://abs.home.lan:13378`). A
+  bare `host[:port]` means `https://`. Grants a fetch to that host and
+  port.
+- `Tcp`: A `host:port` the plugin opens a raw TCP socket to
+  (`db.home.lan:5432`); a bare host takes
+  [`SettingSpec::default_port`](#settingspec). Grants TCP to that host and port.
+
+#### SettingNetwork::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+Wire / manifest name (`fetch`, `tcp`).
+
+Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`
 
 ## Functions
 

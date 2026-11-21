@@ -4847,6 +4847,18 @@ kv?: Record<string, string>;
 
 `[[kv_namespaces]]` binding → kv-only bearer for `/kv/*`.
 
+##### network?
+
+```ts
+network?: NetworkGrant;
+```
+
+The network grant in effect, handed to the author as `env.NETWORK`.
+
+###### Inherited from
+
+[`GrantedContext`](#grantedcontext).[`network`](#network-1)
+
 ##### notify?
 
 ```ts
@@ -5150,6 +5162,14 @@ kv?: NamedKv[];
 ```
 
 `[[kv_namespaces]]` bindings, when granted.
+
+##### network?
+
+```ts
+network?: NetworkGrant;
+```
+
+The network grant in effect, handed to the author as `env.NETWORK`.
 
 ##### notify?
 
@@ -5579,6 +5599,18 @@ kv?: NamedKv[];
 ###### Inherited from
 
 [`GrantedContext`](#grantedcontext).[`kv`](#kv-1)
+
+##### network?
+
+```ts
+network?: NetworkGrant;
+```
+
+The network grant in effect, handed to the author as `env.NETWORK`.
+
+###### Inherited from
+
+[`GrantedContext`](#grantedcontext).[`network`](#network-1)
 
 ##### notify?
 
@@ -7294,6 +7326,12 @@ Re-exports [MetadataRecord](generated.md#metadatarecord)
 ### MetadataSearchParams
 
 Re-exports [MetadataSearchParams](generated.md#metadatasearchparams)
+
+***
+
+### NetworkGrant
+
+Re-exports [NetworkGrant](generated.md#networkgrant)
 
 ***
 

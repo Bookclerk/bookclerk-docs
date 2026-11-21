@@ -178,6 +178,25 @@ A remote library whose message announced a new user returns
 `{ pollEvents: true }` from `webSocketMessage`, and the host calls
 `pollEvents` right away instead of at its next scheduled poll.
 
+## Network grant
+
+`this.env.NETWORK` is the grant in effect (see
+[Network grant](../../abi.md#network-grant-envnetwork)). A setting whose
+destination still awaits approval shows `state: "pending"`, and a refused
+`fetch()` answers `403` with an `x-bookclerk-error: network_not_granted`
+header:
+
+```ts
+const row = this.env.NETWORK?.settings.find((s) => s.key === "server_url");
+if (row?.state === "pending") {
+  throw new Error(`Approve ${row.destination} on the plugin's consent form`);
+}
+const res = await fetch(`${this.env.CONFIG.server_url}/api/libraries`);
+if (res.headers.get("x-bookclerk-error") === "network_not_granted") {
+  // The grant does not cover it: report it, don't retry.
+}
+```
+
 ## Testing database code
 
 `createTestDatabase()` from `@bookclerk/plugin-sdk/testkit` gives a
@@ -3124,6 +3143,12 @@ Re-exports [NamedStub](plugin.md#namedstub)
 
 ***
 
+### NetworkGrant
+
+Re-exports [NetworkGrant](generated.md#networkgrant)
+
+***
+
 ### NotificationAlertAction
 
 Re-exports [NotificationAlertAction](abi.md#notificationalertaction)
@@ -3775,6 +3800,24 @@ Re-exports [SearchCatalogParams](generated.md#searchcatalogparams)
 ### SeriesEntry
 
 Re-exports [SeriesEntry](generated.md#seriesentry)
+
+***
+
+### SettingGrantState
+
+Re-exports [SettingGrantState](abi.md#settinggrantstate)
+
+***
+
+### SettingNetworkGrant
+
+Re-exports [SettingNetworkGrant](generated.md#settingnetworkgrant)
+
+***
+
+### SettingNetworkKind
+
+Re-exports [SettingNetworkKind](abi.md#settingnetworkkind)
 
 ***
 

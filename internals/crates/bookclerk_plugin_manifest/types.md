@@ -77,6 +77,7 @@ Semantic rules that cannot be expressed in serde alone live in
 | [`DEFAULT_KV_BINDING`](#default_kv_binding) | constant | Default `binding` for `[[kv_namespaces]]`. |
 | [`DEFAULT_EVENTS_BINDING`](#default_events_binding) | constant | Default `binding` for `[[events.producers]]`. |
 | [`CONFIG_BINDING`](#config_binding) | constant | Binding name the host uses for operator config (`[vars]`). |
+| [`NETWORK_BINDING`](#network_binding) | constant | Binding name the host uses for the network grant (`env.NETWORK`); no declared binding may take it. |
 | [`MAX_CRON_TRIGGERS`](#max_cron_triggers) | constant | Most `[triggers] crons` entries one manifest may declare. |
 | [`HOST_EVENT_TYPES`](#host_event_types) | constant | Domain event types only the host emits. |
 | [`MAX_QUEUE_NAME_LEN`](#max_queue_name_len) | constant | Maximum length of a queue name. |
@@ -2061,6 +2062,15 @@ pub const CONFIG_BINDING: &str = "CONFIG";
 ```
 
 Binding name the host uses for operator config (`[vars]`).
+
+### NETWORK_BINDING
+
+```rust
+pub const NETWORK_BINDING: &str = "NETWORK";
+```
+
+Binding name the host uses for the network grant (`env.NETWORK`); no
+declared binding may take it.
 
 ### MAX_CRON_TRIGGERS
 

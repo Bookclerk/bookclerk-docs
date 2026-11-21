@@ -451,6 +451,16 @@ kv: NamedKv[];
 Named `[[kv_namespaces]]` bindings: one host-served durable namespace per
 binding, scoped to this plugin. Empty when the manifest declares none.
 
+##### network
+
+```ts
+network: NetworkGrant;
+```
+
+`NETWORK`: what the operator granted this plugin's network, including
+the destination each network setting names and whether it is approved,
+so a guest can tell an unapproved destination from an unreachable one.
+
 ##### notify?
 
 ```ts
@@ -6632,6 +6642,51 @@ Resolved type.
 
 ***
 
+### NetworkGrant
+
+The network grant in effect for one `PluginWorker.open`. Read-only
+feedback: the host enforces the grant whatever the guest does with this.
+
+#### Properties
+
+##### domains
+
+```ts
+domains: string[];
+```
+
+Fetch destinations in effect, as `plugin.toml` `domains` entries
+(`host`, `*.host`, `host:port`, or `*` for any public host), including
+approved setting destinations; at most `maxNetworkGrantEntries`.
+
+##### outbound
+
+```ts
+outbound: boolean;
+```
+
+True when the grant allows outbound connections; false for `deny`.
+
+##### settings
+
+```ts
+settings: SettingNetworkGrant[];
+```
+
+One entry per `[[settings]]` entry that declares `network`, in
+declaration order; at most `maxNetworkGrantEntries`.
+
+##### tcp
+
+```ts
+tcp: string[];
+```
+
+Raw TCP destinations in effect, as `host:port` (IPv6 in brackets), one
+per granted port; at most `maxNetworkGrantEntries`.
+
+***
+
 ### NotificationField
 
 One labelled value shown with a notification.
@@ -9561,6 +9616,58 @@ Omitted when absent (wire zero value).
 
 ***
 
+### SettingNetworkGrant
+
+One network setting and the destination its value names.
+
+#### Properties
+
+##### destination?
+
+```ts
+destination?: string;
+```
+
+The destination as the consent form shows it: `scheme://host:port` for
+a fetch, `host:port` for TCP (IPv6 in brackets); empty when `state` is
+`unset` or `invalid`.
+Omitted when absent (wire zero value).
+
+##### error?
+
+```ts
+error?: string;
+```
+
+Why the value names no destination, when `state` is `invalid`.
+Omitted when absent (wire zero value).
+
+##### key
+
+```ts
+key: string;
+```
+
+The setting key.
+
+##### network
+
+```ts
+network: "fetch" | "tcp";
+```
+
+Whether the plugin fetches the destination or opens a socket to it.
+
+##### state
+
+```ts
+state: "approved" | "pending" | "unset" | "invalid";
+```
+
+Where the destination stands.
+
+***
+
 ### SocketAutoResponse
 
 A heartbeat the broker answers itself: when `request` arrives byte for byte,
@@ -11844,6 +11951,18 @@ Re-exports [PriceLookup](abi.md#pricelookup)
 ### ResolvedSqlType
 
 Re-exports [ResolvedSqlType](abi.md#resolvedsqltype)
+
+***
+
+### SettingGrantState
+
+Re-exports [SettingGrantState](abi.md#settinggrantstate)
+
+***
+
+### SettingNetworkKind
+
+Re-exports [SettingNetworkKind](abi.md#settingnetworkkind)
 
 ***
 

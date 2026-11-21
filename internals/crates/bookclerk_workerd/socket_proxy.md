@@ -13,6 +13,7 @@ listener.
 | [`LinkPolicy`](#linkpolicy) | struct | The policy one proxy link enforces: the approved egress policy and the rule that applies it to a `CONNECT` target. |
 | [`ProxyServer`](#proxyserver) | struct | In-flight host CONNECT proxy. Dropping it cancels accepts and handlers. |
 | [`TunnelRule`](#tunnelrule) | enum | Which grants decide whether a tunnel may be dialed. |
+| [`network_not_granted_response`](#network_not_granted_response) | function | A 403 `network_not_granted` refusal for `host:port`. |
 | [`spawn_unix`](#spawn_unix) | function | Serve HTTP CONNECT on a Unix listener until the task is cancelled. |
 | [`spawn_link`](#spawn_link) | function | Serve HTTP CONNECT on mux-accepted streams from an inherited sibling link. |
 | [`spawn_link_with_challenge`](#spawn_link_with_challenge) | function | `spawn_link` that reads a 32-byte session challenge before any mux frame. |
@@ -145,6 +146,31 @@ Which grants decide whether a tunnel may be dialed.
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
 ## Functions
+
+### network_not_granted_response
+
+```rust
+pub fn network_not_granted_response(
+    egress: &EgressPolicy,
+    host: &str,
+    port: u16,
+    grant: &str,
+) -> Vec<u8>
+```
+
+A 403 `network_not_granted` refusal for `host:port`.
+
+The body is `{"error": {"code", "message", "details"}}`; `details` carries
+`destination` and, when a pending network setting names the destination,
+`setting`. The `x-bookclerk-error` header repeats the code so a client can
+tell this refusal from an upstream 403 without reading the body.
+
+#### Arguments
+
+* `egress` - The policy that refused, for its pending settings.
+* `host` - The refused host.
+* `port` - The refused port.
+* `grant` - The grant the destination is missing from, for the message.
 
 ### spawn_unix
 

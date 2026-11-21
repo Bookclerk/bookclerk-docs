@@ -478,6 +478,10 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`metadata_files::validate_metadata_file_record`](metadata_files.md#validate_metadata_file_record)
 - [`metadata_files::MetadataFileDialect`](metadata_files.md#metadatafiledialect)
 - [`metadata_files::MetadataFileError`](metadata_files.md#metadatafileerror)
+- [`network_grant::NetworkGrant`](network_grant.md#networkgrant)
+- [`network_grant::SettingGrantState`](network_grant.md#settinggrantstate)
+- [`network_grant::SettingNetworkGrant`](network_grant.md#settingnetworkgrant)
+- [`network_grant::MAX_NETWORK_GRANT_ENTRIES`](network_grant.md#max_network_grant_entries)
 - [`scan_page::decode_scan_page_bytes`](scan_page.md#decode_scan_page_bytes)
 - [`scan_page::encode_scan_page_bytes`](scan_page.md#encode_scan_page_bytes)
 - [`scan_page::validate_refreshed_credentials`](scan_page.md#validate_refreshed_credentials)
@@ -486,6 +490,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`settings_schema::is_valid_setting_key`](settings_schema.md#is_valid_setting_key)
 - [`settings_schema::EffectiveConfig`](settings_schema.md#effectiveconfig)
 - [`settings_schema::SettingKind`](settings_schema.md#settingkind)
+- [`settings_schema::SettingNetwork`](settings_schema.md#settingnetwork)
 - [`settings_schema::SettingSpec`](settings_schema.md#settingspec)
 - [`settings_schema::SettingValueSpec`](settings_schema.md#settingvaluespec)
 - [`settings_schema::SettingsSchema`](settings_schema.md#settingsschema)
@@ -921,6 +926,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`media`](media.md): The media a plugin declares it works with, and the checks the host runs against that declaration.
 - [`metadata_files`](metadata_files.md): The checks the host runs on what a `metadataFiles` plugin returns and on what it sends one.
 - [`methods`](methods/README.md): Role capability method names (camelCase on the wire).
+- [`network_grant`](network_grant.md): The network grant a guest sees at `open` (`Bindings.network`).
 - [`notifications`](notifications.md): The checks the host runs on notification requests and replies.
 - [`package_version`](package_version.md): `plugin.toml` `version` as a semantic version.
 - [`scan_page`](scan_page.md): Validation of one `ContentSource.scan` page before the host writes it.
@@ -4242,6 +4248,7 @@ pub struct BindingValues {
     pub config: ExtensibleConfig,
     pub secrets: ExtensibleConfig,
     pub adapter: DatabaseAdapterConfig,
+    pub network: NetworkGrant,
 }
 ```
 
@@ -4259,6 +4266,8 @@ when they call `open`.
   in [`Self::config`](#bindingvaluesconfig); third-party adapters receive this typed bootstrap
   (and an empty `config`). `plugin_data_dir` is empty when `config`
   carries host-private params instead.
+- `network`: `NETWORK`: the network grant in effect, with each network setting's
+  destination and approval state. Read-only feedback for the guest.
 
 #### BindingValues::config
 
@@ -4284,6 +4293,7 @@ pub struct Bindings {
     pub queues: Vec<NamedQueueBinding>,
     pub kv: Vec<NamedKvBinding>,
     pub sockets: Option<Box<dyn Sockets>>,
+    pub network: NetworkGrant,
     pub notify: Option<Box<dyn NotificationRaiser>>,
 }
 ```
@@ -4309,6 +4319,8 @@ declare (or the operator did not grant) the binding.
 - `kv`: Named `[[kv_namespaces]]` bindings; empty when none is granted.
 - `sockets`: `SOCKETS`: host-brokered WebSockets; `None` unless `[sockets]` is
   granted.
+- `network`: `NETWORK`: the network grant in effect (see
+  [`BindingValues::network`](#bindingvalues)).
 - `notify`: `NOTIFY`: raises declared notification types; `None` unless the
   manifest declares `[[notifications.types]]`.
 

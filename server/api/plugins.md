@@ -6900,6 +6900,7 @@ Loads the consent dialog for one plugin, including coverage against the stored g
   - `brand` *[`PluginConsentBrand`](schemas.md#pluginconsentbrand) or null* — Optional portal or manifest branding for the dialog.
   - `limits` *[`PluginConsentLimits`](schemas.md#pluginconsentlimits)*, **required** — Host-capped resource defaults (workerd budgets + shared disk). Always set.
   - `host_user_agent` *string*, **required** — The `User-Agent` this host sends for the plugin's requests, except to the request's `ownUserAgentHosts`.
+  - `setting_destinations` *array of [`PluginSettingDestinationView`](schemas.md#pluginsettingdestinationview)*, **required** — The destination each network setting (`network = "fetch"` or `"tcp"`) names on each instance, and whether it is approved. Empty when the plugin declares no network setting. A `pending` row is not reachable until it is approved; `covered` is false while one is.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -7197,7 +7198,20 @@ Status `200`: What the plugin asks for and what is granted.
       "sockets"
     ]
   },
-  "host_user_agent": "bookclerk/0.1.0 (+https://bookclerk.app)"
+  "host_user_agent": "bookclerk/0.1.0 (+https://bookclerk.app)",
+  "setting_destinations": [
+    {
+      "instanceId": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b",
+      "setting": "server_url",
+      "label": "Server URL",
+      "network": "fetch",
+      "destination": "http://abs.home.lan:13378",
+      "scope": "name",
+      "tls": false,
+      "state": "pending",
+      "error": "the URL must start with http:// or https://"
+    }
+  ]
 }
 ```
 
@@ -7216,7 +7230,8 @@ Schema:
     "covered",
     "summary",
     "limits",
-    "host_user_agent"
+    "host_user_agent",
+    "setting_destinations"
   ],
   "properties": {
     "plugin_id": {
@@ -8281,6 +8296,82 @@ Schema:
       "type": "string",
       "description": "The `User-Agent` this host sends for the plugin's requests, except to\nthe request's `ownUserAgentHosts`.",
       "example": "bookclerk/0.1.0 (+https://bookclerk.app)"
+    },
+    "setting_destinations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One network setting's destination on one plugin instance.",
+        "required": [
+          "setting",
+          "label",
+          "network",
+          "state"
+        ],
+        "properties": {
+          "instanceId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The instance whose settings name it; absent when the plugin has no\ninstance yet and the row shows the setting's default.",
+            "example": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"
+          },
+          "setting": {
+            "type": "string",
+            "description": "The setting key, the source the grant is stored under.",
+            "example": "server_url"
+          },
+          "label": {
+            "type": "string",
+            "description": "The setting's label (its key when it has none).",
+            "example": "Server URL"
+          },
+          "network": {
+            "type": "string",
+            "description": "`fetch` (HTTP requests) or `tcp` (a raw socket).",
+            "example": "fetch"
+          },
+          "destination": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The destination: `scheme://host:port` for a fetch, `host:port` for\nTCP (IPv6 in brackets); absent when the setting is unset or invalid.",
+            "example": "http://abs.home.lan:13378"
+          },
+          "scope": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What kind of host it is: `name` (may resolve to a local-network\naddress, for this name only), `publicAddress`, `localAddress` (this\none local-network address) or `restricted` (loopback, link-local or\na name such as `localhost`, which also needs an address grant).",
+            "example": "name"
+          },
+          "tls": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "True for an `https` fetch, whose certificate is verified; false for\nplain HTTP and raw TCP, which trust the network's DNS answer.",
+            "example": false
+          },
+          "state": {
+            "type": "string",
+            "description": "`approved`, `pending` (awaiting consent), `unset` or `invalid`.",
+            "example": "pending"
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why the value names no destination, when `state` is `invalid`.",
+            "example": "the URL must start with http:// or https://"
+          }
+        }
+      },
+      "description": "The destination each network setting (`network = \"fetch\"` or\n`\"tcp\"`) names on each instance, and whether it is approved. Empty\nwhen the plugin declares no network setting. A `pending` row is not\nreachable until it is approved; `covered` is false while one is."
     }
   }
 }
@@ -8491,6 +8582,7 @@ Persists an approved plugin grant after validating operator overrides.
 
 - `approve` *boolean*, **required** — Must be true; a false value is rejected with 400.
 - `grant` *[`PluginGrantOverride`](schemas.md#plugingrantoverride) or null* — Optional operator overrides applied on top of the manifest request.
+- `setting_destinations` *array of [`PluginSettingDestinationApproval`](schemas.md#pluginsettingdestinationapproval)* — Setting destinations to approve, from the response's `setting_destinations`. An approved destination stays approved while a setting still names it; one left out stays pending, and one no setting names any more is withdrawn.
 
 ### Responses
 
@@ -8507,6 +8599,7 @@ Persists an approved plugin grant after validating operator overrides.
   - `brand` *[`PluginConsentBrand`](schemas.md#pluginconsentbrand) or null* — Optional portal or manifest branding for the dialog.
   - `limits` *[`PluginConsentLimits`](schemas.md#pluginconsentlimits)*, **required** — Host-capped resource defaults (workerd budgets + shared disk). Always set.
   - `host_user_agent` *string*, **required** — The `User-Agent` this host sends for the plugin's requests, except to the request's `ownUserAgentHosts`.
+  - `setting_destinations` *array of [`PluginSettingDestinationView`](schemas.md#pluginsettingdestinationview)*, **required** — The destination each network setting (`network = "fetch"` or `"tcp"`) names on each instance, and whether it is approved. Empty when the plugin declares no network setting. A `pending` row is not reachable until it is approved; `covered` is false while one is.
 - `400` — An override is not allowed. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`); string (`text/plain`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
@@ -8820,7 +8913,20 @@ Status `200`: The grant was stored.
       "sockets"
     ]
   },
-  "host_user_agent": "bookclerk/0.1.0 (+https://bookclerk.app)"
+  "host_user_agent": "bookclerk/0.1.0 (+https://bookclerk.app)",
+  "setting_destinations": [
+    {
+      "instanceId": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b",
+      "setting": "server_url",
+      "label": "Server URL",
+      "network": "fetch",
+      "destination": "http://abs.home.lan:13378",
+      "scope": "name",
+      "tls": false,
+      "state": "pending",
+      "error": "the URL must start with http:// or https://"
+    }
+  ]
 }
 ```
 
@@ -8839,7 +8945,8 @@ Schema:
     "covered",
     "summary",
     "limits",
-    "host_user_agent"
+    "host_user_agent",
+    "setting_destinations"
   ],
   "properties": {
     "plugin_id": {
@@ -9904,6 +10011,82 @@ Schema:
       "type": "string",
       "description": "The `User-Agent` this host sends for the plugin's requests, except to\nthe request's `ownUserAgentHosts`.",
       "example": "bookclerk/0.1.0 (+https://bookclerk.app)"
+    },
+    "setting_destinations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One network setting's destination on one plugin instance.",
+        "required": [
+          "setting",
+          "label",
+          "network",
+          "state"
+        ],
+        "properties": {
+          "instanceId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The instance whose settings name it; absent when the plugin has no\ninstance yet and the row shows the setting's default.",
+            "example": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"
+          },
+          "setting": {
+            "type": "string",
+            "description": "The setting key, the source the grant is stored under.",
+            "example": "server_url"
+          },
+          "label": {
+            "type": "string",
+            "description": "The setting's label (its key when it has none).",
+            "example": "Server URL"
+          },
+          "network": {
+            "type": "string",
+            "description": "`fetch` (HTTP requests) or `tcp` (a raw socket).",
+            "example": "fetch"
+          },
+          "destination": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The destination: `scheme://host:port` for a fetch, `host:port` for\nTCP (IPv6 in brackets); absent when the setting is unset or invalid.",
+            "example": "http://abs.home.lan:13378"
+          },
+          "scope": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What kind of host it is: `name` (may resolve to a local-network\naddress, for this name only), `publicAddress`, `localAddress` (this\none local-network address) or `restricted` (loopback, link-local or\na name such as `localhost`, which also needs an address grant).",
+            "example": "name"
+          },
+          "tls": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "True for an `https` fetch, whose certificate is verified; false for\nplain HTTP and raw TCP, which trust the network's DNS answer.",
+            "example": false
+          },
+          "state": {
+            "type": "string",
+            "description": "`approved`, `pending` (awaiting consent), `unset` or `invalid`.",
+            "example": "pending"
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why the value names no destination, when `state` is `invalid`.",
+            "example": "the URL must start with http:// or https://"
+          }
+        }
+      },
+      "description": "The destination each network setting (`network = \"fetch\"` or\n`\"tcp\"`) names on each instance, and whether it is approved. Empty\nwhen the plugin declares no network setting. A `pending` row is not\nreachable until it is approved; `covered` is false while one is."
     }
   }
 }

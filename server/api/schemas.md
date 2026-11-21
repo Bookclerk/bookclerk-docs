@@ -2456,6 +2456,7 @@ Body for `POST /api/plugins/{id}/consent`.
 
 - `approve` *boolean*, **required** — Must be true; a false value is rejected with 400.
 - `grant` *[`PluginGrantOverride`](#plugingrantoverride) or null* — Optional operator overrides applied on top of the manifest request.
+- `setting_destinations` *array of [`PluginSettingDestinationApproval`](#pluginsettingdestinationapproval)* — Setting destinations to approve, from the response's `setting_destinations`. An approved destination stays approved while a setting still names it; one left out stays pending, and one no setting names any more is withdrawn.
 
 ## PluginConsentBrand
 
@@ -2512,6 +2513,7 @@ Consent dialog payload for one plugin.
 - `brand` *[`PluginConsentBrand`](#pluginconsentbrand) or null* — Optional portal or manifest branding for the dialog.
 - `limits` *[`PluginConsentLimits`](#pluginconsentlimits)*, **required** — Host-capped resource defaults (workerd budgets + shared disk). Always set.
 - `host_user_agent` *string*, **required** — The `User-Agent` this host sends for the plugin's requests, except to the request's `ownUserAgentHosts`.
+- `setting_destinations` *array of [`PluginSettingDestinationView`](#pluginsettingdestinationview)*, **required** — The destination each network setting (`network = "fetch"` or `"tcp"`) names on each instance, and whether it is approved. Empty when the plugin declares no network setting. A `pending` row is not reachable until it is approved; `covered` is false while one is.
 
 ## PluginDeploymentChanged
 
@@ -2695,6 +2697,27 @@ One column of a `table` setting in the Settings UI.
 - `choices` *array of [`PluginSettingChoice`](#pluginsettingchoice) or null* — Dropdown values of an `enum` column; omitted otherwise.
 - `default` *string or null* — String form of the value a new row starts with; omitted when there is no default.
 - `required` *boolean* — True when every row must have a value in this column.
+
+## PluginSettingDestinationApproval
+
+A setting destination the operator approves.
+
+- `setting` *string*, **required** — The setting key.
+- `destination` *string*, **required** — The destination exactly as the consent response shows it.
+
+## PluginSettingDestinationView
+
+One network setting's destination on one plugin instance.
+
+- `instanceId` *string or null* — The instance whose settings name it; absent when the plugin has no instance yet and the row shows the setting's default.
+- `setting` *string*, **required** — The setting key, the source the grant is stored under.
+- `label` *string*, **required** — The setting's label (its key when it has none).
+- `network` *string*, **required** — `fetch` (HTTP requests) or `tcp` (a raw socket).
+- `destination` *string or null* — The destination: `scheme://host:port` for a fetch, `host:port` for TCP (IPv6 in brackets); absent when the setting is unset or invalid.
+- `scope` *string or null* — What kind of host it is: `name` (may resolve to a local-network address, for this name only), `publicAddress`, `localAddress` (this one local-network address) or `restricted` (loopback, link-local or a name such as `localhost`, which also needs an address grant).
+- `tls` *boolean or null* — True for an `https` fetch, whose certificate is verified; false for plain HTTP and raw TCP, which trust the network's DNS answer.
+- `state` *string*, **required** — `approved`, `pending` (awaiting consent), `unset` or `invalid`.
+- `error` *string or null* — Why the value names no destination, when `state` is `invalid`.
 
 ## PluginSettingOption
 
