@@ -92,6 +92,7 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`resolve_purchase_hints`](#resolve_purchase_hints) | function | Resolve every catalog match and attach live prices (view-time). |
 | [`resolve_purchase_hints_batch`](#resolve_purchase_hints_batch) | function | Resolve many purchase-hint queries at once (order preserved). |
 | [`retain_card_recording`](#retain_card_recording) | function | Drops live purchase hints that sell another recording than the card's. |
+| [`retain_card_recordings`](#retain_card_recordings) | function | `retain_card_recording` for a batch of cards, with one pool read. |
 | [`seed_purchase_hint`](#seed_purchase_hint) | function | Seed a deterministic storefront URL from a known candidate (no remote I/O). |
 | [`combine_wishlist_score`](#combine_wishlist_score) | function | Combine local recommend taste with a heavy multi-user wishlist boost. |
 | [`listening_engagement`](#listening_engagement) | function | Continuous engagement from a listening progress row (≈0.0–6.0). |
@@ -109,6 +110,7 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`resolve_title_meta_batch`](#resolve_title_meta_batch) | function | Resolve many title-meta queries with bounded concurrency (order preserved). |
 | [`resolve_title_reviews`](#resolve_title_reviews) | function | Resolve one page of Audible customer reviews for infinite scroll. |
 | [`pool_wish_editions`](#pool_wish_editions) | function | Asks each store about the editions a wish names and records the answers in the shared pool. |
+| [`record_wish_member_offers`](#record_wish_member_offers) | function | Stores the member prices `hints` quote for editions already pooled. |
 | [`EMBED_PAGE_WORKS`](#embed_page_works) | constant | Works read per page by `embed_dirty_works`; also the most texts one embedder call receives. |
 | [`MODEL_ALL_MINILM_L6_V2_Q`](#model_all_minilm_l6_v2_q) | constant | Quantized MiniLM-L6-v2 — ~22 MB ONNX, ~50 MB RAM, 384 dims. |
 | [`MODEL_LOCAL_HASH_V1`](#model_local_hash_v1) | constant | Local hash embedder id used when ONNX is unavailable / disabled. |
@@ -129,6 +131,7 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`WISH_COUNT_WEIGHT`](#wish_count_weight) | constant | Per open wish on the global queue. Large enough that multi-user demand dominates typical local taste scores (~1–25) while recommend signals still order titles that share the same wish count. |
 | [`REQUEST_QUEUE_MAX_AGE`](#request_queue_max_age) | constant | How old the stored ranking may get before a read asks for a new pass, so taste changes no event announces (a book removed, a rating edited) still reach the queue within a day. |
 | [`SERIES_CAP`](#series_cap) | constant | Most titles of one series on a shelf that is not about series, so one long series cannot crowd the others out. |
+| [`TITLE_META_BATCH_DEADLINE`](#title_meta_batch_deadline) | constant | Longest a title-meta batch waits before answering with what resolved. |
 | [`TITLE_META_MAX_STORE_EDITIONS`](#title_meta_max_store_editions) | constant | Most store editions one title-meta query may name; the API rejects more (keep `TitleMetaQuery::store_editions`'s doc in step). |
 | [`MAX_WISH_EDITIONS`](#max_wish_editions) | constant | Most store editions looked up for one wish. A wish names a few; the cap bounds what a crafted request can make the server fetch. |
 
@@ -136,7 +139,7 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 
 - [`bookclerk_source::default_preferred_language`](../bookclerk_storefront/README.md#default_preferred_language)
 - [`bookclerk_source::language_rank`](../bookclerk_storefront/README.md#language_rank)
-- [`bookclerk_source::normalize_language`](../bookclerk_storefront/README.md#normalize_language)
+- [`bookclerk_source::normalize_language`](../bookclerk_resolve/language.md#normalize_language)
 - [`bookclerk_source::CatalogSearchField`](../bookclerk_storefront/README.md#catalogsearchfield)
 - [`bookclerk_source::CatalogSearchSort`](../bookclerk_storefront/README.md#catalogsearchsort)
 - [`bookclerk_source::CatalogSortDir`](../bookclerk_storefront/README.md#catalogsortdir)
@@ -1626,6 +1629,15 @@ One storefront catalog-detail lookup a title-meta fill can make.
   (`detailByProductId`).
 - `Isbn`: The title's ISBN (`detailByIsbn`).
 
+#### FillLookup::kind
+
+```rust
+pub fn kind(&self) -> &'static str
+```
+
+What kind of lookup this is (`product` or `isbn`), for logs that
+must not name the title.
+
 #### FillLookup::key
 
 ```rust
@@ -2586,6 +2598,36 @@ card's editions.
 
 Returns the library read error.
 
+### retain_card_recordings
+
+```rust
+pub async fn retain_card_recordings(
+    library: &LibraryStore,
+    registry: &SourceRegistry,
+    queries: &[PurchaseHintsQuery],
+    responses: &mut [PurchaseHintsResponse],
+) -> Result<(), DiscoverError>
+```
+
+[`retain_card_recording`](#retain_card_recording) for a batch of cards, with one pool read.
+
+A batch route checks every card's hints at once: the pool is read once
+for all the cards' editions and hints together, instead of once per card
+one after another.
+
+#### Arguments
+
+* `library` - The library whose listing pool is read.
+* `registry` - Storefronts, to name each hint's store by its PluginKey.
+* `queries` - The cards' lookups, in batch order.
+* `responses` - Their resolved hints, in the same order, filtered in
+  place; a response without a query (or a query without a response) is
+  left alone.
+
+#### Errors
+
+Returns the library read error; no response is changed then.
+
 ### seed_purchase_hint
 
 ```rust
@@ -2923,20 +2965,22 @@ pub async fn resolve_title_meta_batch(
 
 Resolve many title-meta queries with bounded concurrency (order preserved).
 
+At most `max_concurrent` queries run at once, and each finished query
+frees its slot for the next one at once (no query waits for the slowest
+of a group). The batch answers within [`TITLE_META_BATCH_DEADLINE`](#title_meta_batch_deadline).
+
 #### Arguments
 
-* `queries` - Batch of purchase-hint or title-meta queries.
-* `max_concurrent` - Numeric `max_concurrent` value for this call.
+* `queries` - Batch of title-meta queries.
+* `max_concurrent` - Most queries resolving at once (clamped to 1..=8).
 * `providers` - Deployed metadata providers asked for records.
-* `sources` - String `sources` for this call.
+* `sources` - The deployed storefronts, for gap-filling from their
+  catalogs.
 
 #### Returns
 
-On success, `Vec<Result<Option<TitleMeta>>>`.
-
-#### Errors
-
-Returns an error when the underlying I/O, parse, network, or store operation fails.
+One result per query, in order. A query that failed, was cancelled or
+did not finish by the deadline is an error.
 
 ### resolve_title_reviews
 
@@ -2995,6 +3039,28 @@ quote to the pooled listing, since they also come from the store.
 #### Returns
 
 One entry per edition the pool now holds, in the order given.
+
+### record_wish_member_offers
+
+```rust
+pub async fn record_wish_member_offers(
+    library: &LibraryStore,
+    pooled: &[PooledEdition],
+    hints: &[PurchaseHint],
+)
+```
+
+Stores the member prices `hints` quote for editions already pooled.
+
+[`pool_wish_editions`](#pool_wish_editions) records these itself when it is given the hints;
+a wish that looks its named editions up at the same time as the prices
+calls this once both are in.
+
+#### Arguments
+
+* `library` - The library whose pool holds the listings.
+* `pooled` - The pooled editions, as [`pool_wish_editions`](#pool_wish_editions) returned them.
+* `hints` - The purchase hints the server resolved for the wish.
 
 ## Constants
 
@@ -3177,6 +3243,18 @@ pub const SERIES_CAP: usize = 2;
 
 Most titles of one series on a shelf that is not about series, so one
 long series cannot crowd the others out.
+
+### TITLE_META_BATCH_DEADLINE
+
+```rust
+pub const TITLE_META_BATCH_DEADLINE: Duration = _;
+```
+
+Longest a title-meta batch waits before answering with what resolved.
+
+A query still working then answers as failed (the route shows no
+metadata for it, and the browser asks again later), and keeps running in
+the background so its answer is cached for that next ask.
 
 ### TITLE_META_MAX_STORE_EDITIONS
 

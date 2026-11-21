@@ -901,6 +901,7 @@
     "internals/crates/bookclerk_resolve/fuzzing",
     "internals/crates/bookclerk_resolve/identifiers",
     "internals/crates/bookclerk_resolve/kinds",
+    "internals/crates/bookclerk_resolve/language",
     "internals/crates/bookclerk_resolve/listing",
     "internals/crates/bookclerk_resolve/memory",
     "internals/crates/bookclerk_resolve/model",

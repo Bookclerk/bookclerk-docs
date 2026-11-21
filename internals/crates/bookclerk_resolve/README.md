@@ -37,6 +37,7 @@ replay test and the store all drive the same code.
 - [`kinds::MediaKind`](kinds.md#mediakind)
 - [`kinds::Strength`](kinds.md#strength)
 - [`kinds::WorkKind`](kinds.md#workkind)
+- [`language::normalize_language`](language.md#normalize_language)
 - [`listing::stored_marketplace`](listing.md#stored_marketplace)
 - [`listing::stored_product_id`](listing.md#stored_product_id)
 - [`listing::work_match_key`](listing.md#work_match_key)
@@ -72,6 +73,7 @@ replay test and the store all drive the same code.
 - [`fuzzing`](fuzzing.md): Fuzz input decoding and the oracle the `library_resolve` target checks.
 - [`identifiers`](identifiers.md): External identifiers: normalisation and the key they are stored under.
 - [`kinds`](kinds.md): Closed vocabularies of the library data model.
+- [`language`](language.md): Language codes: one spelling for the many ways stores write a language.
 - [`listing`](listing.md): The validated listing a storefront reports, and who holds it.
 - [`memory`](memory.md): An in-memory library that reads snapshots and applies plans.
 - [`model`](model.md): Stored rows the resolver reads, the snapshot of them it is given, and the plan of writes it returns.

@@ -70,6 +70,7 @@ pub struct CatalogProduct {
     pub categories: Option<String>,
     pub genre_roots: Vec<String>,
     pub language: Option<String>,
+    pub is_abridged: Option<bool>,
     pub price_cents: Option<i64>,
     pub currency: Option<String>,
     pub price_label: Option<String>,
@@ -102,6 +103,9 @@ One Audible catalog product (public search hit).
   [`Self::categories`](#catalogproduct), which joins every rung, this tells an adult
   "Action & Adventure" from a children's one.
 - `language`: BCP-47 / storefront language code (`en`, `de`, …) when known.
+- `is_abridged`: Whether this edition is abridged, from the catalog's `format_type`
+  (`abridged` / `unabridged`); `None` when it gave no format the
+  parser knows.
 - `price_cents`: List or deal price in integer cents of [`Self::currency`](#catalogproduct).
 - `currency`: ISO 4217 currency code for price fields (`USD`, `EUR`, …).
 - `price_label`: Human-readable price string from the storefront (e.g. `$14.95`).

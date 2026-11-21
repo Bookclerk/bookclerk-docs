@@ -20,6 +20,7 @@ that are empty or too large. The resolver only ever sees a [`Listing`](#listing)
 | [`stored_marketplace`](#stored_marketplace) | function | The stored spelling of a marketplace a source reported: trimmed, lower-cased, and `DEFAULT_MARKETPLACE` when blank. |
 | [`stored_product_id`](#stored_product_id) | function | The stored spelling of a product id a source reported: its words joined by single spaces, as a listing keeps it, so a title row holding the raw value still finds its listing. |
 | [`work_match_key`](#work_match_key) | function | The work matcher's key for a title and its authors. |
+| [`canonical_language`](#canonical_language) | function | The one spelling the resolver stores and compares for a language. |
 | [`DEFAULT_MARKETPLACE`](#default_marketplace) | constant | The marketplace a listing that names none is sold in. |
 | [`MAX_TEXT_BYTES`](#max_text_bytes) | constant | Longest text field accepted, in bytes. |
 | [`MAX_IDENTIFIERS`](#max_identifiers) | constant | Most identifiers one listing may carry; keeps one listing's link batch within every database engine's statement cap. |
@@ -192,7 +193,8 @@ A validated, normalised listing: the resolver's only input record.
 - `work_kind`: Kind of work.
 - `expression_kind`: How the work is realised.
 - `media_kind`: Carrier of the edition.
-- `language`: Lower-cased language code; `None` when unknown.
+- `language`: Language code in one spelling per language (see
+  [`canonical_language`](#canonical_language)); `None` when unknown.
 - `abridgement`: Abridgement; [`Abridgement::Unknown`](kinds.md#abridgement) when the source did not say.
 - `title`: Title, whitespace collapsed.
 - `subtitle`: Subtitle, whitespace collapsed.
@@ -412,6 +414,28 @@ The work matcher's key for a title and its authors.
 
 `clean_title` and the sorted, de-duplicated `clean_author` names joined
 with unit separators; empty when either side is empty.
+
+### canonical_language
+
+```rust
+pub fn canonical_language(raw: &str) -> String
+```
+
+The one spelling the resolver stores and compares for a language.
+
+A language [`crate::normalize_language`](language.md#normalize_language) recognises becomes its short
+code (`English`, `eng` and `en-US` are all `en`), so the same recording
+sold by two stores lands in one expression. Anything else is kept,
+lower-cased, rather than dropped: an unrecognised language still only
+matches itself.
+
+#### Arguments
+
+* `raw` - The language as a store or a stored row spells it.
+
+#### Returns
+
+The canonical code.
 
 ## Constants
 

@@ -49,10 +49,12 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`FilterError`](#filtererror) | struct | Why a `DestinationFilter` was refused. |
 | [`FilterRule`](#filterrule) | struct | One rule of a destination filter: a field, one value of it, and its effect. |
 | [`PlacementFacts`](#placementfacts) | struct | What a destination filter knows about one book when an acquire starts. |
+| [`NodeLimits`](#nodelimits) | struct | The CPU and memory a node may use, as its cgroup limits them. |
 | [`IntegrationsConfig`](#integrationsconfig) | struct | Connect-portal settings under `[integrations]`. |
 | [`PluginRegistryEntry`](#pluginregistryentry) | struct | One configured plugin registry source (`[[plugins.registries]]`). |
 | [`PluginsConfig`](#pluginsconfig) | struct | `[plugins]` — how external plugin guests are run. |
 | [`PluginsJailConfig`](#pluginsjailconfig) | struct | Optional global resource ceilings for plugin guest jails under `[plugins.jail]`. |
+| [`RelayedLine`](#relayedline) | struct | One relayed line: its level and its text without the timestamp and level. |
 | [`AccessCode`](#accesscode) | struct | A report's access code: the credential that reads the report back from the collector or deletes it. Canonical form: exactly `ACCESS_CODE_LENGTH` characters of `ACCESS_CODE_ALPHABET`, no separators. `Debug` never prints it. |
 | [`ReportId`](#reportid) | struct | A report ID the collector assigned: a version-4 UUID in lowercase hyphenated form. |
 | [`ReportRecord`](#reportrecord) | struct | One report this install sent. |
@@ -95,6 +97,7 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`FilterEffect`](#filtereffect) | enum | Whether a `FilterRule` lets matching books in or keeps them out. |
 | [`FilterField`](#filterfield) | enum | The book field a `FilterRule` matches one value of. |
 | [`PlacementMediaKind`](#placementmediakind) | enum | What a book is, as a destination filter sees it. |
+| [`RelayedLevel`](#relayedlevel) | enum | The level a relayed line is logged at. |
 | [`SubmitReplyError`](#submitreplyerror) | enum | Why a collector reply was refused. |
 | [`EventLevel`](#eventlevel) | enum | Severity of one logged event in a report. |
 | [`IssueState`](#issuestate) | enum | Whether a GitHub issue is open. |
@@ -155,6 +158,7 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`resolve_files_dir`](#resolve_files_dir) | function | Resolve the Bookclerk files directory. |
 | [`parse_destination_filter`](#parse_destination_filter) | function | Parses a destination filter from its raw JSON bytes, sans IO, the way the web API reads it: the strict JSON shape, then trimmed (`DestinationFilter::normalized`) and checked (`DestinationFilter::validate`). |
 | [`detect_distro`](#detect_distro) | function | Best-effort OS distribution string (e.g. `Ubuntu 24.04.1 LTS`). |
+| [`node_limits`](#node_limits) | function | This process's cgroup v2 CPU and memory limits, or `None` when it has neither (or the platform has no cgroups). |
 | [`host_cpu_rate_max`](#host_cpu_rate_max) | function | Host CPU rate ceiling in one-core percent units (`logical_cpus × 100`). |
 | [`node_logical_cpus`](#node_logical_cpus) | function | Logical CPUs visible to this process (at least 1). |
 | [`contains_registered_secret`](#contains_registered_secret) | function | True if `haystack` still contains any registered exact secret (post-redaction check). |
@@ -169,6 +173,7 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`sanitize_for_remote_upload`](#sanitize_for_remote_upload) | function | Extra sanitization for payloads that leave the machine (collector / B2). |
 | [`truncate_upload_message`](#truncate_upload_message) | function | Cap message length used in remote diagnostics events. |
 | [`unregister_secret`](#unregister_secret) | function | Forget a secret `register_secret` registered, with its encoded forms, once nothing in the process holds it any more (a short-lived bearer token whose holder was dropped), so per-request credentials do not pile up in the registry every log line is checked against. Lines captured while it was registered were scrubbed then. Only for values unique to one holder: the registry keeps no count, so a value two holders share would stop being scrubbed for both. |
+| [`parse_relayed_line`](#parse_relayed_line) | function | Splits a tracing-format prefix (optional timestamp, then a level word) off a relayed stderr line. |
 | [`find_report`](#find_report) | function | The report with this ID in the history, if it is there. |
 | [`load_report_history`](#load_report_history) | function | Reads the report history, oldest first. |
 | [`mark_report_deleted`](#mark_report_deleted) | function | Notes in the history that the collector's copy of a report was deleted. |
@@ -564,6 +569,8 @@ pub struct UploadPayload {
     pub os: String,
     pub arch: String,
     pub distro: Option<String>,
+    pub build_commit: String,
+    pub limits: Option<NodeLimits>,
     pub rustc_release: String,
     pub rustc_channel: String,
     pub archived_at_unix_ms: u64,
@@ -585,6 +592,10 @@ JSON body POSTed to the diagnostics collector `/submit` endpoint.
 - `os`: Host OS (`linux`, `macos`, `windows`, …).
 - `arch`: CPU architecture (`x86_64`, `aarch64`, …).
 - `distro`: Best-effort Linux distro id when detectable.
+- `build_commit`: The source commit this build was made from (or `"unknown"`).
+- `limits`: The CPU and memory limits of the process's cgroup when it has any
+  (a container or a systemd slice), so a slow report from a small
+  node says so.
 - `rustc_release`: `rustc` release baked in at build time (or `"unknown"`).
 - `rustc_channel`: `rustc` channel baked in at build time (or `"unknown"`).
 - `archived_at_unix_ms`: Upload assembly time as Unix milliseconds.
@@ -1963,6 +1974,28 @@ What a destination filter knows about one book when an acquire starts.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### NodeLimits
+
+```rust
+pub struct NodeLimits {
+    pub cpu_millis: Option<u64>,
+    pub memory_bytes: Option<u64>,
+    pub cpus: u64,
+}
+```
+
+The CPU and memory a node may use, as its cgroup limits them.
+
+**Fields**
+
+- `cpu_millis`: CPU limit in thousandths of a CPU (`250` is a quarter of one), from
+  cgroup v2 `cpu.max`; `None` when unlimited or unknown.
+- `memory_bytes`: Memory limit in bytes, from cgroup v2 `memory.max`; `None` when
+  unlimited or unknown.
+- `cpus`: CPUs the process may run on (`available_parallelism`), at least 1.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`, `Serialize`
+
 ### IntegrationsConfig
 
 ```rust
@@ -2088,6 +2121,25 @@ pub fn clamp(&mut self)
 Clamp CPU / extra-process ceilings into host-safe ranges when set.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### RelayedLine
+
+```rust
+pub struct RelayedLine<'a> {
+    pub level: RelayedLevel,
+    pub text: &'a str,
+}
+```
+
+One relayed line: its level and its text without the timestamp and level.
+
+**Fields**
+
+- `level`: The level to log it at.
+- `text`: The text after the prefix (usually `<target>: <message> <fields>`),
+  or the whole line, trimmed, when it had no prefix.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
 ### AccessCode
 
@@ -3816,6 +3868,29 @@ else is a book.
 
 Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
+### RelayedLevel
+
+```rust
+pub enum RelayedLevel {
+    Trace,
+    Debug,
+    Info,
+    Warn,
+}
+```
+
+The level a relayed line is logged at.
+
+**Variants**
+
+- `Trace`: `TRACE`.
+- `Debug`: `DEBUG`.
+- `Info`: `INFO`, and every line without a level prefix.
+- `Warn`: `WARN`, and also a line that said `ERROR` (relayed lines are capped
+  here).
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
 ### SubmitReplyError
 
 ```rust
@@ -4690,6 +4765,15 @@ pub fn detect_distro() -> Option<String>
 
 Best-effort OS distribution string (e.g. `Ubuntu 24.04.1 LTS`).
 
+### node_limits
+
+```rust
+pub fn node_limits() -> Option<NodeLimits>
+```
+
+This process's cgroup v2 CPU and memory limits, or `None` when it has
+neither (or the platform has no cgroups).
+
 ### host_cpu_rate_max
 
 ```rust
@@ -4828,6 +4912,29 @@ up in the registry every log line is checked against. Lines captured
 while it was registered were scrubbed then. Only for values unique to
 one holder: the registry keeps no count, so a value two holders share
 would stop being scrubbed for both.
+
+### parse_relayed_line
+
+```rust
+pub fn parse_relayed_line(line: &str) -> RelayedLine<'_>
+```
+
+Splits a tracing-format prefix (optional timestamp, then a level word)
+off a relayed stderr line.
+
+A line whose first word (after an optional timestamp, which is a word
+starting with a digit and ending in `Z`) is not exactly one of `TRACE`,
+`DEBUG`, `INFO`, `WARN` or `ERROR` is returned whole, at
+[`RelayedLevel::Info`](#relayedlevel).
+
+#### Arguments
+
+* `line` - One stderr line, ANSI escapes already stripped.
+
+#### Returns
+
+The level and the remaining text, which is always a suffix of `line`
+with its trailing whitespace removed.
 
 ### find_report
 

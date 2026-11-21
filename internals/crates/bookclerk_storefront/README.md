@@ -48,7 +48,6 @@ Product narrative: `docs/plugins/README.md`. Style: `docs/contributing/code-docu
 | [`is_throttle_reason`](#is_throttle_reason) | function | True when a store's refusal text says the account is being throttled (rate limited) rather than refused outright. |
 | [`default_preferred_language`](#default_preferred_language) | function | Preferred language for Discover when the client omits one. |
 | [`language_rank`](#language_rank) | function | Rank a hit's language relative to the preferred code. |
-| [`normalize_language`](#normalize_language) | function | Normalize a language tag or display name to a primary ISO-ish code. |
 | [`audio_extension`](#audio_extension) | function | Prefer byte sniffing, then `Content-Type`, then URL path; `default` when all fail. |
 | [`extension_from_bytes`](#extension_from_bytes) | function | Guess an audio extension from magic bytes (`infer`), with AAC/MP3 fallbacks. |
 | [`extension_from_content_type`](#extension_from_content_type) | function | Map a `Content-Type` header (parameters stripped) to an audio extension. |
@@ -61,6 +60,7 @@ Product narrative: `docs/plugins/README.md`. Style: `docs/contributing/code-docu
 
 - [`content_kind::is_episode`](content_kind.md#is_episode)
 - [`content_kind::is_podcast_parent`](content_kind.md#is_podcast_parent)
+- [`language::normalize_language`](../bookclerk_resolve/language.md#normalize_language)
 - [`text::decode_html_entities`](text.md#decode_html_entities)
 - [`text::decode_html_entities_cow`](text.md#decode_html_entities_cow)
 - [`text::decode_html_entities_in_place`](text.md#decode_html_entities_in_place)
@@ -1019,19 +1019,6 @@ Rank a hit's language relative to the preferred code.
 - `0` — matches preferred
 - `1` — unknown / missing
 - `2` — other language
-
-### normalize_language
-
-```rust
-pub fn normalize_language(raw: &str) -> Option<String>
-```
-
-Normalize a language tag or display name to a primary ISO-ish code.
-
-Accepts BCP-47 (`en-US`), bare codes (`en`), ISO 639-2 codes in either
-their terminology or bibliographic (MARC) form (`fra` / `fre`, as
-Libro.fm sends them), and common Audible display names (`english`).
-Returns `None` for empty / unrecognized input.
 
 ### audio_extension
 
