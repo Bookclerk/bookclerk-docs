@@ -96,6 +96,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`FacetValue`](#facetvalue) | struct | One value of a facet value list. |
 | [`FacetValuesPage`](#facetvaluespage) | struct | One page of a facet value list. |
 | [`LibraryWorkRow`](#libraryworkrow) | struct | One row of the page index, as list views show it. |
+| [`UnheldItem`](#unhelditem) | struct | What a catalog item the library does not hold says about itself, read by `WorkScope::admits_unheld`. People are comma- or semicolon-separated, genres as the page index splits them. |
 | [`WorkCursor`](#workcursor) | struct | Where the next page of a `WorkSort` order starts: the sort values of the last row returned. |
 | [`WorkPage`](#workpage) | struct | One page of library works. |
 | [`WorkPageQuery`](#workpagequery) | struct | Filters and position of one page of library works. |
@@ -4327,6 +4328,33 @@ One row of the page index, as list views show it.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### UnheldItem
+
+```rust
+pub struct UnheldItem<'a> {
+    pub authors: Option<&'a str>,
+    pub narrators: Option<&'a str>,
+    pub series: Option<&'a str>,
+    pub genres: Option<&'a str>,
+    pub is_explicit: Option<bool>,
+}
+```
+
+What a catalog item the library does not hold says about itself, read
+by [`WorkScope::admits_unheld`](#workscopeadmits_unheld). People are comma- or
+semicolon-separated, genres as the page index splits them.
+
+**Fields**
+
+- `authors`: The item's authors, as one comma-separated string.
+- `narrators`: The item's narrators, as one comma-separated string.
+- `series`: The series name, without its position.
+- `genres`: Genre labels, separated by `,`, `;` or `|`.
+- `is_explicit`: Whether a store marks the item explicit (adult) content; `None`
+  when no store said.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Eq`, `PartialEq`
+
 ### WorkCursor
 
 ```rust
@@ -4456,6 +4484,25 @@ pub fn sees_everything(&self) -> bool
 ```
 
 True when the scope hides nothing.
+
+#### WorkScope::admits_unheld
+
+```rust
+pub fn admits_unheld(&self, item: &UnheldItem<'_>) -> bool
+```
+
+True when a catalog item the library does not hold may be shown to
+the patron: Discover shelves and storefront search results.
+
+The item's own metadata stands in for the page index's facets, with
+the same rule: no exclude value matches and, when there are include
+values, one of them does. An item carries no library tag or
+collection, so a scope that includes only by those admits no
+catalog item, and excludes by them never hide one.
+
+##### Arguments
+
+* `item` - What the store listing says about the item.
 
 #### WorkScope::key_set_id
 

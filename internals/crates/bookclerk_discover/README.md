@@ -322,6 +322,7 @@ pub struct StorefrontCandidate {
     pub rating_overall: Option<f64>,
     pub rating_count: Option<i64>,
     pub is_abridged: Option<bool>,
+    pub is_explicit: Option<bool>,
     pub store_rank: Option<u32>,
     pub work_id: Option<String>,
     pub expression_id: Option<String>,
@@ -361,6 +362,8 @@ A purchase candidate discovered from a storefront catalog (not owned locally).
 - `rating_overall`: Community overall rating when a storefront provided one.
 - `rating_count`: Number of ratings backing [`Self::rating_overall`](#storefrontcandidate) when known.
 - `is_abridged`: Abridged flag when the storefront provided one.
+- `is_explicit`: Whether the storefront marks the edition explicit (adult) content;
+  `None` when it did not say.
 - `store_rank`: The storefront's own 1-based search rank for this hit (its declared
   `CatalogHit.rankHint`); catalog search merges stores by it for
   relevance and popularity sorts. `None` when no store ranked it.
@@ -442,6 +445,7 @@ pub struct CatalogSearchHit {
     pub genres: Option<String>,
     pub language: Option<String>,
     pub is_abridged: Option<bool>,
+    pub is_explicit: Option<bool>,
     pub rating_overall: Option<f64>,
     pub rating_count: Option<i64>,
     pub price_cents: Option<i64>,
@@ -477,6 +481,8 @@ One autocomplete / results-page hit (possibly spanning multiple storefronts).
 - `genres`: Genre labels from the catalog (comma-separated when multiple).
 - `language`: BCP-47 / storefront language code (`en`, `de`, …) when known.
 - `is_abridged`: When `Some(true)`, the edition is marked abridged by the storefront.
+- `is_explicit`: When `Some(true)`, a storefront marks the edition explicit (adult)
+  content; `None` when none said.
 - `rating_overall`: Aggregate listener rating on the storefront's scale when known.
 - `rating_count`: Number of ratings backing [`Self::rating_overall`](#catalogsearchhit) when known.
 - `price_cents`: Catalog list/deal price in cents when the storefront provided it.
@@ -492,6 +498,14 @@ pub fn hide_prices_and_links(&mut self)
 ```
 
 Removes the hit's price and its store links and prices.
+
+#### CatalogSearchHit::unheld_item
+
+```rust
+pub fn unheld_item(&self) -> UnheldItem<'_>
+```
+
+The hit's metadata as a scope reads it.
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
@@ -526,6 +540,15 @@ pub fn hide_prices_and_links(&mut self)
 ```
 
 Removes the prices and store links of every hit.
+
+#### CatalogSearchPage::retain_in_scope
+
+```rust
+pub fn retain_in_scope(&mut self, scope: &WorkScope)
+```
+
+Drops every hit outside `scope`. The page keeps its cursor, so it
+can come back shorter than its size while more pages follow.
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
@@ -1181,6 +1204,7 @@ pub struct Recommendation {
     pub published_at: Option<String>,
     pub genres: Option<String>,
     pub language: Option<String>,
+    pub is_explicit: Option<bool>,
     pub wishers: Vec<QueueWisher>,
     pub wish_count: i64,
     pub seed_title: Option<String>,
@@ -1230,6 +1254,8 @@ One ranked recommendation (typically an unowned storefront title).
 - `published_at`: Publication date string from the catalog (ISO or storefront format).
 - `genres`: Candidate genres (not taste-seed `seed_categories`).
 - `language`: BCP-47 / storefront language code (`en`, `de`, …) when known.
+- `is_explicit`: When `Some(true)`, a storefront marks the edition explicit (adult)
+  content; `None` when none said (a wishlist entry says nothing).
 - `wishers`: Distinct people who have this title on an open wishlist.
 - `wish_count`: Number of distinct users who wishlisted this title (may exceed `wishers.len()`).
 - `seed_title`: Title of the book or wish the storefront was asked about to find this
@@ -1246,6 +1272,14 @@ pub fn hide_prices_and_links(&mut self)
 ```
 
 Removes the card's store links and prices.
+
+#### Recommendation::unheld_item
+
+```rust
+pub fn unheld_item(&self) -> UnheldItem<'_>
+```
+
+The card's metadata as a scope reads it.
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
@@ -1296,6 +1330,14 @@ pub fn hide_prices_and_links(&mut self)
 ```
 
 Removes the store links and prices of every card on every shelf.
+
+#### DiscoverFeed::retain_in_scope
+
+```rust
+pub fn retain_in_scope(&mut self, scope: &WorkScope)
+```
+
+Drops every card outside `scope`, then every shelf left empty.
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 

@@ -617,6 +617,7 @@ One autocomplete / results-page hit (possibly spanning multiple storefronts).
 - `genres` *string or null* — Genre labels from the catalog (comma-separated when multiple).
 - `language` *string or null* — BCP-47 / storefront language code (`en`, `de`, …) when known.
 - `is_abridged` *boolean or null* — When `Some(true)`, the edition is marked abridged by the storefront.
+- `is_explicit` *boolean or null* — When `Some(true)`, a storefront marks the edition explicit (adult) content; `None` when none said.
 - `rating_overall` *number (double) or null* — Aggregate listener rating on the storefront's scale when known.
 - `rating_count` *integer (int64) or null* — Number of ratings backing [`Self::rating_overall`] when known.
 - `price_cents` *integer (int64) or null* — Catalog list/deal price in cents when the storefront provided it.
@@ -3879,6 +3880,7 @@ One ranked recommendation (typically an unowned storefront title).
 - `published_at` *string or null* — Publication date string from the catalog (ISO or storefront format).
 - `genres` *string or null* — Candidate genres (not taste-seed `seed_categories`).
 - `language` *string or null* — BCP-47 / storefront language code (`en`, `de`, …) when known.
+- `is_explicit` *boolean or null* — When `Some(true)`, a storefront marks the edition explicit (adult) content; `None` when none said (a wishlist entry says nothing).
 - `wishers` *array of [`QueueWisher`](#queuewisher)* — Distinct people who have this title on an open wishlist.
 - `wish_count` *integer (int64)* — Number of distinct users who wishlisted this title (may exceed `wishers.len()`).
 - `seed_title` *string or null* — Title of the book or wish the storefront was asked about to find this card, when it came from such an expansion.

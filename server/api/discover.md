@@ -2003,12 +2003,12 @@ newer ones queued) or `ready`.
   - `shelf_kinds` *array of [`ShelfKindInfo`](schemas.md#shelfkindinfo)* — Catalog of shelf kinds for ignore prefs (empty `disabled_shelves` = all on).
   - `state` *[`FeedState`](schemas.md#feedstate) or null* — Whether these are the caller's current shelves, set by the daemon's read of the stored feed. Absent in a stored feed and from the CLI.
   - `computed_at` *string or null* — RFC 3339 time the shelves were ranked; absent while `state` is `preparing`.
-- `401` — The caller has no portal identity. Body: string (`text/plain`)
+- `401` — The caller has no portal identity, or their session ended. Body: string (`text/plain`)
 - `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `clerk_sign_in_unavailable`. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
-- `500` — The lookup failed. Body: string (`text/plain`)
+- `500` — The lookup failed, or the caller's scope could not be read (no feed is shown unfiltered). Body: string (`text/plain`)
 - `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
@@ -2469,6 +2469,14 @@ Schema:
                   "description": "BCP-47 / storefront language code (`en`, `de`, …) when known.",
                   "example": "en"
                 },
+                "is_explicit": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ],
+                  "description": "When `Some(true)`, a storefront marks the edition explicit (adult)\ncontent; `None` when none said (a wishlist entry says nothing).",
+                  "example": false
+                },
                 "wishers": {
                   "type": "array",
                   "items": {
@@ -2681,7 +2689,7 @@ Schema:
 }
 ```
 
-Status `401`: The caller has no portal identity.
+Status `401`: The caller has no portal identity, or their session ended.
 
 ```text
 Unauthorized
@@ -2734,7 +2742,7 @@ Schema:
 }
 ```
 
-Status `500`: The lookup failed.
+Status `500`: The lookup failed, or the caller's scope could not be read (no feed is shown unfiltered).
 
 ```text
 ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection
@@ -3856,6 +3864,9 @@ A `text/plain` body: a string.
 
 Runs a multi-store catalog search with a 15s wall budget and empty-query short circuit.
 
+A patron only gets hits inside their scope: each hit's authors,
+narrators, series, genres and explicit flag are checked against it.
+
 **Access:** The operator, or any library session, including a library card (refused with 403 `transport_insecure` off loopback without TLS, or `clerk_sign_in_unavailable` where remote installs are not served).
 
 **Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clerkToken`
@@ -3894,14 +3905,12 @@ Runs a multi-store catalog search with a 15s wall budget and empty-query short c
   - `sort` *string*, **required** — Sort field applied to the merged result set.
   - `sort_dir` *string* — Ascending or descending order for [`Self::sort`].
 - `400` — The query is malformed or too large. Body: string (`text/plain`)
-- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `401` — The caller's session ended. Body: string (`text/plain`)
 - `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `clerk_sign_in_unavailable`. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `500` — The caller's scope could not be read; no results are shown unfiltered. Body: string (`text/plain`)
 - `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
@@ -3983,6 +3992,7 @@ Status `200`: A page of catalog results.
       "genres": "Science Fiction, Classics",
       "language": "en",
       "is_abridged": false,
+      "is_explicit": false,
       "rating_overall": 4.5,
       "rating_count": 12840,
       "price_cents": 2499,
@@ -4209,6 +4219,14 @@ Schema:
             "description": "When `Some(true)`, the edition is marked abridged by the storefront.",
             "example": false
           },
+          "is_explicit": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "When `Some(true)`, a storefront marks the edition explicit (adult)\ncontent; `None` when none said.",
+            "example": false
+          },
           "rating_overall": {
             "type": [
               "number",
@@ -4426,50 +4444,15 @@ Schema:
 
 A `text/plain` body: a string.
 
-Status `401`: The caller is not signed in, or the credential is wrong.
+Status `401`: The caller's session ended.
 
-```json
-{
-  "error": "unauthorized",
-  "message": "Operator authentication is required. Sign in with your operator token.",
-  "status": 401
-}
+```text
+sign in again
 ```
 
 Schema:
 
-```json
-{
-  "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
-  "required": [
-    "error"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "Stable machine slug.",
-      "examples": [
-        "not_found"
-      ]
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people.",
-      "examples": [
-        "That page or resource was not found."
-      ]
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated.",
-      "examples": [
-        404
-      ]
-    }
-  }
-}
-```
+A `text/plain` body: a string.
 
 Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `clerk_sign_in_unavailable`.
 
@@ -4513,6 +4496,16 @@ Schema:
   }
 }
 ```
+
+Status `500`: The caller's scope could not be read; no results are shown unfiltered.
+
+```text
+the library could not be read
+```
+
+Schema:
+
+A `text/plain` body: a string.
 
 Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
 
