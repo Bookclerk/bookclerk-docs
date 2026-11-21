@@ -178,6 +178,22 @@ pub trait Integration: Send + Sync {
     where
         Self: 'async_trait,
         'life0: 'async_trait,;
+    fn supports_notifier(&self) -> bool;
+    fn notify_send<'life0, 'async_trait>(
+        &'life0 self,
+        _params: NotifySendParams,
+    ) -> Pin<Box<dyn Future<Output = Result<Result<NotifySent, PluginError>>> + Send + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
+    fn notify_validate_destination<'life0, 'async_trait>(
+        &'life0 self,
+        _params: NotifyValidateParams,
+    ) -> Pin<Box<dyn Future<Output = Result<Result<NotifyValidated, PluginError>>> + Send + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
+    fn notifier_unsupported(&self) -> IntegrationError;
     fn diagnose<'life0, 'async_trait>(
         &'life0 self,
     ) -> Pin<Box<dyn Future<Output = Result<Vec<String>>> + Send + 'async_trait>>
@@ -592,6 +608,75 @@ failed carries `error` instead of failing the call, and one the
 server answered `304 Not Modified` carries `not_modified`.
 
 Default: unsupported.
+
+#### Integration::supports_notifier
+
+```rust
+fn supports_notifier(&self) -> bool
+```
+
+Whether this integration exports the `notifier` entrypoint (delivers
+notifications to destinations).
+
+Default: `false`.
+
+#### Integration::notify_send
+
+```rust
+fn notify_send<'life0, 'async_trait>(
+    &'life0 self,
+    _params: NotifySendParams,
+) -> Pin<Box<dyn Future<Output = Result<Result<NotifySent, PluginError>>> + Send + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Delivers one checked notification through `Notifier.send`.
+
+##### Returns
+
+The guest's own answer: a [`bookclerk_plugin_abi::NotifySent`](../bookclerk_plugin_abi/generated.md#notifysent) or
+the [`bookclerk_plugin_abi::PluginError`](../bookclerk_plugin_abi/error.md#pluginerror) it raised, which the send
+job classifies (`rate_limited` and `unavailable` are retried).
+
+##### Errors
+
+An [`IntegrationError`](#integrationerror) when the guest could not be reached, or by
+default (the integration is not a notifier).
+
+#### Integration::notify_validate_destination
+
+```rust
+fn notify_validate_destination<'life0, 'async_trait>(
+    &'life0 self,
+    _params: NotifyValidateParams,
+) -> Pin<Box<dyn Future<Output = Result<Result<NotifyValidated, PluginError>>> + Send + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Normalises a patron's address document through
+`Notifier.validateDestination`.
+
+##### Returns
+
+The guest's own answer: the normalised document or the error it
+raised (`invalid_params` for an address it refuses).
+
+##### Errors
+
+An [`IntegrationError`](#integrationerror) when the guest could not be reached, or by
+default.
+
+#### Integration::notifier_unsupported
+
+```rust
+fn notifier_unsupported(&self) -> IntegrationError
+```
+
+The error the default notifier methods return.
 
 #### Integration::diagnose
 

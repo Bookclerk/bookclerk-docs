@@ -1198,6 +1198,7 @@ Schema:
           "library_index_rebuild",
           "branch_request",
           "ingest_batch",
+          "notify_send",
           "invalid"
         ]
       },

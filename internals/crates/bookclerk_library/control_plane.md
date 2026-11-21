@@ -427,6 +427,7 @@ See `docs/adr/control-plane.md`.
 | [`claim_routed_job`](#claim_routed_job) | function | Claims the best ready job this node can run, under the library semaphores. |
 | [`class_semaphore`](#class_semaphore) | function | Name of the library semaphore for one resource class. |
 | [`common_deployment_nodes`](#common_deployment_nodes) | function | Nodes where every instance in `requires` has a deployment that should run. |
+| [`instance_running_on_database_node`](#instance_running_on_database_node) | function | True when some live node that holds the library database runs `instance`: it has a deployment there that should run, the node's last observation says the guest is up (`running` or `healthy`), and the node's heartbeat is current (`super::node_status::NodeStatus::is_live`). A node holds the database when it is a shared branch (`super::NodeKind::Shared`) or has no `nodes` row (a worker in this process); a branch with its own database does not. |
 | [`instance_semaphore`](#instance_semaphore) | function | Name of the library semaphore for one plugin instance. |
 | [`job_permit_holder_prefix`](#job_permit_holder_prefix) | function | The holder prefix of the semaphore permits a routed claim of `job_id` by `owner` takes when the claim runs at lease `generation`: `<owner>/<job_id>/g<generation>/`. |
 | [`job_plugin_keys`](#job_plugin_keys) | function | The plugin keys `job` runs, or `None` when the job alone does not say. |
@@ -595,7 +596,7 @@ See `docs/adr/control-plane.md`.
 | [`strip_install_state`](#strip_install_state) | function | Removes this install's own state from the library so that copies of it can start as installs of their own. |
 | [`accounts_owned_by`](#accounts_owned_by) | function | Store accounts linked to `user_id` through any of the user's identities. |
 | [`acquire_titles_of_editions`](#acquire_titles_of_editions) | function | The library titles an acquire by edition queues: for each edition, one title (`books.uuid`) that sells it in an account `requester` may acquire for, and in `account` when one is named. |
-| [`claimant_may_run`](#claimant_may_run) | function | True when a `claimant` may run `job` at all, whatever it is trusted with: a forced, PDF-only or paced acquire runs only on a node that holds the library database, since the host acquire path does none of them (a paced acquire checks and records the account's pace in the library database before each download, `crate::pacing`). An interlibrary request (`JobKind::BranchRequest`) is never run through the routed claim: only its branch claims it, over `requests.claim` (`super::claim_branch_requests`). An ingest batch runs only on a node that holds the library database. |
+| [`claimant_may_run`](#claimant_may_run) | function | True when a `claimant` may run `job` at all, whatever it is trusted with: a forced, PDF-only or paced acquire runs only on a node that holds the library database, since the host acquire path does none of them (a paced acquire checks and records the account's pace in the library database before each download, `crate::pacing`). An interlibrary request (`JobKind::BranchRequest`) is never run through the routed claim: only its branch claims it, over `requests.claim` (`super::claim_branch_requests`). An ingest batch and a notification send run only on a node that holds the library database. |
 | [`handoff_routed_job`](#handoff_routed_job) | function | Re-checks a claimed job just before its secrets are handed to the claiming node. |
 | [`job_for_node_owner`](#job_for_node_owner) | function | True when every store account `job` touches belongs to the user who owns `node_id`: the job is the branch owner's own work (`bookclerk_node_proto::WorkJob::for_node_owner`). |
 | [`job_item_accounts`](#job_item_accounts) | function | The store accounts a scan or acquire touches: its items. |
@@ -11567,6 +11568,38 @@ Nodes where every instance in `requires` has a deployment that should run.
 
 Returns an error when a read fails.
 
+### instance_running_on_database_node
+
+```rust
+pub async fn instance_running_on_database_node(
+    store: &LibraryStore,
+    instance: &str,
+    now_ms: i64,
+) -> Result<bool>
+```
+
+True when some live node that holds the library database runs
+`instance`: it has a deployment there that should run, the node's last
+observation says the guest is up (`running` or `healthy`), and the
+node's heartbeat is current ([`super::node_status::NodeStatus::is_live`](#nodestatusis_live)).
+A node holds the database when it is a shared branch
+([`super::NodeKind::Shared`](#nodekind)) or has no `nodes` row (a worker in this
+process); a branch with its own database does not.
+
+A job that requires only `instance` and runs only where the database is
+(a notification send) is then claimable, however long it has waited for
+a worker; when this is false, nothing can claim it until the instance
+comes up on such a node. An unparsable id is never running.
+
+#### Arguments
+
+* `now_ms` - The caller's clock, in Unix milliseconds, for the
+  heartbeat check.
+
+#### Errors
+
+Returns an error when a read fails.
+
 ### instance_semaphore
 
 ```rust
@@ -14754,8 +14787,8 @@ paced acquire checks and records the account's pace in the library
 database before each download, `crate::pacing`). An
 interlibrary request ([`JobKind::BranchRequest`](README.md#jobkind)) is never run through
 the routed claim: only its branch claims it, over `requests.claim`
-(`super::claim_branch_requests`). An ingest batch runs only on a node
-that holds the library database.
+(`super::claim_branch_requests`). An ingest batch and a notification
+send run only on a node that holds the library database.
 
 ### handoff_routed_job
 

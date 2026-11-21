@@ -80,6 +80,14 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`node_status`](node_status.md): SeaORM entity for `node_status`: each node's latest daemon heartbeat.
 - [`node_upload_sessions`](node_upload_sessions.md): SeaORM entity for `node_upload_sessions`: one title's streamed upload from a branch node to a shared node (H-4 design, section 6). Written by `control_plane::uploads`.
 - [`nodes`](nodes.md): SeaORM entity for durable node identity and liveness observations.
+- [`notifications`](notifications.md): SeaORM entity for `notifications`: one notification the router accepted, rendered once for every destination and the inbox.
+- [`notify_deliveries`](notify_deliveries.md): SeaORM entity for `notify_deliveries`: the delivery log, one row per notification and destination.
+- [`notify_destinations`](notify_destinations.md): SeaORM entity for `notify_destinations`: where one notifier instance sends, either a library channel or one patron's personal address.
+- [`notify_inbox`](notify_inbox.md): SeaORM entity for `notify_inbox`: a patron-audience notification in its patron's in-app inbox.
+- [`notify_patron_offers`](notify_patron_offers.md): SeaORM entity for `notify_patron_offers`: a notifier instance patrons may use for one patron notification type.
+- [`notify_patron_prefs`](notify_patron_prefs.md): SeaORM entity for `notify_patron_prefs`: one patron's choice for one patron notification type.
+- [`notify_patron_targets`](notify_patron_targets.md): SeaORM entity for `notify_patron_targets`: a personal destination one patron chose for one patron notification type.
+- [`notify_routes`](notify_routes.md): SeaORM entity for `notify_routes`: administrators' routing of one operational notification type to one channel destination.
 - [`oidc_auth_codes`](oidc_auth_codes.md): SeaORM entity for the `oidc_auth_codes` — short-lived authorization codes (PKCE).
 - [`oidc_clients`](oidc_clients.md): SeaORM entity for the `oidc_clients` — registered OAuth/OIDC clients.
 - [`oidc_refresh_tokens`](oidc_refresh_tokens.md): SeaORM entity for the `oidc_refresh_tokens` — refresh tokens bound to a User.

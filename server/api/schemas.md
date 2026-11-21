@@ -60,6 +60,15 @@ Generic mutation result with success flag, message, and optional job id.
 - `library_id` *string*, **required** — The library (parent library id) to add the connections to.
 - `accounts` *array of [`AccountRef`](#accountref)*, **required** — The person's accounts to add; 1 to 64.
 
+## AddressFieldJson
+
+One field a patron fills in for a personal destination.
+
+- `key` *string*, **required** — Key in the address document.
+- `label` *string*, **required** — Label shown on the form.
+- `required` *boolean*, **required** — Whether a destination must carry it.
+- `secret` *boolean*, **required** — Whether the value is a secret: shown masked, never logged.
+
 ## AdminControlOverrides
 
 One Administrator's overrides: a value for some switches, and the
@@ -635,6 +644,12 @@ Paged catalog-search response.
 - `sort` *string*, **required** — Sort field applied to the merged result set.
 - `sort_dir` *string* — Ascending or descending order for [`Self::sort`].
 
+## ChannelList
+
+The library's channels.
+
+- `channels` *array of [`DestinationJson`](#destinationjson)*, **required** — Oldest first.
+
 ## Chapter
 
 One chapter of a checked list.
@@ -702,6 +717,13 @@ Type: one of `off`, `flat`, `tree`, `both`
 The kind of source a chapter claim came from (`source_kind`).
 
 Type: one of `person`, `outside_edit`, `processed`, `provider`, `listing`, `file`, `part_names`
+
+## ChoiceBody
+
+Body of `PUT /api/me/notifications/choices/{type}`.
+
+- `enabled` *boolean*, **required** — `false` keeps the type in the inbox only.
+- `destination_ids` *array of string* — The caller's own destinations it goes to; at most 32. Left out or empty, the type goes to no destination outside the inbox, even with `enabled: true`; delete the choice to return to the defaults. At most 32 items.
 
 ## ClerkAuthorizeParams
 
@@ -1085,6 +1107,30 @@ Event delivery backlog across the library.
 - `dead_letter` *integer (int64)*, **required** — Deliveries that exhausted their retries.
 - `oldest_pending_age_secs` *integer (int64) or null* — Age of the oldest pending delivery in seconds; `null` when none is pending.
 
+## DeliveryJson
+
+One delivery-log row.
+
+- `id` *string*, **required** — Delivery id.
+- `notification_id` *string*, **required** — The notification.
+- `notification_type` *string*, **required** — Its type.
+- `title` *string*, **required** — Its title.
+- `destination_id` *string*, **required** — The destination.
+- `plugin_instance_id` *string*, **required** — The notifier instance.
+- `state` *string*, **required** — `pending`, `delivered`, `failed` or `dropped`.
+- `attempts` *integer (int64)*, **required** — Send attempts made.
+- `provider_id` *string or null* — The service's id for the delivered message.
+- `reason` *string or null* — The last failure or retry reason.
+- `created_at` *string*, **required** — When it was made (RFC 3339).
+- `updated_at` *string*, **required** — When it last changed (RFC 3339).
+
+## DeliveryPage
+
+One page of the delivery log.
+
+- `deliveries` *array of [`DeliveryJson`](#deliveryjson)*, **required** — Newest first.
+- `next_cursor` *string or null* — Pass as `cursor` for the next page; `null` on the last page, where paging stops.
+
 ## DeploymentConflict
 
 `PUT /api/config/plugin-instances/{id}/deployments/{node_id}` `409` body: the two conflicts a deployment write can hit.
@@ -1119,6 +1165,26 @@ books a storage destination takes.
 - `plugin_instance_id` *string*, **required** — The destination's plugin instance id.
 - `revision` *integer (int64)*, **required** — Revision of the destination's `core.destination` document; `0` when none was written, so the destination takes every book.
 - `filter` *[`DestinationFilter`](#destinationfilter)*, **required** — The filter; no rules take every book.
+
+## DestinationJson
+
+A destination as administrators and its owner see it. The address is
+never returned: it may hold secrets.
+
+- `id` *string*, **required** — Destination id.
+- `kind` *[`DestinationKind`](#destinationkind)*, **required** — `channel` (the library's) or `personal` (a patron's).
+- `plugin_instance_id` *string*, **required** — The notifier instance that carries it.
+- `label` *string*, **required** — Name shown in pickers.
+- `failure_count` *integer (int64)*, **required** — Deliveries in a row that ended `failed`, whether refused for good or out of attempts; a delivery, or resuming the destination, resets it to 0. It pauses at 5.
+- `paused_at` *string or null* — When repeated failures paused it (RFC 3339); `null` while active.
+- `paused_reason` *string or null* — Why it was paused.
+- `created_at` *string*, **required** — When it was made (RFC 3339).
+
+## DestinationKind
+
+Whether a destination is a library channel or one patron's address.
+
+Type: one of `channel`, `personal`
 
 ## DeviceInfoBody
 
@@ -1497,6 +1563,13 @@ How current a stored Discover feed is.
 
 Type: one of `ready`, `refreshing`, `preparing`
 
+## FieldJson
+
+One labelled value.
+
+- `name` *string*, **required** — Label.
+- `value` *string*, **required** — Value.
+
 ## FileMetadata
 
 A file's name, size and times.
@@ -1598,6 +1671,28 @@ JSON body after an operator session started impersonating a user.
 
 - `ok` *boolean*, **required** — Always `true` on this success path.
 - `impersonating` *[`AuthMeImpersonating`](#authmeimpersonating)*, **required** — The user the session now acts as.
+
+## InboxEntryJson
+
+One inbox entry.
+
+- `id` *string*, **required** — Notification id.
+- `notification_type` *string*, **required** — Type id.
+- `severity` *string*, **required** — `info`, `warning` or `critical`.
+- `title` *string*, **required** — Title.
+- `text` *string*, **required** — Plain-text body.
+- `link_path` *string or null* — Path inside the library it links to.
+- `fields` *array of [`FieldJson`](#fieldjson)*, **required** — Labelled values.
+- `created_at` *string*, **required** — When it arrived (RFC 3339).
+- `read_at` *string or null* — When the patron read it (RFC 3339); `null` while unread.
+
+## InboxPage
+
+One page of the inbox.
+
+- `entries` *array of [`InboxEntryJson`](#inboxentryjson)*, **required** — Newest first.
+- `unread` *integer (int64)*, **required** — Unread entries in the whole inbox. At least 0.
+- `next_cursor` *string or null* — Pass as `cursor` for the next page; `null` on the last page, where paging stops.
 
 ## IngressChange
 
@@ -1757,7 +1852,7 @@ Snapshot of one queued or running control-plane job.
 
 Kind of durable daemon work stored in the `jobs` table.
 
-Type: one of `scan`, `acquire`, `listen_sync`, `integration_scan`, `plugin_copy`, `plugin_scheduled`, `discover_candidates`, `discover_feed`, `discover_request_queue`, `cache_sweep`, `search_index_rebuild`, `library_index_rebuild`, `branch_request`, `ingest_batch`, `invalid`
+Type: one of `scan`, `acquire`, `listen_sync`, `integration_scan`, `plugin_copy`, `plugin_scheduled`, `discover_candidates`, `discover_feed`, `discover_request_queue`, `cache_sweep`, `search_index_rebuild`, `library_index_rebuild`, `branch_request`, `ingest_batch`, `notify_send`, `invalid`
 
 ## JobState
 
@@ -2305,6 +2400,21 @@ A narrator with how many items they read.
 - `position_ms` *integer (int64)*, **required** — The place to mark, in milliseconds (at most sixty days). At least 0.
 - `title` *string* — A note for it, at most 200 bytes, no control characters; empty when left out.
 
+## NewChannelBody
+
+Body of `POST /api/notifications/channels`.
+
+- `plugin_instance_id` *string*, **required** — A notifier instance that sends to channels; its own settings say where (a webhook URL, a service key).
+- `label` *string*, **required** — Name shown in the routing matrix, 1 to 128 bytes on one line.
+
+## NewPersonalBody
+
+Body of `POST /api/me/notifications/destinations`.
+
+- `plugin_instance_id` *string*, **required** — A notifier instance that sends to patrons.
+- `address` *map of string to string*, **required** — The address, as the notifier's `address_fields` describe it: a flat object of strings. A key written twice is refused (`422`) rather than one value kept.
+- `label` *string or null* — Name shown in pickers; the notifier's own label for the address, or the notifier's name, when absent.
+
 ## NewPlayerPasswordBody
 
 `POST /api/auth/player-passwords` body.
@@ -2480,6 +2590,34 @@ One node with its latest heartbeat, budget and owner.
 - `include_branches` *boolean or null* — A branch's include-branches setting, as it last reported it; `null` for a shared node.
 - `owner` *[`NodeOwnerSummary`](#nodeownersummary) or null* — The owner, when the node has one and the user still exists.
 
+## NotificationCatalog
+
+Everything the routing screens pick from.
+
+- `types` *array of [`NotificationTypeJson`](#notificationtypejson)*, **required** — Host types first, then plugin types by id.
+- `notifiers` *array of [`NotifierJson`](#notifierjson)*, **required** — Notifier instances installed on this server.
+
+## NotificationTypeJson
+
+One notification type a routing rule or a patron choice can name.
+
+- `id` *string*, **required** — Qualified id: a host type (`test`) or `<plugin id>:<type>`.
+- `audience` *string*, **required** — Who it is for: `operational` (routed to channels) or `patron` (offered to patrons).
+- `severity` *string*, **required** — Default severity: `info`, `warning` or `critical`.
+- `title` *string*, **required** — Title shown in the routing matrix and on each notification.
+- `source` *string*, **required** — The plugin that raises it; empty for a host type.
+
+## NotifierJson
+
+One notifier instance.
+
+- `plugin_instance_id` *string*, **required** — Plugin instance id.
+- `plugin_key` *string*, **required** — Canonical plugin key.
+- `name` *string*, **required** — Name shown in pickers.
+- `channel` *boolean*, **required** — Whether administrators can make library channels on it.
+- `personal` *boolean*, **required** — Whether patrons can add their own address on it.
+- `address_fields` *array of [`AddressFieldJson`](#addressfieldjson)*, **required** — What a patron enters for a personal destination.
+
 ## OAuthEnrollAnswer
 
 `POST /api/node/v1/enroll/oauth` answer.
@@ -2509,6 +2647,25 @@ padding.
 JSON body of an OAuth start: the browser login URL to open.
 
 - `url` *string*, **required** — The store's login page, bound to this sign-in.
+
+## OfferJson
+
+One notifier offered to patrons for a type.
+
+- `plugin_instance_id` *string*, **required** — A notifier instance that sends to personal destinations.
+- `default_on` *boolean*, **required** — Whether a patron who chose nothing gets the type there.
+
+## OffersBody
+
+Body of `PUT /api/notifications/offers/{type}`.
+
+- `offers` *array of [`OfferJson`](#offerjson)*, **required** — The type's offers, replacing the old ones; at most 32. Empty keeps the type in patrons' inboxes only. At most 32 items.
+
+## OfferTable
+
+Every patron offer, by type.
+
+- `offers` *map of string to array of [`OfferJson`](#offerjson)*, **required** — Type id to its offers.
 
 ## OidcClientsResponse
 
@@ -2961,12 +3118,39 @@ is empty (explicit rules always win).
 
 Type: one of `auto`, `windows`, `posix`, `s3`, `none`
 
+## PatronOfferJson
+
+One notifier a patron may pick for a type.
+
+- `plugin_instance_id` *string*, **required** — The notifier instance.
+- `name` *string*, **required** — Its name.
+- `default_on` *boolean*, **required** — Whether the type goes there when the patron chose nothing.
+
 ## PatronScope
 
 Which part of the library a patron sees.
 
 - `rules` *array of [`ScopeRule`](#scoperule)* — Visibility rules, at most 16 and 1,024 bytes as JSON. Empty means every book is visible. At most 16 items.
 - `explicit` *[`ExplicitContent`](#explicitcontent)* — Whether books marked explicit are visible; left out means `allow`.
+
+## PatronSettings
+
+A patron's notification settings.
+
+- `types` *array of [`PatronTypeJson`](#patrontypejson)*, **required** — Patron types administrators offer a notifier for.
+- `destinations` *array of [`DestinationJson`](#destinationjson)*, **required** — The patron's own destinations.
+- `notifiers` *array of [`NotifierJson`](#notifierjson)*, **required** — Notifiers the patron can add a destination on.
+
+## PatronTypeJson
+
+One patron type and what the patron chose for it.
+
+- `id` *string*, **required** — Type id.
+- `title` *string*, **required** — Title.
+- `offers` *array of [`PatronOfferJson`](#patronofferjson)*, **required** — Notifiers offered for it.
+- `chosen` *boolean*, **required** — Whether the patron made a choice; without one the defaults apply.
+- `enabled` *boolean*, **required** — The patron's preference, not a delivery result: `false` keeps the type in the inbox only. `true` when nothing is chosen, in which case the offers' defaults pick where it goes.
+- `destination_ids` *array of string*, **required** — The destinations the patron saved for it, when chosen. These are saved choices, not live targets: routing skips one whose notifier is no longer offered for the type, so check `offers` before showing one as eligible or sending the list back.
 
 ## Permissions
 
@@ -3840,6 +4024,18 @@ heavy wish-count weight (shared order; not per-viewer personalized).
 - `taste_score` *number (double)*, **required** — Local taste / embedding component before the wish-count boost.
 - `reasons` *array of string*, **required** — Short human-readable explanations for why this item was ranked here.
 
+## ReadBody
+
+Body of `POST /api/me/notifications/inbox/read`.
+
+- `notification_id` *string or null* — One notification to mark read; absent or `null` marks the whole inbox read.
+
+## ReadMarked
+
+How many entries a read marked.
+
+- `marked` *integer (int64)*, **required** — Entries that were unread and are now read. At least 0.
+
 ## ReceivedJson
 
 Where a file's bytes stand after a `PATCH`.
@@ -3956,6 +4152,12 @@ An owner library's request to run a plugin on this install, and what the operato
 
 - `node_id` *string or null* — Only this branch's entries; every branch's when absent.
 
+## RenameBody
+
+Body of `PATCH /api/notifications/channels/{id}`.
+
+- `label` *string*, **required** — The new name, 1 to 128 bytes on one line.
+
 ## ReplacedCard
 
 The library card a branch join replaced.
@@ -4068,6 +4270,25 @@ Form body for `POST /oidc/revoke` (RFC 7009-style refresh-token revoke).
 
 - `token` *string*, **required** — Token to revoke; treated as a refresh token (hashed before lookup).
 - `token_type_hint` *string or null* — Optional hint ignored; this server only stores refresh tokens.
+
+## RouteJson
+
+One route: a channel and the least severity it takes.
+
+- `destination_id` *string*, **required** — The channel.
+- `min_severity` *string*, **required** — `info`, `warning` or `critical`: notifications less urgent than this skip the channel.
+
+## RoutesBody
+
+Body of `PUT /api/notifications/routes/{type}`.
+
+- `routes` *array of [`RouteJson`](#routejson)*, **required** — The type's routes, replacing the old ones; at most 32. Empty sends the type nowhere. At most 32 items.
+
+## RouteTable
+
+Every routing rule, by type.
+
+- `routes` *map of string to array of [`RouteJson`](#routejson)*, **required** — Type id to its routes.
 
 ## RuleEffect
 
@@ -4576,6 +4797,13 @@ Operator-facing TCP grant (`host` + `ports`).
 
 - `host` *string*, **required** — Hostname or `*.` wildcard.
 - `ports` *array of integer (int32)*, **required** — Destination ports.
+
+## TestSent
+
+The answer to a test send.
+
+- `notification_id` *string*, **required** — The stored test notification.
+- `delivery_id` *string*, **required** — Its delivery; follow it in the delivery log.
 
 ## TitleMeta
 

@@ -204,6 +204,9 @@ the external guest RPC. This crate owns the greenfield schema
 | [`TitleHolding`](#titleholding) | struct | The edition a library title sells and the account holding it is held by: the key its acquire writes are recorded under. |
 | [`UserBookFields`](#userbookfields) | struct | Partial update for user-defined book fields. |
 | [`WishWork`](#wishwork) | struct | The work a wish is for, read from a store listing in the shared pool. |
+| [`NotifyCursor`](#notifycursor) | struct | Where a page of the delivery log or an inbox starts: the last row of the previous page (newest first). |
+| [`NotifyPage`](#notifypage) | struct | One page of a newest-first listing. |
+| [`NotifyQueueLimits`](#notifyqueuelimits) | struct | Queue limits a `notify_send` admission uses (the daemon's `[jobs]`). |
 | [`DbAtomicParams`](#dbatomicparams) | enum | Named atomic library operation compiled by the host into a generic plan. |
 | [`CanonicalObject`](#canonicalobject) | enum | One immutable canonical object (hashed before compression). |
 | [`BackupReason`](#backupreason) | enum | Why a backup was written. |
@@ -447,6 +450,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`MAX_COPY_ATTEMPTS`](#max_copy_attempts) | constant | Failed attempts after which a pending copy turns `CopyState::Failed` and is no longer retried in the background. |
 | [`MAX_QUEUE_REASONS`](#max_queue_reasons) | constant | Most taste reasons one stored row keeps, so a row stays small whatever the ranking explains. |
 | [`OBJECT_TOMBSTONE_DAYS`](#object_tombstone_days) | constant | Days a removed object's tombstone is kept for readers that page changes. |
+| [`MAX_NOTIFY_PAGE`](#max_notify_page) | constant | Most rows one page of the delivery log or the inbox returns. |
 | [`CLAIM_REDEEM_NONCE_HEX_LEN`](#claim_redeem_nonce_hex_len) | constant | Hex length of a browser-generated claim-redeem nonce (32 bytes). |
 
 ## Re-exports
@@ -570,6 +574,7 @@ the external guest RPC. This crate owns the greenfield schema
 - [`master_key`](master_key.md): Data-encryption key (DEK) for `encrypted_secrets`.
 - [`master_key_recovery`](master_key_recovery.md): What an install's operator did about a recovery copy of its key.
 - [`migrations`](migrations.md): Host library schema: frozen plan steps plus the unreleased development pack.
+- [`notifications`](notifications.md): Notifications: the router's rules and the shapes the library stores (`docs/adr/notifications.md`, `docs/server/notifications.md`).
 - [`operator_token`](operator_token.md): Durable operator API token in `encrypted_secrets`.
 - [`pacing`](pacing.md): Download pacing per store account: the limits, the operator's override, and the decision whether a download may start now.
 - [`password`](password.md): Argon2id password hashing for first-party local login.
@@ -2909,6 +2914,7 @@ pub struct JobPayload {
     pub node_id: Option<String>,
     pub branch_request: Option<BranchRequestTarget>,
     pub ingest_batch: Option<String>,
+    pub notify_delivery: Option<String>,
 }
 ```
 
@@ -2977,6 +2983,7 @@ JSON command envelope stored on a job row.
 - `branch_request`: For [`JobKind::BranchRequest`]: the work asked for and the branch
   listing it was asked from.
 - `ingest_batch`: For [`JobKind::IngestBatch`]: the `ingest_batches.id` to run.
+- `notify_delivery`: For [`JobKind::NotifySend`]: the `notify_deliveries.id` to send.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -10141,6 +10148,634 @@ One write per distinct row key, in the order the keys first appear.
 Returns the database error. Batches sent before a failing one stay
 written.
 
+#### LibraryStore::route_notification
+
+```rust
+pub async fn route_notification(
+    &self,
+    new: &NewNotification,
+    limits: NotifyQueueLimits,
+) -> Result<Routed>
+```
+
+Accepts a notification: stores it, writes one delivery-log row per
+destination the routing rules pick and, for a patron, the inbox row,
+in one batch; then enqueues one `notify_send` job per delivery.
+
+##### Arguments
+
+* `new` - The notification, already rendered.
+* `limits` - The queue limits the send jobs are admitted under.
+
+##### Returns
+
+The stored id and the deliveries made.
+
+##### Errors
+
+[`LibraryError::Invalid`](#libraryerror) when the notification breaks a message
+rule; [`LibraryError::NotFound`](#libraryerror) when its patron does not exist; an
+error when a read or the batch fails. A failed enqueue is not an
+error: the delivery waits for the sweep.
+
+#### LibraryStore::route_notification_to
+
+```rust
+pub async fn route_notification_to(
+    &self,
+    new: &NewNotification,
+    destination_id: &str,
+    limits: NotifyQueueLimits,
+) -> Result<Routed>
+```
+
+Stores `new` with one delivery to destination `destination_id`
+alone, whatever the routes say: an administrator's test of a
+destination.
+
+##### Errors
+
+[`LibraryError::Invalid`](#libraryerror) when the notification breaks a message
+rule; [`LibraryError::NotFound`](#libraryerror) when the destination does not
+exist; an error when a read or the batch fails.
+
+#### LibraryStore::user_holds_account
+
+```rust
+pub async fn user_holds_account(
+    &self,
+    user_id: i64,
+    plugin_key: &str,
+    account_id: &str,
+) -> Result<bool>
+```
+
+Whether user `user_id` holds store account (`plugin_key`,
+`account_id`) through one of their linked identities: the check a
+plugin's patron raise must pass inside its invocation's account
+scope.
+
+##### Errors
+
+An error when a read fails.
+
+#### LibraryStore::enqueue_notify_send
+
+```rust
+pub async fn enqueue_notify_send(
+    &self,
+    delivery: &PendingDelivery,
+    limits: NotifyQueueLimits,
+) -> Result<Option<String>>
+```
+
+Enqueues the `notify_send` job of one delivery and records its id.
+
+##### Returns
+
+The job id, or `None` when the queue is full (the sweep tries again).
+
+##### Errors
+
+An error when the enqueue or the write fails.
+
+#### LibraryStore::unscheduled_notify_deliveries
+
+```rust
+pub async fn unscheduled_notify_deliveries(
+    &self,
+    limit: u64,
+) -> Result<Vec<PendingDelivery>>
+```
+
+Pending deliveries no send job was recorded for, oldest first: the
+ones whose enqueue failed or found the queue full.
+
+##### Errors
+
+An error when the read fails.
+
+#### LibraryStore::drop_orphaned_notify_deliveries
+
+```rust
+pub async fn drop_orphaned_notify_deliveries(&self) -> Result<u64>
+```
+
+Drops pending deliveries whose send job ended without recording a
+result (an operator cancelled it, or it failed on a host error), so
+the sweep does not send them again behind the operator's back and
+the delivery log says what happened.
+
+##### Returns
+
+How many deliveries were dropped.
+
+##### Errors
+
+An error when the batch fails.
+
+#### LibraryStore::stalled_notify_sends
+
+```rust
+pub async fn stalled_notify_sends(
+    &self,
+    ready_before: DateTime<Utc>,
+    after: Option<&str>,
+    limit: u64,
+) -> Result<(Vec<StalledSend>, Option<String>)>
+```
+
+One page of send jobs still pending although they have been ready
+to run since before `ready_before`, with the pending delivery and
+notifier instance of each when it still has one. Whether a job is
+stalled or only waiting behind other work depends on whether its
+notifier runs anywhere, which the caller decides.
+
+Pending send jobs are walked by id, `after` the last id of the
+previous page (`None` for the first), at most `limit` rows a page;
+the second value is the cursor of the next page, `None` after the
+last. Only the id, readiness, lease generation and dedup key columns
+are read, so a page stays narrow under the database's result-size
+cap, and a page the database still refuses for its size is read
+again at half the rows. Readiness is compared here rather than in
+SQL because stored timestamps carry a varying number of fractional
+digits, so they do not order as text.
+
+The delivery comes from the job's dedup key (it names the delivery
+the job was enqueued for), not from the delivery's `job_id`, so a
+job whose link write failed is still matched with its delivery.
+
+##### Errors
+
+An error when a read fails.
+
+#### LibraryStore::fail_stalled_notify_send
+
+```rust
+pub async fn fail_stalled_notify_send(
+    &self,
+    stalled: &StalledSend,
+    reason: &str,
+) -> Result<StallOutcome>
+```
+
+Cancels one stalled send job and fails its pending delivery in a
+single atomic write, so a claim racing the sweep either wins (and
+nothing changes) or loses (and the failure is counted toward the
+destination's pause), and the cancel never lands without the count.
+A delivery whose destination is already paused is dropped instead,
+with no attempt or failure counted, as a send would drop it. Only
+call this for a job whose notifier runs nowhere; a job that is only
+waiting for a worker is not a notifier failure.
+
+##### Returns
+
+What happened; [`StallOutcome::NotStalled`](notifications.md#stalloutcome) when the job was
+claimed, retried or ended since it was read.
+
+##### Errors
+
+An error when the batch fails.
+
+#### LibraryStore::drop_notify_delivery_if_job_ended
+
+```rust
+pub async fn drop_notify_delivery_if_job_ended(&self, delivery_id: &str) -> Result<bool>
+```
+
+Drops a pending delivery no send job is linked to when a send job
+for it already ended: its enqueue succeeded but the link write did
+not, and the job was then cancelled or failed. Without this the
+sweep would queue a second send behind the operator's back, since
+the ended job no longer blocks a new one with the same dedup key.
+
+##### Returns
+
+Whether the delivery was dropped (and must not be enqueued again).
+
+##### Errors
+
+An error when the read or the batch fails.
+
+#### LibraryStore::notify_send_work
+
+```rust
+pub async fn notify_send_work(&self, delivery_id: &str) -> Result<Option<SendWork>>
+```
+
+Everything the send job of `delivery_id` needs; `None` when the row
+is gone (pruned, or its notification or destination removed).
+
+##### Errors
+
+An error when a read fails or a stored value is malformed.
+
+#### LibraryStore::record_notify_delivered
+
+```rust
+pub async fn record_notify_delivered(
+    &self,
+    delivery_id: &str,
+    provider_id: Option<&str>,
+    fence: Option<&JobFence>,
+) -> Result<bool>
+```
+
+Records a delivered send: the delivery is done and its destination's
+failure count is cleared.
+
+##### Returns
+
+`false` when the delivery was no longer pending (a replayed job).
+
+##### Arguments
+
+* `fence` - The send job's claim; the write is skipped (and answers
+  as if the delivery were no longer pending) once that claim has lost
+  the job.
+
+##### Errors
+
+An error when the batch fails.
+
+#### LibraryStore::record_notify_retry
+
+```rust
+pub async fn record_notify_retry(
+    &self,
+    delivery_id: &str,
+    reason: &str,
+    fence: Option<&JobFence>,
+) -> Result<Option<i64>>
+```
+
+Records a send attempt the notifier asked to retry.
+
+##### Returns
+
+The attempts made, this one included; `None` when the delivery was
+no longer pending.
+
+##### Arguments
+
+* `fence` - The send job's claim; the write is skipped (and answers
+  as if the delivery were no longer pending) once that claim has lost
+  the job.
+
+##### Errors
+
+An error when the batch or the read fails.
+
+#### LibraryStore::record_notify_failed
+
+```rust
+pub async fn record_notify_failed(
+    &self,
+    delivery_id: &str,
+    reason: &str,
+    attempt: FailedAttempt,
+    fence: Option<&JobFence>,
+) -> Result<Option<FailureEffect>>
+```
+
+Records a send the notifier refused for good (or that ran out of
+attempts): the delivery fails and its destination's failure count
+rises, pausing it at [`PAUSE_AFTER_FAILURES`](notifications.md#pause_after_failures).
+
+##### Returns
+
+Whether this failure paused the destination; `None` when the
+delivery was no longer pending.
+
+##### Arguments
+
+* `fence` - The send job's claim; the write is skipped (and answers
+  as if the delivery were no longer pending) once that claim has lost
+  the job.
+* `attempt` - Whether this answer spends an attempt of its own.
+
+##### Errors
+
+An error when the batch or the read fails.
+
+#### LibraryStore::record_notify_dropped
+
+```rust
+pub async fn record_notify_dropped(
+    &self,
+    delivery_id: &str,
+    reason: &str,
+    fence: Option<&JobFence>,
+) -> Result<bool>
+```
+
+Records a delivery that was not sent (its destination is paused or
+gone, or its notifier instance is gone). The destination's failure
+count is untouched.
+
+##### Returns
+
+`false` when the delivery was no longer pending.
+
+##### Arguments
+
+* `fence` - The send job's claim; the write is skipped (and answers
+  as if the delivery were no longer pending) once that claim has lost
+  the job.
+
+##### Errors
+
+An error when the batch fails.
+
+#### LibraryStore::create_notify_destination
+
+```rust
+pub async fn create_notify_destination(&self, new: &NewDestination) -> Result<Destination>
+```
+
+Creates a destination.
+
+##### Errors
+
+[`LibraryError::Invalid`](#libraryerror) for a bad label, a channel with an owner or
+an address, a personal destination without an owner, or one past
+the owner's [`MAX_ROUTES_PER_TYPE`](notifications.md#max_routes_per_type) addresses;
+[`LibraryError::NotFound`](#libraryerror) when the owner does not exist; an error
+when the batch fails.
+
+#### LibraryStore::notify_destination
+
+```rust
+pub async fn notify_destination(&self, id: &str) -> Result<Option<Destination>>
+```
+
+One destination by id.
+
+##### Errors
+
+An error when the read fails or the row is malformed.
+
+#### LibraryStore::notify_channels
+
+```rust
+pub async fn notify_channels(&self) -> Result<Vec<Destination>>
+```
+
+Every library channel, oldest first.
+
+##### Errors
+
+An error when the read fails.
+
+#### LibraryStore::personal_destinations
+
+```rust
+pub async fn personal_destinations(&self, user_id: i64) -> Result<Vec<Destination>>
+```
+
+One patron's personal destinations, oldest first.
+
+##### Errors
+
+An error when the read fails.
+
+#### LibraryStore::rename_notify_destination
+
+```rust
+pub async fn rename_notify_destination(&self, id: &str, label: &str) -> Result<()>
+```
+
+Renames a destination.
+
+##### Errors
+
+[`LibraryError::Invalid`](#libraryerror) for a bad label;
+[`LibraryError::NotFound`](#libraryerror) when the destination does not exist.
+
+#### LibraryStore::resume_notify_destination
+
+```rust
+pub async fn resume_notify_destination(&self, id: &str) -> Result<()>
+```
+
+Resumes a paused destination and clears its failure count.
+
+##### Errors
+
+[`LibraryError::NotFound`](#libraryerror) when the destination does not exist.
+
+#### LibraryStore::delete_notify_destination
+
+```rust
+pub async fn delete_notify_destination(&self, id: &str) -> Result<()>
+```
+
+Deletes a destination with its routes, patron targets and delivery
+log rows.
+
+##### Errors
+
+[`LibraryError::NotFound`](#libraryerror) when the destination does not exist.
+
+#### LibraryStore::notify_routes
+
+```rust
+pub async fn notify_routes(&self) -> Result<BTreeMap<String, Vec<Route>>>
+```
+
+Every operational route, by type.
+
+##### Errors
+
+An error when the read fails or a stored severity is malformed.
+
+#### LibraryStore::set_notify_routes
+
+```rust
+pub async fn set_notify_routes(
+    &self,
+    notification_type: &str,
+    routes: &[Route],
+) -> Result<()>
+```
+
+Replaces the routes of one operational type.
+
+##### Errors
+
+[`LibraryError::Invalid`](#libraryerror) for too many routes, a repeated destination
+or one that is not a channel; [`LibraryError::NotFound`](#libraryerror) when a
+destination does not exist.
+
+#### LibraryStore::patron_offers
+
+```rust
+pub async fn patron_offers(&self) -> Result<BTreeMap<String, Vec<PatronOffer>>>
+```
+
+Every patron offer, by type.
+
+##### Errors
+
+An error when the read fails.
+
+#### LibraryStore::set_patron_offers
+
+```rust
+pub async fn set_patron_offers(
+    &self,
+    notification_type: &str,
+    offers: &[PatronOffer],
+) -> Result<()>
+```
+
+Replaces the instances offered to patrons for one patron type.
+
+##### Errors
+
+[`LibraryError::Invalid`](#libraryerror) for too many offers or a repeated instance.
+
+#### LibraryStore::patron_choices
+
+```rust
+pub async fn patron_choices(&self, user_id: i64) -> Result<Vec<PatronChoice>>
+```
+
+One patron's choices, by type.
+
+##### Errors
+
+An error when a read fails.
+
+#### LibraryStore::set_patron_choice
+
+```rust
+pub async fn set_patron_choice(&self, user_id: i64, choice: &PatronChoice) -> Result<()>
+```
+
+Stores one patron's choice for one patron type, replacing the last.
+
+##### Errors
+
+[`LibraryError::Invalid`](#libraryerror) for too many or repeated destinations, or,
+when the choice is enabled, one on a notifier not offered for the
+type;
+[`LibraryError::NotFound`](#libraryerror) when a destination does not exist.
+
+#### LibraryStore::clear_patron_choice
+
+```rust
+pub async fn clear_patron_choice(
+    &self,
+    user_id: i64,
+    notification_type: &str,
+) -> Result<()>
+```
+
+Drops one patron's choice for a type, so the defaults apply again.
+
+##### Errors
+
+An error when the batch fails.
+
+#### LibraryStore::notify_deliveries
+
+```rust
+pub async fn notify_deliveries(
+    &self,
+    destination_id: Option<&str>,
+    before: Option<&NotifyCursor>,
+    limit: u64,
+) -> Result<NotifyPage<DeliveryRecord>>
+```
+
+One page of the delivery log, newest first.
+
+##### Arguments
+
+* `destination_id` - Only this destination's rows, when set.
+* `before` - Where the page starts (the previous page's last row).
+* `limit` - Page size, clamped to `1..=`[`MAX_NOTIFY_PAGE`](#max_notify_page).
+
+##### Errors
+
+An error when a read fails or a stored value is malformed.
+
+#### LibraryStore::inbox
+
+```rust
+pub async fn inbox(
+    &self,
+    user_id: i64,
+    before: Option<&NotifyCursor>,
+    limit: u64,
+) -> Result<NotifyPage<InboxEntry>>
+```
+
+One page of a patron's inbox, newest first.
+
+##### Arguments
+
+* `user_id` - The patron.
+* `before` - Where the page starts (the previous page's last entry;
+  its id is the notification id).
+* `limit` - Page size, clamped to `1..=`[`MAX_NOTIFY_PAGE`](#max_notify_page).
+
+##### Errors
+
+An error when a read fails or a stored value is malformed.
+
+#### LibraryStore::inbox_unread
+
+```rust
+pub async fn inbox_unread(&self, user_id: i64) -> Result<u64>
+```
+
+How many entries in a patron's inbox are unread.
+
+##### Errors
+
+An error when the read fails.
+
+#### LibraryStore::mark_inbox_read
+
+```rust
+pub async fn mark_inbox_read(
+    &self,
+    user_id: i64,
+    notification_id: Option<&str>,
+) -> Result<u64>
+```
+
+Marks one inbox entry read, or every unread one when
+`notification_id` is `None`.
+
+##### Returns
+
+How many entries changed.
+
+##### Errors
+
+[`LibraryError::NotFound`](#libraryerror) when the named entry is not in this
+patron's inbox; an error when the batch fails.
+
+#### LibraryStore::prune_notifications
+
+```rust
+pub async fn prune_notifications(&self, now: DateTime<Utc>) -> Result<u64>
+```
+
+Deletes notifications older than [`NOTIFICATION_RETENTION_DAYS`](notifications.md#notification_retention_days) as
+of `now`, with their inbox entries and delivery-log rows.
+
+##### Returns
+
+How many notifications were deleted.
+
+##### Errors
+
+An error when the batch fails; nothing is deleted then.
+
 #### LibraryStore::pin_listing
 
 ```rust
@@ -16299,6 +16934,83 @@ The work a wish is for, read from a store listing in the shared pool.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### NotifyCursor
+
+```rust
+pub struct NotifyCursor {
+    pub created_at: String,
+    pub id: String,
+}
+```
+
+Where a page of the delivery log or an inbox starts: the last row of the
+previous page (newest first).
+
+**Fields**
+
+- `created_at`: RFC 3339 creation time of the last row read.
+- `id`: Id of the last row read (the notification id for an inbox).
+
+#### NotifyCursor::encode
+
+```rust
+pub fn encode(&self) -> String
+```
+
+The opaque token a page answer carries.
+
+#### NotifyCursor::decode
+
+```rust
+pub fn decode(token: &str) -> Result<Self>
+```
+
+Reads a token made by [`Self::encode`](#notifycursorencode).
+
+##### Errors
+
+[`LibraryError::Invalid`](#libraryerror) when the token is not one: not base64url,
+not the JSON shape, or a field over 128 bytes.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### NotifyPage
+
+```rust
+pub struct NotifyPage<T> {
+    pub items: Vec<T>,
+    pub more: bool,
+}
+```
+
+One page of a newest-first listing.
+
+**Fields**
+
+- `items`: The page's rows, at most the page size asked for.
+- `more`: Whether at least one row follows the last one: only then does the
+  listing hand out a cursor, so a full final page ends the walk.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### NotifyQueueLimits
+
+```rust
+pub struct NotifyQueueLimits {
+    pub max_pending: i64,
+    pub max_attempts: i64,
+}
+```
+
+Queue limits a `notify_send` admission uses (the daemon's `[jobs]`).
+
+**Fields**
+
+- `max_pending`: Global cap on pending and running jobs.
+- `max_attempts`: Claims before a failing send job stops.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
 ## Enums
 
 ### DbAtomicParams
@@ -16571,6 +17283,8 @@ pub enum EntityKind {
     Job,
     SavedFilter,
     ClaimTicket,
+    NotifyDestination,
+    Notification,
     MetadataClaim,
 }
 ```
@@ -16616,12 +17330,14 @@ such as `enrollment link`.
 - `Job`: A job.
 - `SavedFilter`: A saved library filter.
 - `ClaimTicket`: A claim ticket.
+- `NotifyDestination`: A notification destination.
+- `Notification`: A notification (in an inbox or the delivery log).
 - `MetadataClaim`: One source's metadata claim about a library subject.
 
 #### EntityKind::ALL
 
 ```rust
-pub const ALL: [Self; 35] = _
+pub const ALL: [Self; 37] = _
 ```
 
 Every kind, in declaration order.
@@ -16881,6 +17597,7 @@ pub enum JobKind {
     LibraryIndexRebuild,
     BranchRequest,
     IngestBatch,
+    NotifySend,
     Invalid,
 }
 ```
@@ -16922,12 +17639,17 @@ Kind of durable daemon work stored in the `jobs` table.
   or storage references, held by the batch's patron. Pinned by
   [`JobPayload::node_id`](#jobpayload) to the node whose disk holds the staged
   bytes, and run only by a node that holds the library database.
+- `NotifySend`: Send one notification to one destination (`notify_send`): the
+  delivery-log row [`JobPayload::notify_delivery`](#jobpayload) names, through its
+  notifier instance ([`JobPayload::plugin_instance_id`](#jobpayload), also in
+  [`JobPayload::requires`](#jobpayload)), so only a node running that instance
+  claims it.
 - `Invalid`: Terminal placeholder after an unreadable persisted command is rejected.
 
 #### JobKind::ALL
 
 ```rust
-pub const ALL: [Self; 15] = _
+pub const ALL: [Self; 16] = _
 ```
 
 Every kind, in declaration order; the SQL plans derive their kind
@@ -18006,6 +18728,7 @@ pub enum RecordPruneStep {
     SecurityAudit,
     ConfigurationAudit,
     ConfigurationChanges,
+    Notifications,
 }
 ```
 
@@ -18031,11 +18754,14 @@ One delete of [`LibraryStore::prune_record_step`](#librarystoreprune_record_step
 - `ConfigurationAudit`: Configuration audit rows older than [`AUDIT_RETENTION_DAYS`](#audit_retention_days).
 - `ConfigurationChanges`: Configuration change notices older than
   [`CONFIGURATION_CHANGE_RETENTION_DAYS`](#configuration_change_retention_days).
+- `Notifications`: Notifications older than
+  [`crate::notifications::NOTIFICATION_RETENTION_DAYS`](notifications.md#notification_retention_days), with their
+  inbox entries and delivery-log rows.
 
 #### RecordPruneStep::ALL
 
 ```rust
-pub const ALL: [Self; 12] = _
+pub const ALL: [Self; 13] = _
 ```
 
 Every step, in the order a maintenance pass runs them.
@@ -20873,6 +21599,14 @@ pub const OBJECT_TOMBSTONE_DAYS: i64 = 30;
 ```
 
 Days a removed object's tombstone is kept for readers that page changes.
+
+### MAX_NOTIFY_PAGE
+
+```rust
+pub const MAX_NOTIFY_PAGE: u64 = 200;
+```
+
+Most rows one page of the delivery log or the inbox returns.
 
 ### CLAIM_REDEEM_NONCE_HEX_LEN
 

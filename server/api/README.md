@@ -264,6 +264,33 @@ Queued and running control-plane jobs.
 | [`GET /api/jobs`](jobs.md#get-apijobs) | Returns durable scan/acquire/listen_sync jobs, newest first. |
 | [`POST /api/jobs/{id}/cancel`](jobs.md#post-apijobsidcancel) | Cancel a pending job or request cooperative stop of a running job. |
 
+### [Notifications](notifications.md)
+
+Channels, routing rules, patron offers, the delivery log, and each user's own notification settings and inbox.
+
+| Route | Summary |
+| --- | --- |
+| [`GET /api/notifications/catalog`](notifications.md#get-apinotificationscatalog) | Lists the notification types and the notifier instances the routing screens pick from. |
+| [`GET /api/notifications/channels`](notifications.md#get-apinotificationschannels) | Lists the library's channels. |
+| [`POST /api/notifications/channels`](notifications.md#post-apinotificationschannels) | Makes a library channel on a notifier instance. |
+| [`DELETE /api/notifications/channels/{id}`](notifications.md#delete-apinotificationschannelsid) | Deletes a channel with its routes and delivery-log rows. |
+| [`PATCH /api/notifications/channels/{id}`](notifications.md#patch-apinotificationschannelsid) | Renames a channel. |
+| [`POST /api/notifications/channels/{id}/resume`](notifications.md#post-apinotificationschannelsidresume) | Resumes a channel repeated failures paused, and clears its failure count. |
+| [`POST /api/notifications/channels/{id}/test`](notifications.md#post-apinotificationschannelsidtest) | Sends a test notification to one channel, whatever the routes say. |
+| [`GET /api/notifications/routes`](notifications.md#get-apinotificationsroutes) | Lists every routing rule. |
+| [`PUT /api/notifications/routes/{type}`](notifications.md#put-apinotificationsroutestype) | Replaces the routes of one operational type. |
+| [`GET /api/notifications/offers`](notifications.md#get-apinotificationsoffers) | Lists which notifiers patrons may pick for each patron type. |
+| [`PUT /api/notifications/offers/{type}`](notifications.md#put-apinotificationsofferstype) | Replaces which notifiers patrons may pick for one patron type. |
+| [`GET /api/notifications/deliveries`](notifications.md#get-apinotificationsdeliveries) | Pages the delivery log, newest first. |
+| [`GET /api/me/notifications`](notifications.md#get-apimenotifications) | Reads the caller's notification settings: the types they can receive beyond the inbox, what they chose, and their destinations. |
+| [`PUT /api/me/notifications/choices/{type}`](notifications.md#put-apimenotificationschoicestype) | Sets what the caller gets for one patron type, replacing the defaults. |
+| [`DELETE /api/me/notifications/choices/{type}`](notifications.md#delete-apimenotificationschoicestype) | Drops the caller's choice for one type, so the defaults apply again. |
+| [`POST /api/me/notifications/destinations`](notifications.md#post-apimenotificationsdestinations) | Adds a personal destination for the caller. |
+| [`DELETE /api/me/notifications/destinations/{id}`](notifications.md#delete-apimenotificationsdestinationsid) | Deletes one of the caller's destinations. |
+| [`POST /api/me/notifications/destinations/{id}/resume`](notifications.md#post-apimenotificationsdestinationsidresume) | Resumes one of the caller's destinations that repeated failures paused, and clears its failure count. |
+| [`GET /api/me/notifications/inbox`](notifications.md#get-apimenotificationsinbox) | Pages the caller's inbox, newest first. |
+| [`POST /api/me/notifications/inbox/read`](notifications.md#post-apimenotificationsinboxread) | Marks one inbox entry, or all of them, read. |
+
 ### [Events](events.md)
 
 Domain events and their deliveries.

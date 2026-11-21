@@ -13,6 +13,8 @@ code that the fuzz targets and the host share:
   JSON object a patron typed (an email address, a Telegram chat id, a
   push subscription) and that a notifier's `validateDestination`
   normalised. Only a flat object of short string values is accepted.
+  The `address` object of a patron's request body is first read as
+  [`AddressFields`](#addressfields), which refuses a key written twice.
 - **A plugin's raise** on the `NOTIFY` binding ([`check_raise_params`](#check_raise_params)):
   a declared type id, labelled fields, an optional patron and a path
   inside the library.
@@ -23,6 +25,7 @@ an oversized body or a link to somewhere other than the library.
 
 | Item | Kind | Summary |
 | --- | --- | --- |
+| [`AddressFields`](#addressfields) | struct | The `address` object of a patron's `POST /api/me/notifications/destinations` body, as sent: a flat object of strings in which no key is written twice. JSON parsers keep the last of a repeated key, so a repeat is refused instead of silently dropping a value. The notifier's declared fields and `parse_address_document` check it further. |
 | [`NotifyAddress`](#notifyaddress) | struct | A destination address document: a flat JSON object of string values, keyed by the `[[notifier.address_fields]]` keys. Values may be secrets (a push subscription's auth key); the type never prints them. |
 | [`AddressFieldRule`](#addressfieldrule) | struct | One address field a notifier declares in `[[notifier.address_fields]]`. |
 | [`NotificationError`](#notificationerror) | enum | Why a notification request, message or reply was refused. |
@@ -38,6 +41,7 @@ an oversized body or a link to somewhere other than the library.
 | [`check_address_against_fields`](#check_address_against_fields) | function | Checks an address document against the fields the notifier declares: every required field present and non-blank, no undeclared field. |
 | [`check_send_params`](#check_send_params) | function | Checks a `Notifier.send` request before it leaves the host. |
 | [`check_validated`](#check_validated) | function | Checks a `Notifier.validateDestination` answer: a well-formed address document and an optional short single-line label. |
+| [`scoped_patron_id`](#scoped_patron_id) | function | The sans-IO half of the host's patron-scope check on a raise: the library user a raise's `patron_id` names, which the host then looks up as a holder of the invocation's store account. |
 | [`check_raise_params`](#check_raise_params) | function | Checks a raise a plugin sent on its `NOTIFY` binding. Whether the type is one the plugin declared, and whether the patron is inside the invocation's account scope, are the host's checks, since only it knows the manifest and the scope. |
 | [`classify_send_reply`](#classify_send_reply) | function | Turns a `Notifier.send` reply into what the host does next. |
 | [`sanitize_reason`](#sanitize_reason) | function | Cuts a notifier's error text to one line of at most `MAX_NOTIFY_REASON_BYTES` bytes: control characters become spaces and the cut falls on a character boundary. |
@@ -53,6 +57,21 @@ an oversized body or a link to somewhere other than the library.
 | [`MAX_NOTIFY_RETRY_AFTER`](#max_notify_retry_after) | constant | Longest wait the host honours from a notifier's `retryAfterMs`. A service asking for longer is retried after this long instead. |
 
 ## Structs
+
+### AddressFields
+
+```rust
+pub struct AddressFields(pub BTreeMap<String, String>);
+```
+
+The `address` object of a patron's
+`POST /api/me/notifications/destinations` body, as sent: a flat object
+of strings in which no key is written twice. JSON parsers keep the last
+of a repeated key, so a repeat is refused instead of silently dropping
+a value. The notifier's declared fields and [`parse_address_document`](#parse_address_document)
+check it further.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`
 
 ### NotifyAddress
 
@@ -414,6 +433,32 @@ The parsed, normalised document.
 #### Errors
 
 [`NotificationError::BadAddress`](#notificationerror) or [`NotificationError::BadText`](#notificationerror).
+
+### scoped_patron_id
+
+```rust
+pub fn scoped_patron_id(invocation_account: &str, patron_id: &str) -> Option<i64>
+```
+
+The sans-IO half of the host's patron-scope check on a raise: the
+library user a raise's `patron_id` names, which the host then looks up
+as a holder of the invocation's store account.
+
+A raise outside every account scope is refused here: an invocation with
+no account (an operator invocation) can name no patron, and a patron id
+must be a user id written canonically (a positive decimal with no sign,
+no leading zero and no other character) that fits an `i64`, so one user
+is never named two ways.
+
+#### Arguments
+
+* `invocation_account` - `Invocation.accountId`; empty for an operator
+  invocation.
+* `patron_id` - The raise's patron id.
+
+#### Returns
+
+The user id to look up, or `None` to refuse the raise.
 
 ### check_raise_params
 
