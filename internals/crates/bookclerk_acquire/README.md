@@ -12,8 +12,6 @@ content-source plugins; this crate never sees license keys. See
 | [`LibraryCopies`](#librarycopies) | trait | Where an acquire asks for the copy a library holds of a title. |
 | [`LibraryCopy`](#librarycopy) | trait | A copy of one edition a library offered this install. |
 | [`CoverImages`](#coverimages) | trait | Turns a cover URL a metadata provider named into an image the acquire can embed, without the acquire itself requesting the URL. |
-| [`ConvertRequest`](#convertrequest) | struct | Options for `convert_book`. |
-| [`ConvertSummary`](#convertsummary) | struct | Summary of a batch convert run. |
 | [`AcquireDestination`](#acquiredestination) | struct | One configured output destination for an acquire run. |
 | [`AcquireDestinations`](#acquiredestinations) | struct | Ordered set of acquire destinations built from the deployed destination plugins. |
 | [`DestinationKeys`](#destinationkeys) | struct | The destination an acquire request names files for, which translates its host keys. |
@@ -34,7 +32,6 @@ content-source plugins; this crate never sees license keys. See
 | [`ScanCheckpoint`](#scancheckpoint) | struct | Versioned scan progress stored in the job payload checkpoint. |
 | [`AcquireError`](#acquireerror) | enum | Failures from the acquire / convert / reconcile pipeline. |
 | [`CopyResult`](#copyresult) | enum | Whether a destination holds an acquire's audio. |
-| [`convert_book`](#convert_book) | function | Convert one acquired m4b/m4a to mp3 and update the library storage key. |
 | [`from_store`](#from_store) | function | True when the library downloaded its copy from `store`, the store this install's title belongs to. A copy whose store the library does not know is never taken, and one from another store only replaces the install's own download when it is the better copy. |
 | [`match_storage_to_library`](#match_storage_to_library) | function | List audio in storage, probe metadata (no body download), match to library. |
 | [`match_storage_using_index`](#match_storage_using_index) | function | Match library rows against an existing scan index. |
@@ -52,6 +49,7 @@ content-source plugins; this crate never sees license keys. See
 | [`acquire_book_indexed`](#acquire_book_indexed) | function | Acquire with an optional pre-built `StorageIndex` (avoids re-listing storage when liberating many titles). On success, newly written keys are inserted into the index so later books in the same batch can match them. |
 | [`acquire_pdf_only`](#acquire_pdf_only) | function | Download and store companion PDF only (classic `acquire --pdf`). |
 | [`call_number_of`](#call_number_of) | function | The short Bookclerk id of the edition account holding `holding_id` (`holdings.id`) sells, for `<call number>` (`bookclerk_library::call_number`). |
+| [`convert_copy`](#convert_copy) | function | Adds `copy` to the edition of the title `req` names, made from a copy the library already stores, on every destination whose filter takes that copy. |
 | [`planned_storage_key`](#planned_storage_key) | function | Compute the storage key that would be used (for dry-run / set-status). |
 | [`planned_storage_key_for`](#planned_storage_key_for) | function | Planned audio storage key for `ext`, honoring folder/file templates and `save_podcasts_to_parent_folder`: the host key the templates build, translated by the request's destination (`AcquireRequest::destination_keys`). |
 | [`planned_storage_key_with_rules`](#planned_storage_key_with_rules) | function | The host key `planned_storage_key_for` translates, built with an explicit replacement-rule set and not translated (used by reconcile to probe wildcard patterns across sanitization profiles). |
@@ -253,58 +251,6 @@ is not an image.
 
 ## Structs
 
-### ConvertRequest
-
-```rust
-pub struct ConvertRequest {
-    pub cache_dir: PathBuf,
-    pub force: bool,
-    pub lame: LameConfig,
-    pub max_sample_rate: Option<u32>,
-    pub job_id: Option<String>,
-    pub temp_quota_bytes: Option<u64>,
-    pub cancel: Option<Arc<AtomicBool>>,
-}
-```
-
-Options for [`convert_book`](#convert_book).
-
-**Fields**
-
-- `cache_dir`: Scratch directory for temporary acquire/convert files.
-- `force`: When true, re-download or re-convert even if output exists.
-- `lame`: LAME MP3 encoder settings from config.
-- `max_sample_rate`: Optional ceiling on output sample rate in Hz.
-- `job_id`: Durable job that owns the scratch reservation, when this convert is queued.
-- `temp_quota_bytes`: Byte budget for this conversion's input and output files together.
-  
-  `None` does not impose a quota. The advertised source size is not the quota:
-  bytes are counted as they are written, and encoder output is counted before
-  the MP3 is published.
-- `cancel`: Set when the caller wants the copy loop to stop.
-
-Implements: `Clone`, `Debug`
-
-### ConvertSummary
-
-```rust
-pub struct ConvertSummary {
-    pub converted: u32,
-    pub skipped: u32,
-    pub failed: u32,
-}
-```
-
-Summary of a batch convert run.
-
-**Fields**
-
-- `converted`: Titles successfully converted in this run.
-- `skipped`: Titles skipped (already done or ineligible).
-- `failed`: Titles that failed conversion or matching.
-
-Implements: `Clone`, `Debug`, `Default`
-
 ### AcquireDestination
 
 ```rust
@@ -461,6 +407,21 @@ copy's. The label is a short folder of its own, so path-length
 limits shorten the book's folders before it. Each copy's primary
 destination is the set's primary when it receives the copy, else the
 first that does.
+
+#### AcquireDestinations::added_copy_plan
+
+```rust
+pub fn added_copy_plan(&self, copy: &OutputCopy) -> Option<AcquireDestinations>
+```
+
+The destinations that receive `copy` when it is added to a book
+already stored (a convert, see `crate::convert_copy`): each whose
+filter's copy rules take it, with options that package it under a
+folder of its own named after the copy, as every copy but the main
+output's is. `None` when no destination takes the copy.
+
+The options carry `copy` as the library's only extra copy, so an
+MP3 or Opus copy is always encoded at its own quality.
 
 #### AcquireDestinations::listing_backend
 
@@ -1153,37 +1114,6 @@ Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
 ## Functions
 
-### convert_book
-
-```rust
-pub async fn convert_book(
-    library: &LibraryStore,
-    storage: &dyn StorageBackend,
-    title: &AcquireTitle,
-    req: &ConvertRequest,
-) -> Result<String>
-```
-
-Convert one acquired m4b/m4a to mp3 and update the library storage key.
-
-#### Arguments
-
-* `library` - Library store used to update acquire status / storage key.
-* `storage` - Object storage backend holding the source and destination objects.
-* `title` - The held title whose edition's audio (its `storage_key`) is
-  an m4b/m4a. It must be the title that acquired the edition, since only
-  that title's writes change an acquired edition's key.
-* `req` - Cache directory, force flag, and LAME settings.
-
-#### Returns
-
-Object-storage key of the written MP3.
-
-#### Errors
-
-Returns [`AcquireError`](#acquireerror) when the source is missing/ineligible, another
-title acquired the edition, encode fails, or library/storage updates fail.
-
 ### from_store
 
 ```rust
@@ -1467,6 +1397,51 @@ The short Bookclerk id of the edition account holding `holding_id`
 #### Errors
 
 Returns an error when the holding cannot be read.
+
+### convert_copy
+
+```rust
+pub async fn convert_copy(
+    library: &LibraryStore,
+    destinations: &AcquireDestinations,
+    req: AcquireRequest,
+    copy: &OutputCopy,
+) -> Result<AcquireResult>
+```
+
+Adds `copy` to the edition of the title `req` names, made from a copy
+the library already stores, on every destination whose filter takes
+that copy.
+
+The source is the best stored copy the destinations hold: one kept as
+delivered or as an M4B before an encoded one, then the main output's
+copy, then the primary destination's. Its files are downloaded into
+scratch and packaged like a store download, so tags, chapters, cover
+and naming follow the copy's options. The new files are recorded as
+`copy`'s on the edition (`edition_files`); the title's storage key and
+its main copy are left as they are. No store is asked.
+
+#### Arguments
+
+* `library` - Library store holding the edition's recorded files.
+* `destinations` - Every reachable destination, with its current filter.
+* `req` - The title, as an acquire of it would name it; `force` makes
+  the copy again when the edition already has it.
+* `copy` - The copy to add.
+
+#### Returns
+
+What was written: `matched_existing` is true when the edition already
+had the copy and `force` was off.
+
+#### Errors
+
+Returns [`AcquireError::Other`](#acquireerror) for a copy that is not a new encoding
+(`original`), the library's main output, a title that has no library
+row or is not stored, or an edition with no stored audio on a reachable
+destination; [`AcquireError::NoDestinationAccepts`](#acquireerror) when no destination
+takes the book or the copy; and the download, packaging or storage error
+otherwise.
 
 ### planned_storage_key
 

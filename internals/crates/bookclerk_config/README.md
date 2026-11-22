@@ -1427,6 +1427,7 @@ pub struct OutputConfig {
     pub download_pdf: bool,
     pub create_cue: bool,
     pub fixup_metadata: bool,
+    pub keep_codec_in_m4b: bool,
     pub chapter_json: ChapterJsonMode,
     pub save_chapter_json: Option<bool>,
     pub save_metadata_json: bool,
@@ -1482,6 +1483,9 @@ in `config.toml`.
 - `download_pdf`: Download companion PDF when available.
 - `create_cue`: Write a `.cue` sidecar from API chapters.
 - `fixup_metadata`: Embed tags, cover, and chapters natively.
+- `keep_codec_in_m4b`: Keep Opus, FLAC, ALAC, E-AC-3 and AC-4 audio unchanged inside an
+  M4B copy instead of encoding it to AAC (an advanced setting: fewer
+  players open those codecs in MP4). Off by default.
 - `chapter_json`: Chapter JSON sidecars: `off` | `flat` | `tree` | `both`.
 - `save_chapter_json`: Deprecated: use [`Self::chapter_json`](#outputconfig).
 - `save_metadata_json`: Persist raw catalog API JSON (`metadata.json`).

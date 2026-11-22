@@ -151,6 +151,7 @@ Books in the library, scans and acquires.
 
 | Route | Summary |
 | --- | --- |
+| [`POST /api/library/convert`](library.md#post-apilibraryconvert) | Queues a convert of stored books into another copy; returns the accepted job ids. |
 | [`DELETE /api/config/nodes/{node_id}`](library.md#delete-apiconfignodesnode_id) | `DELETE /api/config/nodes/{node_id}`: remove a shared node (a shared branch, or any node sharing this database) that is no longer running from the library's node list. Only the operator (or an elevated Owner) may: it deletes the node and its rows, which is hard to undo. A running node, this node, or a branch is refused (a branch is revoked instead). |
 | [`PUT /api/config/nodes/{node_id}/labels`](library.md#put-apiconfignodesnode_idlabels) | `PUT /api/config/nodes/{node_id}/labels`: replace a node's placement labels. The scheduler re-plans on the wakeup this publishes. |
 | [`PUT /api/config/nodes/{node_id}/owner`](library.md#put-apiconfignodesnode_idowner) | `PUT /api/config/nodes/{node_id}/owner`: assign or clear a node's owner. The owner may then edit that node's runtime settings without operator authority. |

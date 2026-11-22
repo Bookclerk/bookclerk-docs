@@ -600,7 +600,7 @@ See `docs/adr/control-plane.md`.
 | [`strip_install_state`](#strip_install_state) | function | Removes this install's own state from the library so that copies of it can start as installs of their own. |
 | [`accounts_owned_by`](#accounts_owned_by) | function | Store accounts linked to `user_id` through any of the user's identities. |
 | [`acquire_titles_of_editions`](#acquire_titles_of_editions) | function | The library titles an acquire by edition queues: for each edition, one title (`books.uuid`) that sells it in an account `requester` may acquire for, and in `account` when one is named. |
-| [`claimant_may_run`](#claimant_may_run) | function | True when a `claimant` may run `job` at all, whatever it is trusted with: a forced, PDF-only or paced acquire runs only on a node that holds the library database, since the host acquire path does none of them (a paced acquire checks and records the account's pace in the library database before each download, `crate::pacing`). An interlibrary request (`JobKind::BranchRequest`) is never run through the routed claim: only its branch claims it, over `requests.claim` (`super::claim_branch_requests`). An ingest batch and a notification send run only on a node that holds the library database. |
+| [`claimant_may_run`](#claimant_may_run) | function | True when a `claimant` may run `job` at all, whatever it is trusted with: a forced, PDF-only, paced or convert acquire runs only on a node that holds the library database, since the host acquire path does none of them (a convert reads the edition's recorded files; a paced acquire checks and records the account's pace in the library database before each download, `crate::pacing`). An interlibrary request (`JobKind::BranchRequest`) is never run through the routed claim: only its branch claims it, over `requests.claim` (`super::claim_branch_requests`). An ingest batch and a notification send run only on a node that holds the library database. |
 | [`handoff_routed_job`](#handoff_routed_job) | function | Re-checks a claimed job just before its secrets are handed to the claiming node. |
 | [`job_for_node_owner`](#job_for_node_owner) | function | True when every store account `job` touches belongs to the user who owns `node_id`: the job is the branch owner's own work (`bookclerk_node_proto::WorkJob::for_node_owner`). |
 | [`job_item_accounts`](#job_item_accounts) | function | The store accounts a scan or acquire touches: its items. |
@@ -4344,6 +4344,7 @@ pub struct OutputSettingsV1 {
     pub download_cover: bool,
     pub download_pdf: bool,
     pub create_cue: bool,
+    pub keep_codec_in_m4b: bool,
     pub fixup_metadata: bool,
     pub chapter_json: ChapterJsonMode,
     pub save_metadata_json: bool,
@@ -4398,6 +4399,8 @@ instead of being silently truncated on the next write.
 - `download_cover`: Save cover JPEG alongside audio.
 - `download_pdf`: Download companion PDF when available.
 - `create_cue`: Write a `.cue` sidecar.
+- `keep_codec_in_m4b`: Keep Opus, FLAC, ALAC, E-AC-3 and AC-4 audio unchanged inside an M4B
+  instead of encoding it to AAC (advanced; off by default).
 - `fixup_metadata`: Embed tags, cover, and chapters natively.
 - `chapter_json`: Chapter JSON sidecars.
 - `save_metadata_json`: Persist raw catalog API JSON.
@@ -14886,8 +14889,9 @@ pub fn claimant_may_run(claimant: Claimant, job: &JobRecord) -> bool
 ```
 
 True when a `claimant` may run `job` at all, whatever it is trusted
-with: a forced, PDF-only or paced acquire runs only on a node that holds
-the library database, since the host acquire path does none of them (a
+with: a forced, PDF-only, paced or convert acquire runs only on a node
+that holds the library database, since the host acquire path does none
+of them (a convert reads the edition's recorded files; a
 paced acquire checks and records the account's pace in the library
 database before each download, `crate::pacing`). An
 interlibrary request ([`JobKind::BranchRequest`](README.md#jobkind)) is never run through

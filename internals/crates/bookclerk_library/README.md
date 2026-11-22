@@ -2914,6 +2914,7 @@ pub struct JobPayload {
     pub node_id: Option<String>,
     pub branch_request: Option<BranchRequestTarget>,
     pub ingest_batch: Option<String>,
+    pub convert: Option<OutputCopy>,
     pub notify_delivery: Option<String>,
 }
 ```
@@ -2983,6 +2984,13 @@ JSON command envelope stored on a job row.
 - `branch_request`: For [`JobKind::BranchRequest`]: the work asked for and the branch
   listing it was asked from.
 - `ingest_batch`: For [`JobKind::IngestBatch`]: the `ingest_batches.id` to run.
+- `convert`: For [`JobKind::Acquire`]: instead of downloading, add this copy to
+  the title's stored edition, made from the copy the library already
+  holds (an administrator's convert). No store is asked, so the job is
+  never paced; [`Self::force`](#jobpayload) makes the copy again when it exists.
+  
+  Run only by nodes that hold the library database, since the copy is
+  made from the edition's recorded files.
 - `notify_delivery`: For [`JobKind::NotifySend`]: the `notify_deliveries.id` to send.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`

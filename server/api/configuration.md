@@ -1109,6 +1109,7 @@ Status `200`: The `core.output` settings.
     "download_cover": true,
     "download_pdf": true,
     "create_cue": false,
+    "keep_codec_in_m4b": false,
     "fixup_metadata": true,
     "chapter_json": "off",
     "save_metadata_json": false,
@@ -1383,6 +1384,11 @@ Schema:
             "create_cue": {
               "type": "boolean",
               "description": "Write a `.cue` sidecar.",
+              "example": false
+            },
+            "keep_codec_in_m4b": {
+              "type": "boolean",
+              "description": "Keep Opus, FLAC, ALAC, E-AC-3 and AC-4 audio unchanged inside an M4B\ninstead of encoding it to AAC (advanced; off by default).",
               "example": false
             },
             "fixup_metadata": {
@@ -1885,6 +1891,7 @@ Status `200`: The settings after the change, or a `replayed: true` note with the
     "download_cover": true,
     "download_pdf": true,
     "create_cue": false,
+    "keep_codec_in_m4b": false,
     "fixup_metadata": true,
     "chapter_json": "off",
     "save_metadata_json": false,
@@ -2161,6 +2168,11 @@ Schema:
                 "create_cue": {
                   "type": "boolean",
                   "description": "Write a `.cue` sidecar.",
+                  "example": false
+                },
+                "keep_codec_in_m4b": {
+                  "type": "boolean",
+                  "description": "Keep Opus, FLAC, ALAC, E-AC-3 and AC-4 audio unchanged inside an M4B\ninstead of encoding it to AAC (advanced; off by default).",
                   "example": false
                 },
                 "fixup_metadata": {

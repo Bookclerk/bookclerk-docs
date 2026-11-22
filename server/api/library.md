@@ -4,6 +4,686 @@ Books in the library, scans and acquires.
 
 Back to the [web API reference](README.md).
 
+## `POST /api/library/convert`
+
+Queues a convert of stored books into another copy; returns the
+accepted job ids.
+
+Each book gets the copy beside its original, made from the copy the
+library already stores, on every destination whose filter takes that
+copy; the original is left as it is. No store is asked. One job per
+title, run like an acquire on a node with the media worker and the
+library database. Operator, Owners and Administrators only.
+
+**Access:** The operator, or a signed-in Administrator, Owner or user allowed to acquire.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Request body
+
+`application/json`: [`ConvertRequestBody`](schemas.md#convertrequestbody)
+
+- `copy` *[`OutputCopy`](schemas.md#outputcopy)*, **required** — The copy to add: a format and a quality, as `output.copies` lists them. `original` is refused: a convert makes a new encoding.
+- `titles` *array of string* — Title ids (uuid, ASIN, ISBN, product id) of stored books; each becomes its own job.
+- `editions` *array of string* — Editions to convert (`id` of an edition in a work's detail); each becomes one job for the title that acquired it.
+- `force` *boolean* — Make the copy again when the book already has it.
+
+### Responses
+
+- `200` — The convert jobs were accepted. Body: [`ScanPlanResponse`](schemas.md#scanplanresponse) (`application/json`)
+  - `ok` *boolean*, **required** — True when at least one job was accepted.
+  - `message` *string*, **required** — Operator-facing status text.
+  - `job_id` *string*, **required** — First accepted (or, when none was, already queued) job id.
+  - `job_ids` *array of string*, **required** — Every accepted or already-queued job id, in plan order.
+  - `error` *string or null* — Machine slug when nothing was accepted (`conflict`, `queue_full`, `nothing_to_scan`, `nothing_to_acquire`).
+- `400` — The copy is not one a convert makes, or the body names no book. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`); string (`text/plain`)
+  - `ok` *boolean*, **required** — True when the action was accepted or completed.
+  - `message` *string*, **required** — Operator-facing status text.
+  - `job_id` *string*, **required** — Queued job id, or empty when the action is synchronous.
+  - `error` *string or null* — Machine slug when admission failed (`conflict`, `queue_full`).
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — The caller may not convert these books. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ActionResponse`](schemas.md#actionresponse) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `409` — The same convert is already pending or running, or no node can run it. Body: [`PlanConflict`](schemas.md#planconflict) (`application/json`)
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `429` — The job queue is full. Body: [`ScanPlanResponse`](schemas.md#scanplanresponse) (`application/json`)
+  - `ok` *boolean*, **required** — True when at least one job was accepted.
+  - `message` *string*, **required** — Operator-facing status text.
+  - `job_id` *string*, **required** — First accepted (or, when none was, already queued) job id.
+  - `job_ids` *array of string*, **required** — Every accepted or already-queued job id, in plan order.
+  - `error` *string or null* — Machine slug when nothing was accepted (`conflict`, `queue_full`, `nothing_to_scan`, `nothing_to_acquire`).
+- `500` — The jobs could not be queued. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
+  - `ok` *boolean*, **required** — True when the action was accepted or completed.
+  - `message` *string*, **required** — Operator-facing status text.
+  - `job_id` *string*, **required** — Queued job id, or empty when the action is synchronous.
+  - `error` *string or null* — Machine slug when admission failed (`conflict`, `queue_full`).
+- `503` — Job admission is paused. When the sign-in could not be checked because the library did not answer in time, the answer is `session_check_unavailable` instead, with `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ActionResponse`](schemas.md#actionresponse) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/library/convert' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"copy": {"format": "m4b", "quality": "64k-mono"}}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/library/convert' `
+    -Method Post `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{"copy": {"format": "m4b", "quality": "64k-mono"}}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/library/convert",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={"copy": {"format": "m4b", "quality": "64k-mono"}},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/library/convert", {
+  method: "POST",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({"copy": {"format": "m4b", "quality": "64k-mono"}}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/library/convert")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({"copy": {"format": "m4b", "quality": "64k-mono"}}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The convert jobs were accepted.
+
+```json
+{
+  "job_id": "acquire-3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b",
+  "job_ids": [
+    "acquire-3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"
+  ],
+  "message": "convert job acquire-3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b accepted",
+  "ok": true
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Result of a planned scan or acquire: [`ActionResponse`] plus every job id.",
+  "required": [
+    "ok",
+    "message",
+    "job_id",
+    "job_ids"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "True when at least one job was accepted.",
+      "example": true
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing status text.",
+      "example": "scan planned: 2 accepted, 0 already pending or running, 0 not admitted (queue full)"
+    },
+    "job_id": {
+      "type": "string",
+      "description": "First accepted (or, when none was, already queued) job id.",
+      "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
+    },
+    "job_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Every accepted or already-queued job id, in plan order.",
+      "example": [
+        "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f",
+        "scan-8c1d2e3f-4a5b-4c6d-9e7f-0a1b2c3d4e5f"
+      ]
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Machine slug when nothing was accepted (`conflict`, `queue_full`,\n`nothing_to_scan`, `nothing_to_acquire`).",
+      "example": "nothing_to_scan"
+    }
+  }
+}
+```
+
+Status `400`: The copy is not one a convert makes, or the body names no book. As `text/plain`, when the body is not syntactically valid JSON.
+
+```json
+{
+  "error": "invalid",
+  "job_id": "",
+  "message": "a convert makes a new encoding; `original` is not one",
+  "ok": false
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Generic mutation result with success flag, message, and optional job id.",
+  "required": [
+    "ok",
+    "message",
+    "job_id"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "True when the action was accepted or completed.",
+      "example": true
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing status text.",
+      "example": "scan queued"
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Queued job id, or empty when the action is synchronous.",
+      "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`).",
+      "example": "queue_full"
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: The caller may not convert these books. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "forbidden",
+  "job_id": "",
+  "message": "that title is not in a store account linked to this user",
+  "ok": false
+}
+```
+
+Schema:
+
+```json
+{
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "Generic mutation result with success flag, message, and optional job id.",
+      "required": [
+        "ok",
+        "message",
+        "job_id"
+      ],
+      "properties": {
+        "ok": {
+          "type": "boolean",
+          "description": "True when the action was accepted or completed.",
+          "example": true
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing status text.",
+          "example": "scan queued"
+        },
+        "job_id": {
+          "type": "string",
+          "description": "Queued job id, or empty when the action is synchronous.",
+          "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
+        },
+        "error": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Machine slug when admission failed (`conflict`, `queue_full`).",
+          "example": "queue_full"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
+    }
+  ]
+}
+```
+
+Status `409`: The same convert is already pending or running, or no node can run it.
+
+```json
+{
+  "error": "conflict",
+  "job_id": "acquire-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f",
+  "job_ids": [
+    "acquire-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
+  ],
+  "message": "convert already pending or running",
+  "ok": false
+}
+```
+
+Schema:
+
+```json
+{
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "Every planned job is already pending or running; `error` is `conflict`.",
+      "required": [
+        "ok",
+        "message",
+        "job_id",
+        "job_ids"
+      ],
+      "properties": {
+        "ok": {
+          "type": "boolean",
+          "description": "True when at least one job was accepted.",
+          "example": true
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing status text.",
+          "example": "scan planned: 2 accepted, 0 already pending or running, 0 not admitted (queue full)"
+        },
+        "job_id": {
+          "type": "string",
+          "description": "First accepted (or, when none was, already queued) job id.",
+          "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
+        },
+        "job_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Every accepted or already-queued job id, in plan order.",
+          "example": [
+            "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f",
+            "scan-8c1d2e3f-4a5b-4c6d-9e7f-0a1b2c3d4e5f"
+          ]
+        },
+        "error": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Machine slug when nothing was accepted (`conflict`, `queue_full`,\n`nothing_to_scan`, `nothing_to_acquire`).",
+          "example": "nothing_to_scan"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "No node runs every plugin instance a job requires; `error` is `unroutable` and `message` names the instances.",
+      "required": [
+        "ok",
+        "message",
+        "job_id"
+      ],
+      "properties": {
+        "ok": {
+          "type": "boolean",
+          "description": "True when the action was accepted or completed.",
+          "example": true
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing status text.",
+          "example": "scan queued"
+        },
+        "job_id": {
+          "type": "string",
+          "description": "Queued job id, or empty when the action is synchronous.",
+          "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
+        },
+        "error": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Machine slug when admission failed (`conflict`, `queue_full`).",
+          "example": "queue_full"
+        }
+      }
+    }
+  ],
+  "description": "`POST /api/library/scan` and `POST /api/library/acquire` `409` body: the two conflicts a plan can hit."
+}
+```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: missing field `copy` at line 1 column 2
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `429`: The job queue is full.
+
+```json
+{
+  "error": "queue_full",
+  "job_id": "",
+  "job_ids": [],
+  "message": "job queue is full",
+  "ok": false
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Result of a planned scan or acquire: [`ActionResponse`] plus every job id.",
+  "required": [
+    "ok",
+    "message",
+    "job_id",
+    "job_ids"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "True when at least one job was accepted.",
+      "example": true
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing status text.",
+      "example": "scan planned: 2 accepted, 0 already pending or running, 0 not admitted (queue full)"
+    },
+    "job_id": {
+      "type": "string",
+      "description": "First accepted (or, when none was, already queued) job id.",
+      "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
+    },
+    "job_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Every accepted or already-queued job id, in plan order.",
+      "example": [
+        "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f",
+        "scan-8c1d2e3f-4a5b-4c6d-9e7f-0a1b2c3d4e5f"
+      ]
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Machine slug when nothing was accepted (`conflict`, `queue_full`,\n`nothing_to_scan`, `nothing_to_acquire`).",
+      "example": "nothing_to_scan"
+    }
+  }
+}
+```
+
+Status `500`: The jobs could not be queued.
+
+```json
+{
+  "error": "internal_error",
+  "job_id": "",
+  "message": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection",
+  "ok": false
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Generic mutation result with success flag, message, and optional job id.",
+  "required": [
+    "ok",
+    "message",
+    "job_id"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "True when the action was accepted or completed.",
+      "example": true
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing status text.",
+      "example": "scan queued"
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Queued job id, or empty when the action is synchronous.",
+      "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`).",
+      "example": "queue_full"
+    }
+  }
+}
+```
+
+Status `503`: Job admission is paused. When the sign-in could not be checked because the library did not answer in time, the answer is `session_check_unavailable` instead, with `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "admission_paused",
+  "job_id": "",
+  "message": "job admission paused (database reload in progress)",
+  "ok": false
+}
+```
+
+Schema:
+
+```json
+{
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "Generic mutation result with success flag, message, and optional job id.",
+      "required": [
+        "ok",
+        "message",
+        "job_id"
+      ],
+      "properties": {
+        "ok": {
+          "type": "boolean",
+          "description": "True when the action was accepted or completed.",
+          "example": true
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing status text.",
+          "example": "scan queued"
+        },
+        "job_id": {
+          "type": "string",
+          "description": "Queued job id, or empty when the action is synchronous.",
+          "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
+        },
+        "error": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Machine slug when admission failed (`conflict`, `queue_full`).",
+          "example": "queue_full"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
+    }
+  ]
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
 ## `DELETE /api/config/nodes/{node_id}`
 
 `DELETE /api/config/nodes/{node_id}`: remove a shared node (a shared branch, or

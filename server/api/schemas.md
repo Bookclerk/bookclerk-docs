@@ -999,6 +999,15 @@ allowed for an Administrator.
 - `request_books` *boolean or null* — Overrides [`MemberControls::request_books`].
 - `see_prices` *boolean or null* — Overrides [`MemberControls::see_prices`].
 
+## ConvertRequestBody
+
+Body for `POST /api/library/convert`.
+
+- `copy` *[`OutputCopy`](#outputcopy)*, **required** — The copy to add: a format and a quality, as `output.copies` lists them. `original` is refused: a convert makes a new encoding.
+- `titles` *array of string* — Title ids (uuid, ASIN, ISBN, product id) of stored books; each becomes its own job.
+- `editions` *array of string* — Editions to convert (`id` of an edition in a work's detail); each becomes one job for the title that acquired it.
+- `force` *boolean* — Make the copy again when the book already has it.
+
 ## CopyFormat
 
 The format of one copy of a book.
@@ -2894,6 +2903,7 @@ instead of being silently truncated on the next write.
 - `download_cover` *boolean*, **required** — Save cover JPEG alongside audio.
 - `download_pdf` *boolean*, **required** — Download companion PDF when available.
 - `create_cue` *boolean*, **required** — Write a `.cue` sidecar.
+- `keep_codec_in_m4b` *boolean* — Keep Opus, FLAC, ALAC, E-AC-3 and AC-4 audio unchanged inside an M4B instead of encoding it to AAC (advanced; off by default).
 - `fixup_metadata` *boolean*, **required** — Embed tags, cover, and chapters natively.
 - `chapter_json` *[`ChapterJsonMode`](#chapterjsonmode)*, **required** — Chapter JSON sidecars.
 - `save_metadata_json` *boolean*, **required** — Persist raw catalog API JSON.

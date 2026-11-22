@@ -53,6 +53,7 @@ the worker itself calls.
 | [`scale_chapters_to_duration`](#scale_chapters_to_duration) | function | Scale rebased chapter starts so they span the probed plain-audio duration. |
 | [`bookclerk_tool_tag`](#bookclerk_tool_tag) | function | `bookclerk <version>` string embedded in encoder / freeform TOOL tags. |
 | [`fixup_audiobook`](#fixup_audiobook) | function | Apply metadata tags, optional cover embed, and optional chapters. |
+| [`package_keeping_codec`](#package_keeping_codec) | function | Packages `parts` into one M4B at `output` keeping their audio, with a chapter at the start of each part titled from `titles`. |
 | [`remux_trimmed`](#remux_trimmed) | function | Remux a progressive clear M4B/M4A with an optional media-time trim (chapter split). |
 | [`encode_to_opus_native`](#encode_to_opus_native) | function | Encodes the audio in `input` to an Ogg Opus file at `output`. |
 | [`package_m4b_from_mp3`](#package_m4b_from_mp3) | function | Decode/remux ordered parts → progressive M4B. |
@@ -272,6 +273,7 @@ pub struct PackageM4bRequest {
     pub parts: Vec<PathBuf>,
     pub output: PathBuf,
     pub chapter_titles: Vec<String>,
+    pub keep_codec: bool,
 }
 ```
 
@@ -282,6 +284,9 @@ Request to package ordered MP3 parts into one M4B.
 - `parts`: Ordered MP3 chapter / part files.
 - `output`: Destination `.m4b` path.
 - `chapter_titles`: Optional chapter titles (length may match `parts`).
+- `keep_codec`: Keep Opus, FLAC, ALAC, E-AC-3 or AC-4 audio as it is inside the
+  M4B instead of encoding it to AAC (`output.keep_codec_in_m4b`).
+  Parts that cannot be kept together are encoded to AAC as usual.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
 
@@ -1067,6 +1072,28 @@ Runs in a confined media worker; see the [crate](#) documentation.
 Returns [`MediaError::InputMissing`](#mediaerror) when the input does not exist,
 [`MediaError::OutputMissing`](#mediaerror) when the worker reported success but wrote
 nothing, and propagates tag-writing and worker failures otherwise.
+
+### package_keeping_codec
+
+```rust
+pub fn package_keeping_codec(
+    parts: &[PathBuf],
+    output: &Path,
+    titles: &[String],
+) -> Result<Option<Vec<(String, u64)>>>
+```
+
+Packages `parts` into one M4B at `output` keeping their audio, with a
+chapter at the start of each part titled from `titles`.
+
+#### Returns
+
+The chapters `(title, start ms)`, or `None` when the parts cannot be
+kept together and should be transcoded instead.
+
+#### Errors
+
+A read or write error once packaging has started.
 
 ### remux_trimmed
 

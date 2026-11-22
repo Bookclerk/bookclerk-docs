@@ -3379,6 +3379,30 @@ secret_source: OidcSecretSource;
 
 ***
 
+### OutputCopy
+
+One copy of a book: a format at a quality, as `output.copies` names it.
+
+#### Properties
+
+##### format
+
+```ts
+format: string;
+```
+
+`m4b`, `mp3`, `mp3_chapters`, `opus` (or `original`, which a convert refuses).
+
+##### quality
+
+```ts
+quality: string;
+```
+
+`original`, a bitrate such as `64k` or `64k-mono`, or an MP3 VBR level such as `v2`.
+
+***
+
 ### PatronScope
 
 Which part of the library a patron sees.
@@ -10719,6 +10743,28 @@ Resolves when impersonation ends.
 
 ***
 
+### storedEditions()
+
+```ts
+function storedEditions(work): string[];
+```
+
+The editions of `work` a convert can read from: the ones already stored.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `work` | [`WorkDetail`](#workdetail) | The work's detail. |
+
+#### Returns
+
+`string`[]
+
+Edition ids.
+
+***
+
 ### totpEnrollBegin()
 
 ```ts
@@ -10811,6 +10857,33 @@ the named editions or title.
 | `body.asin?` | `string` | - |
 | `body.editions?` | `string`[] | - |
 | `body.uuid?` | `string` | - |
+
+#### Returns
+
+`Promise`\<[`ActionResponse`](#actionresponse)\>
+
+Action ack including `job_id`.
+
+***
+
+### triggerConvert()
+
+```ts
+function triggerConvert(body): Promise<ActionResponse>;
+```
+
+Queues a convert: each named edition gets `copy` beside its original,
+made from the copy the library stores. Owners, Administrators and the
+operator only.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `body` | \{ `copy`: [`OutputCopy`](#outputcopy); `editions`: `string`[]; `force?`: `boolean`; \} | The editions, the copy, and `force` to make it again. |
+| `body.copy` | [`OutputCopy`](#outputcopy) | - |
+| `body.editions` | `string`[] | - |
+| `body.force?` | `boolean` | - |
 
 #### Returns
 

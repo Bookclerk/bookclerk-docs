@@ -39,6 +39,7 @@ why the boundary is where it is.
 | [`runtime_length_ms_from_chapter_info`](#runtime_length_ms_from_chapter_info) | function | Read `runtime_length_ms` / `runtimeLengthMs` from chapter_info JSON. |
 | [`extract_mp4a_config`](#extract_mp4a_config) | function | Read sample-rate / channel count / ASC from a clear `mp4a` sample entry. |
 | [`parse_mp4`](#parse_mp4) | function | Parses top-level boxes and the primary audio track from an MP4/M4A/M4B file. |
+| [`sample_entry_bytes`](#sample_entry_bytes) | function | The audio track's whole sample entry box (size, type and body, its codec configuration box included), as `stsd` holds it, so another file can describe the same samples without decoding them. |
 | [`track_duration_ms`](#track_duration_ms) | function | Absolute duration of the audio track in milliseconds. |
 | [`pad_moov_to`](#pad_moov_to) | function | Grow `moov` to exactly `total` bytes by appending a `free` child. |
 | [`read_moov`](#read_moov) | function | Read a file's `moov`, and note where it sits. |
@@ -613,6 +614,21 @@ On success, the inner `Mp4File` value.
 #### Errors
 
 Returns an error when the underlying I/O, parse, network, or store operation fails.
+
+### sample_entry_bytes
+
+```rust
+pub fn sample_entry_bytes(mp4: &Mp4File) -> Result<Vec<u8>>
+```
+
+The audio track's whole sample entry box (size, type and body, its
+codec configuration box included), as `stsd` holds it, so another file
+can describe the same samples without decoding them.
+
+#### Errors
+
+Returns a container error when the entry does not lie inside `moov` or
+states a size smaller than a box header.
 
 ### track_duration_ms
 

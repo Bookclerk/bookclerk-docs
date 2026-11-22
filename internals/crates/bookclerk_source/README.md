@@ -833,6 +833,7 @@ pub struct DownloadOptions {
     pub download_pdf: bool,
     pub create_cue: bool,
     pub fixup_metadata: bool,
+    pub keep_codec_in_m4b: bool,
     pub chapter_json: ChapterJsonMode,
     pub save_metadata_json: bool,
     pub cover_size: String,
@@ -883,6 +884,8 @@ Audible’s download helpers can overlay the plugin bitrate for a single fetch.
 - `download_pdf`: When true, download a companion PDF when the store exposes one.
 - `create_cue`: When true, write a `.cue` sidecar from API chapters.
 - `fixup_metadata`: When true, embed tags, cover, and chapters after packaging.
+- `keep_codec_in_m4b`: When true, an M4B keeps Opus, FLAC, ALAC, E-AC-3 or AC-4 audio as it
+  is instead of encoding it to AAC (`output.keep_codec_in_m4b`).
 - `chapter_json`: Which chapter JSON sidecars to write (`off` / `flat` / `tree` / `both`).
 - `save_metadata_json`: When true, persist raw catalog API JSON as `metadata.json`.
 - `cover_size`: Cover image size request (`500`, `1215`, or `native`).
