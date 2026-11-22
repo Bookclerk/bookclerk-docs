@@ -13200,7 +13200,7 @@ Schema:
             ],
             "items": {
               "type": "object",
-              "description": "One chapter of a checked list.",
+              "description": "One chapter of a checked list.\n\nNamed `EditionChapter` in the OpenAPI documents, apart from the player\napps' `Chapter`.",
               "required": [
                 "title",
                 "start_ms",
@@ -13498,7 +13498,7 @@ aligned chapters first).
 
 - `200` — The chapters; an empty list with no source when the edition has none yet. Body: [`EditionChaptersJson`](schemas.md#editionchaptersjson) (`application/json`)
   - `edition_id` *string*, **required** — The edition.
-  - `chapters` *array of [`Chapter`](schemas.md#chapter)*, **required** — The chapters in pre-order, starts never decreasing; empty when the edition has none or an Administrator cleared them.
+  - `chapters` *array of [`EditionChapter`](schemas.md#editionchapter)*, **required** — The chapters in pre-order, starts never decreasing; empty when the edition has none or an Administrator cleared them.
   - `source_kind` *[`ChapterSourceKind`](schemas.md#chaptersourcekind) or null* — The kind of source the chapters came from; absent when the edition has no chapters yet.
   - `source_id` *string or null* — Which source of that kind (a PluginKey; empty for an edit or for Bookclerk's own processing).
   - `runtime_ms` *integer (int64) or null* — Length of the timeline the starts were measured on, in milliseconds. At least 0.
@@ -13597,7 +13597,7 @@ Schema:
       "type": "array",
       "items": {
         "type": "object",
-        "description": "One chapter of a checked list.",
+        "description": "One chapter of a checked list.\n\nNamed `EditionChapter` in the OpenAPI documents, apart from the player\napps' `Chapter`.",
         "required": [
           "title",
           "start_ms",
@@ -13872,7 +13872,7 @@ is pinned. An empty list clears the chapters.
 
 - `200` — The chapters the edition plays now (a pinned claim still wins over the edit). Body: [`EditionChaptersJson`](schemas.md#editionchaptersjson) (`application/json`)
   - `edition_id` *string*, **required** — The edition.
-  - `chapters` *array of [`Chapter`](schemas.md#chapter)*, **required** — The chapters in pre-order, starts never decreasing; empty when the edition has none or an Administrator cleared them.
+  - `chapters` *array of [`EditionChapter`](schemas.md#editionchapter)*, **required** — The chapters in pre-order, starts never decreasing; empty when the edition has none or an Administrator cleared them.
   - `source_kind` *[`ChapterSourceKind`](schemas.md#chaptersourcekind) or null* — The kind of source the chapters came from; absent when the edition has no chapters yet.
   - `source_id` *string or null* — Which source of that kind (a PluginKey; empty for an edit or for Bookclerk's own processing).
   - `runtime_ms` *integer (int64) or null* — Length of the timeline the starts were measured on, in milliseconds. At least 0.
@@ -13985,7 +13985,7 @@ Schema:
       "type": "array",
       "items": {
         "type": "object",
-        "description": "One chapter of a checked list.",
+        "description": "One chapter of a checked list.\n\nNamed `EditionChapter` in the OpenAPI documents, apart from the player\napps' `Chapter`.",
         "required": [
           "title",
           "start_ms",
@@ -14360,7 +14360,7 @@ remaining claim again.
 
 - `200` — The chapters the edition plays now. Body: [`EditionChaptersJson`](schemas.md#editionchaptersjson) (`application/json`)
   - `edition_id` *string*, **required** — The edition.
-  - `chapters` *array of [`Chapter`](schemas.md#chapter)*, **required** — The chapters in pre-order, starts never decreasing; empty when the edition has none or an Administrator cleared them.
+  - `chapters` *array of [`EditionChapter`](schemas.md#editionchapter)*, **required** — The chapters in pre-order, starts never decreasing; empty when the edition has none or an Administrator cleared them.
   - `source_kind` *[`ChapterSourceKind`](schemas.md#chaptersourcekind) or null* — The kind of source the chapters came from; absent when the edition has no chapters yet.
   - `source_id` *string or null* — Which source of that kind (a PluginKey; empty for an edit or for Bookclerk's own processing).
   - `runtime_ms` *integer (int64) or null* — Length of the timeline the starts were measured on, in milliseconds. At least 0.
@@ -14459,7 +14459,7 @@ Schema:
       "type": "array",
       "items": {
         "type": "object",
-        "description": "One chapter of a checked list.",
+        "description": "One chapter of a checked list.\n\nNamed `EditionChapter` in the OpenAPI documents, apart from the player\napps' `Chapter`.",
         "required": [
           "title",
           "start_ms",
@@ -14751,7 +14751,7 @@ Pinning replaces any earlier pin on the edition's chapters.
 
 - `200` — The chapters the edition plays now. Body: [`EditionChaptersJson`](schemas.md#editionchaptersjson) (`application/json`)
   - `edition_id` *string*, **required** — The edition.
-  - `chapters` *array of [`Chapter`](schemas.md#chapter)*, **required** — The chapters in pre-order, starts never decreasing; empty when the edition has none or an Administrator cleared them.
+  - `chapters` *array of [`EditionChapter`](schemas.md#editionchapter)*, **required** — The chapters in pre-order, starts never decreasing; empty when the edition has none or an Administrator cleared them.
   - `source_kind` *[`ChapterSourceKind`](schemas.md#chaptersourcekind) or null* — The kind of source the chapters came from; absent when the edition has no chapters yet.
   - `source_id` *string or null* — Which source of that kind (a PluginKey; empty for an edit or for Bookclerk's own processing).
   - `runtime_ms` *integer (int64) or null* — Length of the timeline the starts were measured on, in milliseconds. At least 0.
@@ -14864,7 +14864,7 @@ Schema:
       "type": "array",
       "items": {
         "type": "object",
-        "description": "One chapter of a checked list.",
+        "description": "One chapter of a checked list.\n\nNamed `EditionChapter` in the OpenAPI documents, apart from the player\napps' `Chapter`.",
         "required": [
           "title",
           "start_ms",
@@ -15238,7 +15238,7 @@ Removes the pin on an edition's chapters; the resolver chooses again.
 
 - `200` — The chapters the edition plays now. Body: [`EditionChaptersJson`](schemas.md#editionchaptersjson) (`application/json`)
   - `edition_id` *string*, **required** — The edition.
-  - `chapters` *array of [`Chapter`](schemas.md#chapter)*, **required** — The chapters in pre-order, starts never decreasing; empty when the edition has none or an Administrator cleared them.
+  - `chapters` *array of [`EditionChapter`](schemas.md#editionchapter)*, **required** — The chapters in pre-order, starts never decreasing; empty when the edition has none or an Administrator cleared them.
   - `source_kind` *[`ChapterSourceKind`](schemas.md#chaptersourcekind) or null* — The kind of source the chapters came from; absent when the edition has no chapters yet.
   - `source_id` *string or null* — Which source of that kind (a PluginKey; empty for an edit or for Bookclerk's own processing).
   - `runtime_ms` *integer (int64) or null* — Length of the timeline the starts were measured on, in milliseconds. At least 0.
@@ -15337,7 +15337,7 @@ Schema:
       "type": "array",
       "items": {
         "type": "object",
-        "description": "One chapter of a checked list.",
+        "description": "One chapter of a checked list.\n\nNamed `EditionChapter` in the OpenAPI documents, apart from the player\napps' `Chapter`.",
         "required": [
           "title",
           "start_ms",
@@ -26122,6 +26122,7 @@ own progress and bookmarks.
   - `tracks` *array of [`TrackJson`](schemas.md#trackjson)*, **required** — The tracks in play order; empty when not playable. A session's answer adds the stream paths.
   - `progress` *[`ProgressJson`](schemas.md#progressjson) or null* — The caller's progress; null before they first play it.
   - `bookmarks` *array of [`BookmarkJson`](schemas.md#bookmarkjson)*, **required** — The caller's bookmarks, in timeline order.
+  - `chapters` *array of [`ChapterSpan`](schemas.md#chapterspan)*, **required** — The chapters the edition plays, in pre-order, each ending where the next starts and the last at `duration_ms`; empty when it has none.
 - `401` — The session ended. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `403` — The session has no library user. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `clerk_sign_in_unavailable`. Body: [`ErrorMessage`](schemas.md#errormessage) or [`ErrorJson`](schemas.md#errorjson) or [`ErrorJson`](schemas.md#errorjson) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
@@ -26212,6 +26213,14 @@ Status `200`: What the caller may play, and where they are.
       "title": "The storm",
       "created_at": "2026-11-19T09:02:41+00:00"
     }
+  ],
+  "chapters": [
+    {
+      "title": "Chapter 1: The Boy Who Lived",
+      "start_ms": 33000,
+      "end_ms": 1215000,
+      "depth": 0
+    }
   ]
 }
 ```
@@ -26227,7 +26236,8 @@ Schema:
     "title",
     "playable",
     "tracks",
-    "bookmarks"
+    "bookmarks",
+    "chapters"
   ],
   "properties": {
     "edition_id": {
@@ -26428,6 +26438,48 @@ Schema:
         }
       },
       "description": "The caller's bookmarks, in timeline order."
+    },
+    "chapters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One chapter as a player seeks between them: where it starts and ends\non the edition's timeline ([`ChapterList::spans`]).",
+        "required": [
+          "title",
+          "start_ms",
+          "end_ms",
+          "depth"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Chapter title.",
+            "example": "Chapter 1: The Boy Who Lived"
+          },
+          "start_ms": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Start, in milliseconds from the start of the edition's timeline.",
+            "example": 33000,
+            "minimum": 0
+          },
+          "end_ms": {
+            "type": "integer",
+            "format": "int64",
+            "description": "End, in milliseconds: the next chapter's start, or the end of the\ntimeline for the last chapter; never before `start_ms`.",
+            "example": 1215000,
+            "minimum": 0
+          },
+          "depth": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Nesting depth; 0 for a top-level chapter. A chapter at depth n + 1\nis nested under the nearest earlier chapter at depth n.",
+            "example": 0,
+            "minimum": 0
+          }
+        }
+      },
+      "description": "The chapters the edition plays, in pre-order, each ending where the\nnext starts and the last at `duration_ms`; empty when it has none."
     }
   }
 }

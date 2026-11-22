@@ -652,11 +652,12 @@ The library's channels.
 
 ## Chapter
 
-One chapter of a checked list.
+A chapter of a book.
 
-- `title` *string*, **required** — Chapter title; never empty, at most 512 bytes, no control characters.
-- `start_ms` *integer (int64)*, **required** — Start, in milliseconds from the start of the edition's timeline. At least 0.
-- `depth` *integer (int32)*, **required** — Nesting depth; 0 for a top-level chapter, at most 7. A chapter at depth n + 1 is nested under the nearest earlier chapter at depth n. At least 0.
+- `id` *integer (int64)*, **required** — The chapter's place, from 0. At least 0.
+- `start` *number (double)*, **required** — Where it starts, in seconds.
+- `end` *number (double)*, **required** — Where it ends, in seconds.
+- `title` *string*, **required** — Its title.
 
 ## ChapterClaimJson
 
@@ -666,7 +667,7 @@ One source's chapter claim for an edition.
 - `source_id` *string*, **required** — Which source of that kind (a PluginKey; empty for an edit or for Bookclerk's own processing).
 - `quality` *string*, **required** — Where a machine source ranks within its kind: `strong_accurate`, `strong_estimated` or `weak` for a provider, `chapters`, `tracks` or `unknown` for a store listing; empty otherwise.
 - `digest` *string*, **required** — SHA-256 of the claimed list, 64 lower-case hex characters.
-- `chapters` *array of [`Chapter`](#chapter) or null* — The claimed chapters; absent while the list's write is unfinished.
+- `chapters` *array of [`EditionChapter`](#editionchapter) or null* — The claimed chapters; absent while the list's write is unfinished.
 - `runtime_ms` *integer (int64) or null* — Length of the timeline the list was measured on, in milliseconds. At least 0.
 - `input_digest` *string or null* — For a processed claim, the digest of the provider list it was aligned from.
 - `plays` *boolean*, **required** — Whether the edition plays this claim now.
@@ -717,6 +718,16 @@ Type: one of `off`, `flat`, `tree`, `both`
 The kind of source a chapter claim came from (`source_kind`).
 
 Type: one of `person`, `outside_edit`, `processed`, `provider`, `listing`, `file`, `part_names`
+
+## ChapterSpan
+
+One chapter as a player seeks between them: where it starts and ends
+on the edition's timeline ([`ChapterList::spans`]).
+
+- `title` *string*, **required** — Chapter title.
+- `start_ms` *integer (int64)*, **required** — Start, in milliseconds from the start of the edition's timeline. At least 0.
+- `end_ms` *integer (int64)*, **required** — End, in milliseconds: the next chapter's start, or the end of the timeline for the last chapter; never before `start_ms`. At least 0.
+- `depth` *integer (int32)*, **required** — Nesting depth; 0 for a top-level chapter. A chapter at depth n + 1 is nested under the nearest earlier chapter at depth n. At least 0.
 
 ## ChoiceBody
 
@@ -1356,12 +1367,23 @@ the metadata every domain response carries before its settings.
 - `edition_id` *string*, **required** — The edition being downloaded.
 - `already_queued` *boolean*, **required** — `true` when a download of that edition was already waiting or running; `job_id` is that download.
 
+## EditionChapter
+
+One chapter of a checked list.
+
+Named `EditionChapter` in the OpenAPI documents, apart from the player
+apps' `Chapter`.
+
+- `title` *string*, **required** — Chapter title; never empty, at most 512 bytes, no control characters.
+- `start_ms` *integer (int64)*, **required** — Start, in milliseconds from the start of the edition's timeline. At least 0.
+- `depth` *integer (int32)*, **required** — Nesting depth; 0 for a top-level chapter, at most 7. A chapter at depth n + 1 is nested under the nearest earlier chapter at depth n. At least 0.
+
 ## EditionChaptersJson
 
 The chapters an edition plays.
 
 - `edition_id` *string*, **required** — The edition.
-- `chapters` *array of [`Chapter`](#chapter)*, **required** — The chapters in pre-order, starts never decreasing; empty when the edition has none or an Administrator cleared them.
+- `chapters` *array of [`EditionChapter`](#editionchapter)*, **required** — The chapters in pre-order, starts never decreasing; empty when the edition has none or an Administrator cleared them.
 - `source_kind` *[`ChapterSourceKind`](#chaptersourcekind) or null* — The kind of source the chapters came from; absent when the edition has no chapters yet.
 - `source_id` *string or null* — Which source of that kind (a PluginKey; empty for an edit or for Bookclerk's own processing).
 - `runtime_ms` *integer (int64) or null* — Length of the timeline the starts were measured on, in milliseconds. At least 0.
@@ -3238,6 +3260,7 @@ Type: [`ScanPlanResponse`](#scanplanresponse) or [`ActionResponse`](#actionrespo
 - `tracks` *array of [`TrackJson`](#trackjson)*, **required** — The tracks in play order; empty when not playable. A session's answer adds the stream paths.
 - `progress` *[`ProgressJson`](#progressjson) or null* — The caller's progress; null before they first play it.
 - `bookmarks` *array of [`BookmarkJson`](#bookmarkjson)*, **required** — The caller's bookmarks, in timeline order.
+- `chapters` *array of [`ChapterSpan`](#chapterspan)*, **required** — The chapters the edition plays, in pre-order, each ending where the next starts and the last at `duration_ms`; empty when it has none.
 
 ## PlaybackSession
 

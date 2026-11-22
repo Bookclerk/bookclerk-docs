@@ -119,6 +119,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`ChapterDigest`](#chapterdigest) | struct | Lower-case hex SHA-256 naming one stored chapter list (`ChapterList::digest`). |
 | [`ChapterInput`](#chapterinput) | struct | One chapter as a source states it, before it is checked. |
 | [`ChapterList`](#chapterlist) | struct | A checked chapter list, in pre-order with starts never decreasing. |
+| [`ChapterSpan`](#chapterspan) | struct | One chapter as a player seeks between them: where it starts and ends on the edition's timeline (`ChapterList::spans`). |
 | [`EditionChapters`](#editionchapters) | struct | The chapters an edition resolved to. |
 | [`ChapterEditBody`](#chaptereditbody) | struct | `PUT /api/library/editions/{id}/chapters` body: the edition's chapters as an Administrator sets them, in pre-order. An empty list clears them. |
 | [`ChapterEditEntry`](#chaptereditentry) | struct | One chapter of an edit, as JSON carries it. |
@@ -4817,6 +4818,9 @@ pub struct Chapter {
 
 One chapter of a checked list.
 
+Named `EditionChapter` in the OpenAPI documents, apart from the player
+apps' `Chapter`.
+
 **Fields**
 
 - `title`: Chapter title; never empty, at most 512 bytes, no control
@@ -4983,6 +4987,27 @@ pub fn is_empty(&self) -> bool
 
 True when the list has no chapters.
 
+#### ChapterList::spans
+
+```rust
+pub fn spans(&self, end_ms: Option<u64>) -> Vec<ChapterSpan>
+```
+
+The chapters as spans a player can seek between: in pre-order, each
+ending where the next one starts, as Audiobookshelf flattens a
+tree, and the last ending at `end_ms`.
+
+##### Arguments
+
+* `end_ms` - Where the timeline ends, in milliseconds. `None`, or a
+  value before the last chapter's start, ends the last chapter at
+  its own start.
+
+##### Returns
+
+One span per chapter, starts non-decreasing, every end at or after
+its start.
+
 #### ChapterList::digest
 
 ```rust
@@ -4994,6 +5019,31 @@ endian), depth (4 bytes), title length (4 bytes) and title bytes,
 in order.
 
 Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
+
+### ChapterSpan
+
+```rust
+pub struct ChapterSpan {
+    pub title: String,
+    pub start_ms: u64,
+    pub end_ms: u64,
+    pub depth: u32,
+}
+```
+
+One chapter as a player seeks between them: where it starts and ends
+on the edition's timeline ([`ChapterList::spans`](#chapterlistspans)).
+
+**Fields**
+
+- `title`: Chapter title.
+- `start_ms`: Start, in milliseconds from the start of the edition's timeline.
+- `end_ms`: End, in milliseconds: the next chapter's start, or the end of the
+  timeline for the last chapter; never before `start_ms`.
+- `depth`: Nesting depth; 0 for a top-level chapter. A chapter at depth n + 1
+  is nested under the nearest earlier chapter at depth n.
+
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### EditionChapters
 
