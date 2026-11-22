@@ -7,7 +7,7 @@
   "adr/control-plane": "2026-11-22T10:44:56Z",
   "adr/desktop-window-identity": "2026-11-20T20:35:03Z",
   "adr/drop-folders": "2026-11-22T05:24:49Z",
-  "adr/edition-chapters": "2026-11-22T05:15:08Z",
+  "adr/edition-chapters": "2026-11-22T20:44:42Z",
   "adr/event-delivery-model": "2026-11-19T13:44:23Z",
   "adr/first-party-identity": "2026-11-20T20:35:03Z",
   "adr/ingress-plugins": "2026-11-20T11:55:44Z",
@@ -102,7 +102,7 @@
   "internals/crates/bookclerk_keystore/README": "2026-11-21T14:16:21Z",
   "internals/crates/bookclerk_libav/README": "2026-11-22T14:57:10Z",
   "internals/crates/bookclerk_libav/fixtures": "2026-11-22T14:57:10Z",
-  "internals/crates/bookclerk_library/README": "2026-11-22T09:00:29Z",
+  "internals/crates/bookclerk_library/README": "2026-11-22T22:17:48Z",
   "internals/crates/bookclerk_library/atomic_status": "2026-11-06T01:24:45Z",
   "internals/crates/bookclerk_library/column_read": "2026-11-11T11:12:39Z",
   "internals/crates/bookclerk_library/control_plane": "2026-11-22T11:49:36Z",
@@ -1154,12 +1154,12 @@
   "server/notifications": "2026-11-22T07:20:23Z",
   "server/operations": "2026-11-22T07:06:25Z",
   "server/output": "2026-11-22T20:38:00Z",
-  "server/playback": "2026-11-22T05:15:08Z",
+  "server/playback": "2026-11-22T20:44:42Z",
   "server/player-apps": "2026-11-22T05:15:08Z",
   "server/plugins": "2026-11-22T07:06:25Z",
   "server/security": "2026-11-21T10:21:22Z",
   "server/sign-in": "2026-11-22T07:20:23Z",
   "server/stores": "2026-11-21T11:49:15Z",
-  "server/uploads": "2026-11-20T23:33:19Z"
+  "server/uploads": "2026-11-22T20:44:42Z"
  }
 }

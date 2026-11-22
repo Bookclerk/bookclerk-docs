@@ -343,6 +343,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`normalize_work_tags`](#normalize_work_tags) | function | Trims, drops empties and duplicates (by `facet_key`, first spelling kept) and checks the bounds. |
 | [`parse_work_tags_request`](#parse_work_tags_request) | function | Parses and validates a `PUT /api/library/works/{id}/tags` body from its raw bytes, sans IO, the way the route reads it: JSON into `WorkTagsBody`, then `WorkTagsBody::validate`. |
 | [`apply_user_states`](#apply_user_states) | function | Applies the state of `users` to `titles`, merged per work. |
+| [`copy_source_id`](#copy_source_id) | function | The source id a `ChapterSource::File` claim names one stored copy by: `copy-` and the first 32 hex digits of the SHA-256 of the destination and the copy's audio keys in sorted order, so the id has a fixed length whatever the keys are and does not depend on their play order. |
 | [`resolve_chapters`](#resolve_chapters) | function | Picks the claim an edition's chapters resolve to. |
 | [`parse_chapter_edit_request`](#parse_chapter_edit_request) | function | Parses and checks a chapter edit body from its raw bytes, sans IO, the way the route reads it. |
 | [`parse_chapter_pin_request`](#parse_chapter_pin_request) | function | Parses and checks a pin body from its raw bytes, sans IO. |
@@ -411,6 +412,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`MAX_WORK_TAGS`](#max_work_tags) | constant | Most tags an Administrator may set on one work. With the delete this fits one batch of the smallest statement count a database plugin may advertise (40). |
 | [`MAX_WORK_TAG_BYTES`](#max_work_tag_bytes) | constant | Longest tag, in UTF-8 bytes after trimming: the longest value the page index keeps under a facet, and the longest value a scope rule matches. |
 | [`CATALOG_LISTING_REFRESH`](#catalog_listing_refresh) | constant | How long a catalog listing counts as current: a store answer for a listing seen more recently than this refreshes only its prices, not its resolution or text, so overlapping tastes cost one resolve a day. |
+| [`COPY_RUNTIME_TOLERANCE_MS`](#copy_runtime_tolerance_ms) | constant | Most a stored copy's running time may differ from the resolved list's before the copy plays the chapters read from its own files, in milliseconds (`docs/adr/edition-chapters.md`, decision 1). |
 | [`MAX_CHAPTERS`](#max_chapters) | constant | Most chapters one list holds, the same cap as a metadata file's (`maxMetadataFileChapters` in `plugin.capnp`). |
 | [`MAX_CHAPTER_DEPTH`](#max_chapter_depth) | constant | Deepest nesting stored; 0 is a top-level chapter. A machine source's deeper chapter is lifted to this depth; an edit's is refused. |
 | [`MAX_CHAPTER_START_MS`](#max_chapter_start_ms) | constant | Latest chapter start stored, in milliseconds: sixty days, the playback core's longest position (`crate::MAX_PLAYBACK_MS`). |
@@ -7460,6 +7462,39 @@ The chapters an edition resolved to; `None` when it has none.
 ##### Errors
 
 Returns the read error, or [`LibraryError::Other`](#libraryerror) when the stored
+list is missing or no longer passes its own checks.
+
+#### LibraryStore::chapters_for_copy
+
+```rust
+pub async fn chapters_for_copy(
+    &self,
+    edition_id: &str,
+    destination: &str,
+    keys: &[String],
+) -> Result<Option<EditionChapters>>
+```
+
+The chapters one stored copy plays: the edition's resolved list,
+unless the copy's own running time is more than
+[`COPY_RUNTIME_TOLERANCE_MS`](#copy_runtime_tolerance_ms) from the timeline that list was
+measured on and the copy's files carried chapters of their own
+([`ChapterSource::File`](#chaptersource)), which it then plays instead
+(`docs/adr/edition-chapters.md`, decision 1).
+
+The copy's running time is the sum of its probed files' durations;
+when a file was never probed, or the list's runtime is unknown, the
+resolved list stands.
+
+##### Arguments
+
+* `edition_id` - The edition (`editions.id`).
+* `destination` - The destination the copy is read from.
+* `keys` - The storage keys of the copy's audio files.
+
+##### Errors
+
+Returns the read error, or [`LibraryError::Other`](#libraryerror) when a stored
 list is missing or no longer passes its own checks.
 
 #### LibraryStore::chapter_list
@@ -18405,6 +18440,7 @@ pub enum ChapterSource {
     Provider { plugin: String, quality: ProviderQuality },
     Listing { plugin: String, kind: MarkerKind },
     PartNames { plugin: String },
+    File { copy: String },
 }
 ```
 
@@ -18424,6 +18460,9 @@ Who states a chapter claim, as a writer names it.
   - `kind`: What the store says the markers are.
 - `PartNames`: The titles of a store's parts.
   - `plugin`: The storefront's PluginKey.
+- `File`: The chapters embedded in one stored copy's files, as first
+  imported.
+  - `copy`: The copy ([`copy_source_id`](#copy_source_id)).
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
@@ -18451,8 +18490,8 @@ The kind of source a chapter claim came from (`source_kind`).
 - `Processed`: Bookclerk's own chapters, aligned to the audio during acquire.
 - `Provider`: A metadata provider's chapter layout.
 - `Listing`: The markers a store returned with the audio.
-- `File`: Chapters read from a file as first imported. Nothing records these
-  yet.
+- `File`: Chapters read from a stored copy's files as first imported: an
+  upload records them.
 - `PartNames`: The titles of the parts a store delivered, one chapter per part.
 
 #### ChapterSourceKind::ALL
@@ -20514,6 +20553,17 @@ whose state is in `states` (the household).
 * `states` - Stored state rows for the titles' works.
 * `users` - Whose state counts; empty for everyone's.
 
+### copy_source_id
+
+```rust
+pub fn copy_source_id(destination: &str, keys: &[String]) -> String
+```
+
+The source id a [`ChapterSource::File`](#chaptersource) claim names one stored copy by:
+`copy-` and the first 32 hex digits of the SHA-256 of the destination
+and the copy's audio keys in sorted order, so the id has a fixed length
+whatever the keys are and does not depend on their play order.
+
 ### resolve_chapters
 
 ```rust
@@ -21330,6 +21380,16 @@ pub const CATALOG_LISTING_REFRESH: Duration = _;
 How long a catalog listing counts as current: a store answer for a
 listing seen more recently than this refreshes only its prices, not
 its resolution or text, so overlapping tastes cost one resolve a day.
+
+### COPY_RUNTIME_TOLERANCE_MS
+
+```rust
+pub const COPY_RUNTIME_TOLERANCE_MS: u64 = 2_000;
+```
+
+Most a stored copy's running time may differ from the resolved list's
+before the copy plays the chapters read from its own files, in
+milliseconds (`docs/adr/edition-chapters.md`, decision 1).
 
 ### MAX_CHAPTERS
 
