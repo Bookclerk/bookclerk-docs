@@ -7368,7 +7368,8 @@ A topic of the live socket.
 
 **Variants**
 
-- `Library`: The library's titles (`books`).
+- `Library`: The library's titles: holdings, editions and their acquire state.
+  No table stamps it; its writes bump it (see [`Self::stamp_column`](#livetopicstamp_column)).
 - `Jobs`: Jobs (`jobs`).
 - `Deliveries`: Event deliveries (`event_deliveries`).
 - `Nodes`: Node heartbeats (`node_status`).

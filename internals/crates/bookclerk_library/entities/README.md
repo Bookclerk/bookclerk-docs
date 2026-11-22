@@ -22,7 +22,6 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`admin_controls`](admin_controls.md): SeaORM entity for the `admin_controls` table: one Administrator's overrides of the library's default Administrator switches, set by an Owner or the operator.
 - [`bookclerk_receipts`](bookclerk_receipts.md): SeaORM entity for durable atomic result receipts.
 - [`bookmarks`](bookmarks.md): SeaORM entity for `bookmarks`: places one person marked in one edition. Written by `crate::LibraryStore`'s playback methods (`store::playback`).
-- [`books`](books.md): SeaORM entity for the `books` table.
 - [`catalog_listing_optouts`](catalog_listing_optouts.md): SeaORM entity for `catalog_listing_optouts`: on a branch, the members whose books it does not list to the libraries it joined.
 - [`catalog_lookups`](catalog_lookups.md): SeaORM entity for `catalog_lookups`: on a library, the catalog questions waiting for (or answered by) each branch (`control_plane::catalog_lookup`).
 - [`chapter_list_entries`](chapter_list_entries.md): SeaORM entity for `chapter_list_entries`: one chapter of a stored chapter list (`chapter_lists`), in pre-order.
