@@ -13,6 +13,9 @@ Product narrative: destination sections in `docs/server/configuration.md`. Style
 | Item | Kind | Summary |
 | --- | --- | --- |
 | [`StorageBackend`](#storagebackend) | trait | Pluggable storage for acquired audio and sidecar files. |
+| [`B2ApplicationKey`](#b2applicationkey) | struct | An application key's secret half. Its `Debug` output never shows it. |
+| [`B2Backend`](#b2backend) | struct | A bucket (and prefix) on Backblaze B2. |
+| [`B2Settings`](#b2settings) | struct | How to reach one bucket. |
 | [`FanoutBackend`](#fanoutbackend) | struct | Multiplexes one logical storage key across multiple backends. |
 | [`LocalFsBackend`](#localfsbackend) | struct | Stores objects under a root directory; keys map to relative paths. |
 | [`CloudflareAccountId`](#cloudflareaccountid) | struct | A Cloudflare account id: 32 lowercase hex digits. |
@@ -42,6 +45,7 @@ Product narrative: destination sections in `docs/server/configuration.md`. Style
 | [`is_audio_key`](#is_audio_key) | function | True when `key` ends with a known acquired audio extension. |
 | [`transfer_object`](#transfer_object) | function | Copies `source_key` onto `dest_key`. |
 | [`Result`](#result) | type alias | Result alias for storage backend operations in this crate. |
+| [`B2_AUTHORIZE_URL`](#b2_authorize_url) | constant | Where `b2_authorize_account` lives; every other URL comes from its reply. |
 | [`MAX_LIST_PAGE`](#max_list_page) | constant | ABI list page ceiling. |
 | [`MAX_SCALAR_OBJECT_BYTES`](#max_scalar_object_bytes) | constant | ABI scalar ceiling. Audiobook bodies must not use `crate::StorageBackend::get` / `crate::StorageBackend::put`. |
 | [`MAX_SUPPORTED_OBJECT_BYTES`](#max_supported_object_bytes) | constant | Largest object this process will upload or server-copy. |
@@ -64,13 +68,14 @@ Product narrative: destination sections in `docs/server/configuration.md`. Style
 
 ## Modules
 
+- [`b2_api`](b2_api.md): Backblaze B2 native API replies, read into checked types.
 - [`fs_kind`](fs_kind.md): What kind of file system a local path lives on, so the local backend only leans on hard links, inode numbers and atomic renames where the file system keeps their promises.
 - [`guest`](guest.md): Serving a backend's intent operations from a storage guest. Serves a `StorageBackend`'s intent operations through a storage guest's `Destination` capability.
 - [`intent`](intent.md): Intent operations (moves, batches, conditional writes, change feeds) and their fallbacks. Intent-based storage operations and the host's fallback for each.
 - [`key_syntax`](key_syntax.md): The host's key syntax, and how a storage backend turns a host key into the path or object key it stores.
 - [`r2_events`](r2_events.md): Cloudflare R2 event notifications and Queues pull replies, parsed into change-feed entries.
 - [`s3_events`](s3_events.md): Object-store event notifications, parsed into change-feed entries.
-- [`s3_guest`](s3_guest.md): A storage guest's `Destination` capability over an `S3Backend`.
+- [`s3_guest`](s3_guest.md): A storage guest's `Destination` capability over an object store.
 
 ## Traits
 
@@ -148,6 +153,16 @@ pub trait StorageBackend: Send + Sync {
         from: &'life1 str,
         to: &'life2 str,
     ) -> Pin<Box<dyn Future<Output = Result<()>> + Send + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,
+        'life1: 'async_trait,
+        'life2: 'async_trait,;
+    fn copy_sized<'life0, 'life1, 'life2, 'async_trait>(
+        &'life0 self,
+        from: &'life1 str,
+        to: &'life2 str,
+    ) -> Pin<Box<dyn Future<Output = Result<u64>> + Send + 'async_trait>>
     where
         Self: 'async_trait,
         'life0: 'async_trait,
@@ -523,6 +538,29 @@ where
 
 Copy `from` → `to` within the same backend (S3 server-side copy / local
 file copy). Preserves object metadata when the backend supports it.
+
+#### StorageBackend::copy_sized
+
+```rust
+fn copy_sized<'life0, 'life1, 'life2, 'async_trait>(
+    &'life0 self,
+    from: &'life1 str,
+    to: &'life2 str,
+) -> Pin<Box<dyn Future<Output = Result<u64>> + Send + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+    'life1: 'async_trait,
+    'life2: 'async_trait,
+```
+
+[`Self::copy`](#storagebackendcopy), returning the bytes copied. The default copies and
+then probes the target.
+
+##### Errors
+
+Returns [`StorageError::NotFound`](#storageerror) when `from` is missing, and
+backend errors otherwise.
 
 #### StorageBackend::rename
 
@@ -906,9 +944,94 @@ rewrite user-metadata (creates a second full-size version on versioned
 buckets). System `Last-Modified` cannot be set on AWS S3; logical times
 belong in PutObject `x-amz-meta-*` (S3 backends set them at upload only).
 
-Implemented by: `FanoutBackend`, `LocalFsBackend`, `S3Backend`
+Implemented by: `B2Backend`, `FanoutBackend`, `LocalFsBackend`, `S3Backend`
 
 ## Structs
+
+### B2ApplicationKey
+
+```rust
+pub struct B2ApplicationKey(/* private */);
+```
+
+An application key's secret half. Its `Debug` output never shows it.
+
+#### B2ApplicationKey::new
+
+```rust
+pub fn new(secret: impl Into<String>) -> Self
+```
+
+Wraps the secret.
+
+Implements: `Clone`, `Debug`
+
+### B2Backend
+
+```rust
+pub struct B2Backend {
+    /* private fields */
+}
+```
+
+A bucket (and prefix) on Backblaze B2.
+
+#### B2Backend::new
+
+```rust
+pub fn new(settings: B2Settings) -> Result<Self>
+```
+
+A backend for a bucket. Nothing is sent until the first call, which
+signs in, finds the bucket, and checks the key may reach the prefix
+(a key restricted to another bucket or prefix fails that call with
+[`StorageError::InvalidKey`](#storageerror)).
+
+##### Errors
+
+Returns [`StorageError::InvalidKey`](#storageerror) for an empty key id or bucket,
+or a prefix B2 cannot store, and [`StorageError::Remote`](#storageerror) when the
+HTTP client cannot be built.
+
+Implements: `Clone`, `StorageBackend`
+
+### B2Settings
+
+```rust
+pub struct B2Settings {
+    pub key_id: String,
+    pub application_key: B2ApplicationKey,
+    pub bucket: String,
+    pub prefix: String,
+    pub authorize_url: String,
+}
+```
+
+How to reach one bucket.
+
+**Fields**
+
+- `key_id`: The application key's id.
+- `application_key`: The application key.
+- `bucket`: The bucket's name.
+- `prefix`: Prefix under which every key is stored (may be empty).
+- `authorize_url`: Base URL of `b2_authorize_account` ([`B2_AUTHORIZE_URL`](#b2_authorize_url)).
+
+#### B2Settings::new
+
+```rust
+pub fn new(
+    key_id: impl Into<String>,
+    application_key: B2ApplicationKey,
+    bucket: impl Into<String>,
+    prefix: impl Into<String>,
+) -> Self
+```
+
+Settings for `bucket` under `prefix`, signing in at
+[`B2_AUTHORIZE_URL`](#b2_authorize_url).
+
+Implements: `Clone`, `Debug`
 
 ### FanoutBackend
 
@@ -1571,6 +1694,7 @@ pub enum StorageError {
     InvalidKey(String),
     Io(Error),
     S3(String),
+    Remote(String),
     PayloadTooLarge(String),
     Integrity(String),
     Conflict(String),
@@ -1587,6 +1711,8 @@ Errors from local / S3 / fan-out storage backends.
 - `InvalidKey`: Key failed validation (path escape, empty bucket, bad destination config).
 - `Io`: Local filesystem I/O failure.
 - `S3`: S3 SDK or HTTP failure (operator-facing detail).
+- `Remote`: An object store's API refused or failed a request (operator-facing
+  detail, never credentials).
 - `PayloadTooLarge`: Scalar get/put exceeded the ABI small-object cap.
 - `Integrity`: Declared length or SHA-256 did not match the bytes consumed.
 - `Conflict`: A precondition failed: the target exists, or the object changed
@@ -1785,6 +1911,15 @@ pub type Result<T> = Result<T, StorageError>;
 Result alias for storage backend operations in this crate.
 
 ## Constants
+
+### B2_AUTHORIZE_URL
+
+```rust
+pub const B2_AUTHORIZE_URL: &str = "https://api.backblazeb2.com";
+```
+
+Where `b2_authorize_account` lives; every other URL comes from its
+reply.
 
 ### MAX_LIST_PAGE
 

@@ -23,6 +23,7 @@ First-party plugins: databases, destinations, sources and integrations.
 | [`bookclerk_plugin_database_d1`](bookclerk_plugin_database_d1/README.md) | Optional Cloudflare D1 library database plugin (Workers RPC guest) |
 | [`bookclerk_plugin_database_postgres`](bookclerk_plugin_database_postgres/README.md) | Optional PostgreSQL library database plugin (Workers RPC guest) |
 | [`bookclerk_plugin_database_sqlite`](bookclerk_plugin_database_sqlite/README.md) | Platform SQLite library database plugin (Workers RPC guest) |
+| [`bookclerk_plugin_destination_b2`](bookclerk_plugin_destination_b2/README.md) | Backblaze B2 output plugin: native guest for Bookclerk |
 | [`bookclerk_plugin_destination_local`](bookclerk_plugin_destination_local/README.md) | Local filesystem output plugin: Workers RPC guest for Bookclerk |
 | [`bookclerk_plugin_destination_r2`](bookclerk_plugin_destination_r2/README.md) | Cloudflare R2 output plugin: Workers RPC guest for Bookclerk |
 | [`bookclerk_plugin_destination_s3`](bookclerk_plugin_destination_s3/README.md) | S3 / MinIO output plugin: Workers RPC guest for Bookclerk |
@@ -70,7 +71,7 @@ The crates the hosts are built from. Not a stable API.
 | [`bookclerk_search`](bookclerk_search/README.md) | Full-text search over library works (Tantivy) |
 | [`bookclerk_sentencepiece`](bookclerk_sentencepiece/README.md) | Safe wrapper over the SentencePiece Lite tokenizer runtime, built from the pinned sources under third_party/sentencepiece-lite |
 | [`bookclerk_source`](bookclerk_source/README.md) | Host-side ContentSource trait and source registry; re-exports the storefront types guests share |
-| [`bookclerk_storage`](bookclerk_storage/README.md) | Pluggable local and S3 (feature `s3`) storage backends for acquired audiobooks |
+| [`bookclerk_storage`](bookclerk_storage/README.md) | Pluggable local, S3 (feature `s3`) and B2 (feature `b2`) storage backends for acquired audiobooks |
 | [`bookclerk_storefront`](bookclerk_storefront/README.md) | Types storefront guests share with the host: DTOs, ABI conversions and listing helpers, with no database, ORM or OpenAPI dependencies |
 | [`bookclerk_tags`](bookclerk_tags/README.md) | Sans-IO readers for metadata embedded in audiobook files (MP4, ID3, FLAC, Ogg) and the tag worker's frames |
 | [`bookclerk_tls`](bookclerk_tls/README.md) | The one rustls crypto provider and HTTP client TLS settings for the Bookclerk hosts |

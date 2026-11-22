@@ -27,7 +27,7 @@ Implements: `PluginWorker`
 ```rust
 pub async fn destination_from_config(
     config: &ExtensibleConfig,
-) -> Result<ObjectStoreDestination, PluginError>
+) -> Result<ObjectStoreDestination<S3Backend>, PluginError>
 ```
 
 Builds the destination from the `open` `Bindings::config` payload
@@ -43,7 +43,7 @@ when the client cannot be constructed.
 ```rust
 pub async fn destination_from_bindings(
     bindings: &Bindings,
-) -> Result<ObjectStoreDestination, PluginError>
+) -> Result<ObjectStoreDestination<S3Backend>, PluginError>
 ```
 
 [`destination_from_config`](#destination_from_config) plus credentials from `SECRETS` when `CONFIG`

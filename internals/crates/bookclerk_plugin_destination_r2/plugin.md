@@ -58,7 +58,7 @@ Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `Part
 pub async fn destination_from(
     config: &ExtensibleConfig,
     secrets: &ExtensibleConfig,
-) -> Result<ObjectStoreDestination, PluginError>
+) -> Result<ObjectStoreDestination<S3Backend>, PluginError>
 ```
 
 Builds the destination from the instance's `CONFIG` and `SECRETS`.
