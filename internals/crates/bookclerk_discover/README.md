@@ -323,6 +323,7 @@ pub struct StorefrontCandidate {
     pub store_rank: Option<u32>,
     pub work_id: Option<String>,
     pub expression_id: Option<String>,
+    pub publisher_votes: Vec<String>,
 }
 ```
 
@@ -370,6 +371,10 @@ A purchase candidate discovered from a storefront catalog (not owned locally).
 - `expression_id`: The expression (`expressions.id`) the pool resolved this listing
   into: two candidates with the same expression are the same recording
   sold by different stores, so one card carries both prices.
+- `publisher_votes`: The publisher each store listing merged into this row named, one
+  entry per listing that named one, in arrival order. Empty until a
+  second listing merges in; [`Self::publisher`](#storefrontcandidate) is then the name most
+  of them agree on (see `merge_candidate_metadata`). Never sent.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
 

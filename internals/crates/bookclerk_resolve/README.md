@@ -37,6 +37,9 @@ replay test and the store all drive the same code.
 - [`kinds::MediaKind`](kinds.md#mediakind)
 - [`kinds::Strength`](kinds.md#strength)
 - [`kinds::WorkKind`](kinds.md#workkind)
+- [`labels::clean_series_name`](labels.md#clean_series_name)
+- [`labels::series_key`](labels.md#series_key)
+- [`labels::strip_edition_marker`](labels.md#strip_edition_marker)
 - [`language::normalize_language`](language.md#normalize_language)
 - [`listing::stored_marketplace`](listing.md#stored_marketplace)
 - [`listing::stored_product_id`](listing.md#stored_product_id)
@@ -73,6 +76,7 @@ replay test and the store all drive the same code.
 - [`fuzzing`](fuzzing.md): Fuzz input decoding and the oracle the `library_resolve` target checks.
 - [`identifiers`](identifiers.md): External identifiers: normalisation and the key they are stored under.
 - [`kinds`](kinds.md): Closed vocabularies of the library data model.
+- [`labels`](labels.md): Store labels that name the same thing in different spellings.
 - [`language`](language.md): Language codes: one spelling for the many ways stores write a language.
 - [`listing`](listing.md): The validated listing a storefront reports, and who holds it.
 - [`memory`](memory.md): An in-memory library that reads snapshots and applies plans.

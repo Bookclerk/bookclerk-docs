@@ -70,6 +70,7 @@ pub struct CatalogProduct {
     pub categories: Option<String>,
     pub genre_roots: Vec<String>,
     pub language: Option<String>,
+    pub isbn: Option<String>,
     pub is_abridged: Option<bool>,
     pub price_cents: Option<i64>,
     pub currency: Option<String>,
@@ -104,6 +105,12 @@ One Audible catalog product (public search hit).
   [`Self::categories`](#catalogproduct), which joins every rung, this tells an adult
   "Action & Adventure" from a children's one.
 - `language`: BCP-47 / storefront language code (`en`, `de`, …) when known.
+- `isbn`: The edition's ISBN as the catalog's `isbn` attribute (in
+  `product_attrs`) reports it, digits and a final `X` only; `None` when
+  the catalog gives none or the value is not ten or thirteen of them.
+  Audible gives one for many publisher titles, the same audio ISBN
+  other stores list, so the host can tell their listings are one
+  recording.
 - `is_abridged`: Whether this edition is abridged, from the catalog's `format_type`
   (`abridged` / `unabridged`); `None` when it gave no format the
   parser knows.

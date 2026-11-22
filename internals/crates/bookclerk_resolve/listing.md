@@ -99,7 +99,8 @@ A work's place in one series, as a listing reports it.
 pub fn name_key(&self) -> String
 ```
 
-The cleaned name series are matched by.
+The cleaned name series are matched by (see [`crate::series_key`](labels.md#series_key)),
+so `King & Maxwell` and `King and Maxwell` are one series.
 
 #### SeriesEntry::sort_position
 
@@ -412,8 +413,10 @@ The work matcher's key for a title and its authors.
 
 #### Returns
 
-`clean_title` and the sorted, de-duplicated `clean_author` names joined
-with unit separators; empty when either side is empty.
+The `clean_title` of the title without its trailing edition markers
+(see [`crate::strip_edition_marker`]: `First Family - Abridged` keys as
+`First Family`) and the sorted, de-duplicated `clean_author` names
+joined with unit separators; empty when either side is empty.
 
 ### canonical_language
 

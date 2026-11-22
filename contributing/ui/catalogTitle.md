@@ -938,6 +938,57 @@ Optional `min_length_minutes` / `max_length_minutes`.
 
 ***
 
+### seriesChoices()
+
+```ts
+function seriesChoices(names): string[];
+```
+
+One label per series among names that may spell it differently.
+
+Names are grouped by [seriesKey](#serieskey); each group shows the spelling most
+of its names use (the first seen on a tie).
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `names` | `Iterable`\<`string`\> | Series names, blanks allowed. |
+
+#### Returns
+
+`string`[]
+
+The labels, sorted.
+
+***
+
+### seriesKey()
+
+```ts
+function seriesKey(name): string;
+```
+
+The key series names are grouped by.
+
+Stores spell one series differently (`King & Maxwell`, `King and Maxwell`);
+the key reads `&` as `and` and ignores case, accents, apostrophes,
+parenthesised text and extra spaces, as the server's series filter does.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `name` | `string` | A series name. |
+
+#### Returns
+
+`string`
+
+The key; empty for a blank name.
+
+***
+
 ### sortCatalogTitles()
 
 ```ts
