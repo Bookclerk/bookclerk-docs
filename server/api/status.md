@@ -474,8 +474,8 @@ media worker handles.
 ### Responses
 
 - `200` — What the media worker reads and writes. Body: [`MediaCapabilitiesJson`](schemas.md#mediacapabilitiesjson) (`application/json`)
-  - `decodes` *array of string*, **required** — Audio codecs the worker decodes (`aac`, `alac`, `flac`, `mp3`, `opus`, `vorbis`).
-  - `reads` *array of string*, **required** — Media types of files the worker opens, compared without case or parameters.
+  - `decodes` *array of string*, **required** — Audio codecs the worker decodes (`aac`, `alac`, `flac`, `mp3`, `opus`, `vorbis`, and `eac3` in builds with the FFmpeg decoders).
+  - `reads` *array of string*, **required** — Media types of files the worker opens, compared without case or parameters. Builds with the FFmpeg decoders add WMA, raw AC-3 and E-AC-3, and AMR types.
   - `encodes` *array of [`OutputEncodingJson`](schemas.md#outputencodingjson)*, **required** — Encodings the worker writes.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
@@ -584,7 +584,7 @@ Schema:
       "items": {
         "type": "string"
       },
-      "description": "Audio codecs the worker decodes (`aac`, `alac`, `flac`, `mp3`,\n`opus`, `vorbis`).",
+      "description": "Audio codecs the worker decodes (`aac`, `alac`, `flac`, `mp3`,\n`opus`, `vorbis`, and `eac3` in builds with the FFmpeg decoders).",
       "example": [
         "aac",
         "alac",
@@ -599,7 +599,7 @@ Schema:
       "items": {
         "type": "string"
       },
-      "description": "Media types of files the worker opens, compared without case or\nparameters.",
+      "description": "Media types of files the worker opens, compared without case or\nparameters. Builds with the FFmpeg decoders add WMA, raw AC-3 and\nE-AC-3, and AMR types.",
       "example": [
         "audio/mp4",
         "audio/mpeg",

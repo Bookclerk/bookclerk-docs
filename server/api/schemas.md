@@ -2352,8 +2352,8 @@ Type: one of `file`, `password_file`, `keychain`, `systemd_creds`
 
 The codecs, containers and encodings this build's media worker handles.
 
-- `decodes` *array of string*, **required** — Audio codecs the worker decodes (`aac`, `alac`, `flac`, `mp3`, `opus`, `vorbis`).
-- `reads` *array of string*, **required** — Media types of files the worker opens, compared without case or parameters.
+- `decodes` *array of string*, **required** — Audio codecs the worker decodes (`aac`, `alac`, `flac`, `mp3`, `opus`, `vorbis`, and `eac3` in builds with the FFmpeg decoders).
+- `reads` *array of string*, **required** — Media types of files the worker opens, compared without case or parameters. Builds with the FFmpeg decoders add WMA, raw AC-3 and E-AC-3, and AMR types.
 - `encodes` *array of [`OutputEncodingJson`](#outputencodingjson)*, **required** — Encodings the worker writes.
 
 ## MediaKindJson

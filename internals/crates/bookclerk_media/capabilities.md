@@ -6,8 +6,10 @@ Hosts ask here before handing the worker audio, instead of keeping their
 own list of formats: the acquire pipeline takes a library's copy from
 another store only when an output that re-encodes or repackages audio
 can read it. The answers follow the crate's decode front: the
-Symphonia features this crate enables, FDK for every AAC profile and
-libopus for Opus. The daemon serves the same report at
+Symphonia features this crate enables, FDK for every AAC profile,
+libopus for Opus and, in builds with the `libav` feature (every release
+and Docker build), FFmpeg for AC-3, E-AC-3, WMA and
+AMR. The daemon serves the same report at
 `GET /api/status/media` and the CLI prints it with
 `bookclerk media capabilities`.
 
@@ -18,7 +20,7 @@ libopus for Opus. The daemon serves the same report at
 | [`decodes`](#decodes) | function | True when the worker decodes audio encoded as `codec`. |
 | [`reads_content_type`](#reads_content_type) | function | True when the worker opens files of media type `content_type` (compared without case or parameters). |
 | [`capabilities`](#capabilities-1) | function | The report for this build. |
-| [`READABLE_CONTENT_TYPES`](#readable_content_types) | constant | Media types of whole files the worker opens: MP4 (`.m4a`/`.m4b`, AAC or ALAC), MPEG audio layers I–III, FLAC, ADTS AAC, WAV, AIFF, Core Audio Format and Ogg (Opus or Vorbis). The container is still sniffed from the bytes when the file is opened; this list only says which kinds are worth sending. |
+| [`READABLE_CONTENT_TYPES`](#readable_content_types) | constant | Media types of whole files the worker opens: MP4 (`.m4a`/`.m4b`, AAC, ALAC or E-AC-3), MPEG audio layers I–III, FLAC, ADTS AAC, WAV, AIFF, Core Audio Format, Ogg (Opus or Vorbis), and through FFmpeg WMA (ASF), raw AC-3 and E-AC-3, and AMR (raw or in 3GP). The container is still sniffed from the bytes when the file is opened; this list only says which kinds are worth sending. |
 | [`OUTPUT_ENCODINGS`](#output_encodings) | constant | What the worker produces from decoded audio. |
 
 ## Structs
@@ -96,6 +98,8 @@ True when the worker decodes audio encoded as `codec`.
 AAC covers every profile (LC, HE, HE v2, xHE). MP3 covers MPEG audio
 layers I and II too, which the tag reader reports as MP3. Opus covers
 mono and stereo streams; surround Opus (several streams) fails to open.
+E-AC-3 decodes in builds with the `libav` feature. No build decodes
+AC-4.
 
 ### reads_content_type
 
@@ -122,10 +126,12 @@ The report for this build.
 pub const READABLE_CONTENT_TYPES: &[&str] = _;
 ```
 
-Media types of whole files the worker opens: MP4 (`.m4a`/`.m4b`, AAC
-or ALAC), MPEG audio layers I–III, FLAC, ADTS AAC, WAV, AIFF, Core
-Audio Format and Ogg (Opus or Vorbis). The container is still sniffed from the bytes when the
-file is opened; this list only says which kinds are worth sending.
+Media types of whole files the worker opens: MP4 (`.m4a`/`.m4b`, AAC,
+ALAC or E-AC-3), MPEG audio layers I–III, FLAC, ADTS AAC, WAV, AIFF,
+Core Audio Format, Ogg (Opus or Vorbis), and through FFmpeg WMA (ASF),
+raw AC-3 and E-AC-3, and AMR (raw or in 3GP). The container is still
+sniffed from the bytes when the file is opened; this list only says
+which kinds are worth sending.
 
 ### OUTPUT_ENCODINGS
 
