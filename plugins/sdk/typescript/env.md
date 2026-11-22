@@ -221,6 +221,14 @@ SOCKETS?: SocketsBinding;
 
 `[sockets]` host-brokered WebSockets (default name).
 
+##### WEBHOOKS?
+
+```ts
+WEBHOOKS?: WebhooksBinding;
+```
+
+`[[webhooks]]` inbound webhooks.
+
 ##### WORK\_FS?
 
 ```ts
@@ -1349,6 +1357,212 @@ Write an object from a stream.
 \}\>
 
 Key and bytes written.
+
+***
+
+### WebhookDeliveredEvent
+
+Argument of the default entrypoint's `webhookDelivered(event)`.
+
+#### Properties
+
+##### name
+
+```ts
+name: string;
+```
+
+`[[webhooks]]` name.
+
+##### waiting
+
+```ts
+waiting: number;
+```
+
+Requests waiting for this webhook when the host called.
+
+***
+
+### WebhookMessage
+
+One stored webhook request, leased to the plugin by
+[WebhooksBinding.pull](#pull). Shaped like a pulled Workers Queue message:
+acknowledge it with [WebhooksBinding.ack](#ack) once handled, or it is
+offered again when its lease runs out.
+
+#### Properties
+
+##### attempts
+
+```ts
+attempts: number;
+```
+
+How many times the request has been pulled, counting this one.
+
+##### body
+
+```ts
+body: Uint8Array;
+```
+
+Request body as received.
+
+##### headers
+
+```ts
+headers: Record<string, string>;
+```
+
+Kept request headers, lowercase names: those the `[[webhooks]]` row
+lists, plus `content-type`.
+
+##### leaseId
+
+```ts
+leaseId: string;
+```
+
+Lease id for `ack`; a new one each time the request is pulled.
+
+##### timestamp
+
+```ts
+timestamp: Date;
+```
+
+When the host stored the request, as a `Date`.
+
+***
+
+### WebhookPullOptions
+
+Options for [WebhooksBinding.pull](#pull).
+
+#### Properties
+
+##### batchSize?
+
+```ts
+batchSize?: number;
+```
+
+Most requests to lease, 1 to 100; defaults to 10.
+
+##### visibilityTimeoutMs?
+
+```ts
+visibilityTimeoutMs?: number;
+```
+
+How long leased requests stay hidden from the next pull, in
+milliseconds, at most 12 hours; defaults to one minute.
+
+***
+
+### WebhookPullResult
+
+What one [WebhooksBinding.pull](#pull) leased.
+
+#### Properties
+
+##### messages
+
+```ts
+messages: WebhookMessage[];
+```
+
+Leased requests, oldest first.
+
+##### missed
+
+```ts
+missed: boolean;
+```
+
+True when the host dropped requests for this webhook since the last
+pull (its waiting cap was full, or a request expired unacknowledged):
+treat what the requests describe as incomplete and fall back to a full
+listing.
+
+***
+
+### WebhooksBinding
+
+`WEBHOOKS` binding (`[[webhooks]]`): the instance's inbound webhooks. The
+host serves each row at a secret URL, checks each request's size, rate
+and signature, and stores it until the plugin pulls and acknowledges it.
+The default entrypoint's `webhookDelivered(event)` runs when requests
+arrive.
+
+#### Methods
+
+##### ack()
+
+```ts
+ack(name, leases): Promise<void>;
+```
+
+Finish leased requests: `acks` are deleted, `retries` are offered again
+on the next pull.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `name` | `string` | `[[webhooks]]` name. |
+| `leases` | \{ `acks?`: `string`[]; `retries?`: `string`[]; \} | Lease ids to acknowledge and to retry. |
+| `leases.acks?` | `string`[] | - |
+| `leases.retries?` | `string`[] | - |
+
+###### Returns
+
+`Promise`\<`void`\>
+
+Resolves when the host recorded both lists.
+
+##### pull()
+
+```ts
+pull(name, options?): Promise<WebhookPullResult>;
+```
+
+Lease waiting requests for one webhook, oldest first.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `name` | `string` | `[[webhooks]]` name. |
+| `options?` | [`WebhookPullOptions`](#webhookpulloptions) | Batch size and lease length. |
+
+###### Returns
+
+`Promise`\<[`WebhookPullResult`](#webhookpullresult)\>
+
+The leased requests and whether any were missed.
+
+##### url()
+
+```ts
+url(name): Promise<string | null>;
+```
+
+The URL to register with the outside service for one webhook.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `name` | `string` | `[[webhooks]]` name. |
+
+###### Returns
+
+`Promise`\<`string` \| `null`\>
+
+The URL, or `null` when the library cannot be reached from the
+  Internet or webhooks are turned off; use the fallback then.
 
 ## Type Aliases
 

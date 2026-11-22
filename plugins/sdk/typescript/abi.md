@@ -1245,6 +1245,78 @@ Maximum bytes returned by one `ByteSource.pull` (flow-control window).
 
 ***
 
+### MAX\_WEBHOOK\_BODY\_BYTES
+
+```ts
+const MAX_WEBHOOK_BODY_BYTES: 1048576;
+```
+
+Largest stored webhook request body, in bytes (1 MiB); a `[[webhooks]]`
+row may lower its own cap but never raise it past this.
+
+***
+
+### MAX\_WEBHOOK\_HEADER\_VALUE\_BYTES
+
+```ts
+const MAX_WEBHOOK_HEADER_VALUE_BYTES: 8192;
+```
+
+Longest kept request header value, in bytes.
+
+***
+
+### MAX\_WEBHOOK\_HEADERS
+
+```ts
+const MAX_WEBHOOK_HEADERS: 16;
+```
+
+Most request headers a `[[webhooks]]` row keeps; a delivery also carries
+`content-type`, so it holds at most one more.
+
+***
+
+### MAX\_WEBHOOK\_LEASE\_ID\_BYTES
+
+```ts
+const MAX_WEBHOOK_LEASE_ID_BYTES: 128;
+```
+
+Longest `WebhookDelivery.leaseId`, in bytes.
+
+***
+
+### MAX\_WEBHOOK\_NAME\_BYTES
+
+```ts
+const MAX_WEBHOOK_NAME_BYTES: 32;
+```
+
+Longest `[[webhooks]]` name, in bytes.
+
+***
+
+### MAX\_WEBHOOK\_PULL\_BATCH
+
+```ts
+const MAX_WEBHOOK_PULL_BATCH: 100;
+```
+
+Most deliveries one `Webhooks.pull` returns.
+
+***
+
+### MAX\_WEBHOOK\_VISIBILITY\_MS
+
+```ts
+const MAX_WEBHOOK_VISIBILITY_MS: 43200000;
+```
+
+Longest `Webhooks.pull` visibility timeout, in milliseconds (12 hours).
+
+***
+
 ### MEDIA\_KINDS
 
 ```ts

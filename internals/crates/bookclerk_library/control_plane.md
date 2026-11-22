@@ -168,6 +168,9 @@ See `docs/adr/control-plane.md`.
 | [`PluginArtifact`](#pluginartifact) | struct | One downloadable artifact of a version. |
 | [`PluginInstall`](#plugininstall) | struct | The active version pointer of one plugin key. |
 | [`PluginVersion`](#pluginversion) | struct | One installed version of a plugin. |
+| [`WebhookRequest`](#webhookrequest) | struct | One verified request to store. |
+| [`WebhookTarget`](#webhooktarget) | struct | The webhook a URL token names. |
+| [`WebhookUrlToken`](#webhookurltoken) | struct | A webhook URL token: 43 characters of unpadded base64url. |
 | [`WindowEntry`](#windowentry) | struct | One work in the window's merged view. |
 | [`WindowEntryEdition`](#windowentryedition) | struct | One edition of a `WindowEntry`, and the library that holds it. |
 | [`EventsSettingsV1`](#eventssettingsv1) | struct | Typed `[events]` document, schema version 1. |
@@ -230,6 +233,7 @@ See `docs/adr/control-plane.md`.
 | [`UploadCommit`](#uploadcommit) | enum | Outcome of `commit_upload`. |
 | [`UploadGrant`](#uploadgrant) | enum | Outcome of `grant_upload`. |
 | [`AddVersion`](#addversion) | enum | What `add_plugin_version` did. |
+| [`WebhookStoreOutcome`](#webhookstoreoutcome) | enum | What `store_webhook_request` did with a request. |
 | [`EventsReplace`](#eventsreplace) | enum | Outcome of `replace_events`. |
 | [`NodeRuntimeReplace`](#noderuntimereplace) | enum | Outcome of `replace_node_runtime`. |
 | [`account_slot`](#account_slot) | function | The `bookclerk_slots` key that serializes writes to one store account's sign-in and link. |
@@ -629,6 +633,13 @@ See `docs/adr/control-plane.md`.
 | [`load_active_version`](#load_active_version) | function | The active version of `plugin_key`, when a pointer names one. |
 | [`load_install`](#load_install) | function | The active pointer of `plugin_key`. |
 | [`load_version`](#load_version) | function | One version row. |
+| [`ack_webhook_requests`](#ack_webhook_requests) | function | Finishes leased requests of one webhook: `acks` are deleted with their chunks, `retries` become visible to the next pull at once. |
+| [`delete_instance_webhooks`](#delete_instance_webhooks) | function | Deletes every webhook of one instance, with its token and stored requests, as one batch. Called when the instance is deleted, so its URLs stop answering. |
+| [`find_webhook`](#find_webhook) | function | The webhook a URL token names, if any. |
+| [`pull_webhook_requests`](#pull_webhook_requests) | function | Leases up to `batch_size` waiting requests of one webhook, oldest first. |
+| [`store_webhook_request`](#store_webhook_request) | function | Stores one verified request. |
+| [`waiting_webhook_requests`](#waiting_webhook_requests) | function | Requests waiting on one webhook now (leased or not). |
+| [`webhook_url_token`](#webhook_url_token) | function | The URL token of one webhook, minting it on first use. |
 | [`clear_window_books`](#clear_window_books) | function | Drops every window book of library `parent_library_id` (its link downloads again, or was left). |
 | [`discard_window_read`](#discard_window_read) | function | Drops the rows a read cut short by a settings change wrote (stamped `seen_at`), so a read that began before downloading was turned on cannot put back the list the change cleared. |
 | [`finish_window_read`](#finish_window_read) | function | Ends a complete read of library `parent_library_id`'s window books: drops its rows that read (stamped `seen_at`) did not name. Rows are compared by stamp equality, not order, so a clock moved back between reads still drops what the new read left out. |
@@ -766,6 +777,8 @@ See `docs/adr/control-plane.md`.
 | [`UPLOAD_NUMBER_WILDCARD`](#upload_number_wildcard) | constant | In a `TitleNames::part_patterns` pattern: one or more ASCII digits, where a part or chapter number goes. |
 | [`UPLOAD_TOKEN_TTL_SECS`](#upload_token_ttl_secs) | constant | How long a granted upload's token is accepted past its latest extension (the grant, an accepted file, or a renewal of the job's lease). |
 | [`ARTIFACT_BLOB_SCHEME`](#artifact_blob_scheme) | constant | Artifact URL scheme of an archive stored in the library (`super::artifacts::put_artifact_blob`). |
+| [`MAX_WAITING_WEBHOOK_DELIVERIES`](#max_waiting_webhook_deliveries) | constant | Most requests one plugin instance may have waiting, across its webhooks. Past this the route answers 503 and the next pull reports `missed`. |
+| [`MAX_WEBHOOK_PULL_PAGE_BYTES`](#max_webhook_pull_page_bytes) | constant | Most request body bytes one pull returns, summed over its deliveries; a pull always returns at least one waiting delivery. |
 | [`WINDOW_BOOKS_READ`](#window_books_read) | constant | Most holdings one `window_books_page` reads. |
 | [`EVENTS_NAMESPACE`](#events_namespace) | constant | Namespace for the migrated `[events]` domain. |
 | [`NODE_RUNTIME_NAMESPACE`](#node_runtime_namespace) | constant | Namespace for node-scoped runtime settings. |
@@ -5840,6 +5853,79 @@ The artifact for `target`, falling back to a target-independent
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### WebhookRequest
+
+```rust
+pub struct WebhookRequest {
+    pub headers: Vec<WebhookHeader>,
+    pub body: Vec<u8>,
+    pub received_at_ms: i64,
+    pub retention_ms: i64,
+}
+```
+
+One verified request to store.
+
+**Fields**
+
+- `headers`: Kept headers, lowercase names, in the order the row lists them.
+- `body`: Request body, already within the row's cap.
+- `received_at_ms`: When the host received it, in Unix milliseconds.
+- `retention_ms`: How long it may wait unacknowledged, in milliseconds.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### WebhookTarget
+
+```rust
+pub struct WebhookTarget {
+    pub instance_id: PluginInstanceId,
+    pub name: String,
+}
+```
+
+The webhook a URL token names.
+
+**Fields**
+
+- `instance_id`: Owning plugin instance.
+- `name`: `[[webhooks]]` name.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### WebhookUrlToken
+
+```rust
+pub struct WebhookUrlToken(/* private */);
+```
+
+A webhook URL token: 43 characters of unpadded base64url.
+
+The value is a capability: anyone holding it can post to the webhook,
+so it is never logged and `Debug` shows only its length.
+
+#### WebhookUrlToken::parse
+
+```rust
+pub fn parse(raw: &str) -> Option<Self>
+```
+
+Parses a token from a URL path segment.
+
+##### Returns
+
+`None` unless `raw` is exactly 43 base64url characters.
+
+#### WebhookUrlToken::as_str
+
+```rust
+pub fn as_str(&self) -> &str
+```
+
+The token text, as it goes in the URL.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### WindowEntry
 
 ```rust
@@ -7796,6 +7882,26 @@ pub fn version(&self) -> &PluginVersion
 The version row, created or existing.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### WebhookStoreOutcome
+
+```rust
+pub enum WebhookStoreOutcome {
+    Stored { waiting: u32 },
+    Full,
+}
+```
+
+What [`store_webhook_request`](#store_webhook_request) did with a request.
+
+**Variants**
+
+- `Stored`: Stored; this many requests now wait on the instance.
+  - `waiting`: Requests waiting on the instance, counting this one.
+- `Full`: The instance already holds [`MAX_WAITING_WEBHOOK_DELIVERIES`](#max_waiting_webhook_deliveries); the
+  request was dropped and the webhook marked missed.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
 ### EventsReplace
 
@@ -15485,6 +15591,155 @@ One version row.
 
 Returns an error when the read or decode fails.
 
+### ack_webhook_requests
+
+```rust
+pub async fn ack_webhook_requests(
+    store: &LibraryStore,
+    instance_id: &PluginInstanceId,
+    name: &str,
+    acks: &[String],
+    retries: &[String],
+) -> Result<()>
+```
+
+Finishes leased requests of one webhook: `acks` are deleted with their
+chunks, `retries` become visible to the next pull at once.
+
+Unknown or stale lease ids are ignored. The lists may land in separate
+batches; a retry that does not land is offered again when its lease
+runs out anyway.
+
+#### Errors
+
+Returns an error when a write fails.
+
+### delete_instance_webhooks
+
+```rust
+pub async fn delete_instance_webhooks(
+    store: &LibraryStore,
+    instance_id: &PluginInstanceId,
+) -> Result<()>
+```
+
+Deletes every webhook of one instance, with its token and stored
+requests, as one batch. Called when the instance is deleted, so its
+URLs stop answering.
+
+#### Errors
+
+Returns an error when the write fails.
+
+### find_webhook
+
+```rust
+pub async fn find_webhook(
+    store: &LibraryStore,
+    token: &WebhookUrlToken,
+) -> Result<Option<WebhookTarget>>
+```
+
+The webhook a URL token names, if any.
+
+#### Errors
+
+Returns an error when the read fails or the stored instance id is
+malformed.
+
+### pull_webhook_requests
+
+```rust
+pub async fn pull_webhook_requests(
+    store: &LibraryStore,
+    instance_id: &PluginInstanceId,
+    name: &str,
+    batch_size: u32,
+    visibility_ms: u32,
+    now_ms: i64,
+) -> Result<WebhookPullPage>
+```
+
+Leases up to `batch_size` waiting requests of one webhook, oldest first.
+
+Expired requests are pruned first. The page stops before its bodies
+would pass [`MAX_WEBHOOK_PULL_PAGE_BYTES`](#max_webhook_pull_page_bytes), but always holds at least one
+request when any waits. `missed` reports, and clears, whether a request
+was dropped since the last pull.
+
+#### Arguments
+
+* `store` - Library store.
+* `instance_id` - Owning plugin instance.
+* `name` - `[[webhooks]]` name, already validated.
+* `batch_size` - Most requests to lease, already within the ABI cap.
+* `visibility_ms` - Lease length in milliseconds.
+* `now_ms` - Current time in Unix milliseconds.
+
+#### Errors
+
+Returns an error when a read or write fails or a stored row is corrupt.
+
+### store_webhook_request
+
+```rust
+pub async fn store_webhook_request(
+    store: &LibraryStore,
+    target: &WebhookTarget,
+    request: &WebhookRequest,
+) -> Result<WebhookStoreOutcome>
+```
+
+Stores one verified request.
+
+Expired requests of the webhook are pruned first. When the instance
+already holds [`MAX_WAITING_WEBHOOK_DELIVERIES`](#max_waiting_webhook_deliveries) the request is dropped
+and the webhook marked missed.
+
+#### Errors
+
+Returns an error when a write fails. Chunks from batches written before
+the failure stay invisible and are pruned when they expire.
+
+### waiting_webhook_requests
+
+```rust
+pub async fn waiting_webhook_requests(
+    store: &LibraryStore,
+    instance_id: &PluginInstanceId,
+    name: &str,
+) -> Result<u32>
+```
+
+Requests waiting on one webhook now (leased or not).
+
+#### Errors
+
+Returns an error when the read fails.
+
+### webhook_url_token
+
+```rust
+pub async fn webhook_url_token(
+    store: &LibraryStore,
+    instance_id: &PluginInstanceId,
+    name: &str,
+) -> Result<WebhookUrlToken>
+```
+
+The URL token of one webhook, minting it on first use.
+
+#### Arguments
+
+* `store` - Library store.
+* `instance_id` - Owning plugin instance.
+* `name` - `[[webhooks]]` name, already validated.
+
+#### Errors
+
+Returns an error when the library key is unavailable, a read or write
+fails, or the stored token does not unseal.
+
 ### clear_window_books
 
 ```rust
@@ -16871,6 +17126,24 @@ pub const ARTIFACT_BLOB_SCHEME: &str = "blob:sha256:";
 
 Artifact URL scheme of an archive stored in the library
 ([`super::artifacts::put_artifact_blob`](#put_artifact_blob)).
+
+### MAX_WAITING_WEBHOOK_DELIVERIES
+
+```rust
+pub const MAX_WAITING_WEBHOOK_DELIVERIES: u32 = 10_000;
+```
+
+Most requests one plugin instance may have waiting, across its webhooks.
+Past this the route answers 503 and the next pull reports `missed`.
+
+### MAX_WEBHOOK_PULL_PAGE_BYTES
+
+```rust
+pub const MAX_WEBHOOK_PULL_PAGE_BYTES: usize = _;
+```
+
+Most request body bytes one pull returns, summed over its deliveries;
+a pull always returns at least one waiting delivery.
 
 ### WINDOW_BOOKS_READ
 

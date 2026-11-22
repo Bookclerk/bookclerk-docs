@@ -521,6 +521,7 @@ pub struct BindingCapabilities {
     pub work_fs: bool,
     pub oauth: bool,
     pub sockets: bool,
+    pub webhooks: bool,
     pub databases: Vec<String>,
 }
 ```
@@ -548,6 +549,9 @@ jail layout, consent, and env injection uniformly.
   `Sockets` binding plus the `SocketHandler` entrypoint that receives
   pushed messages while the process sleeps. Every target must also pass
   the `[capabilities.network]` grant.
+- `webhooks`: Host serves inbound webhooks for the plugin (`[[webhooks]]`): the
+  `WEBHOOKS` binding that pulls stored deliveries, plus the optional
+  `webhookHandler` entrypoint the host wakes after storing one.
 - `databases`: Named plugin-owned database bindings (`[[databases]] binding = "DB"`).
 
 Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
@@ -1041,6 +1045,7 @@ pub struct PluginManifest {
     pub work_fs: Option<NamedBinding>,
     pub oauth: Option<NamedBinding>,
     pub sockets: Option<NamedBinding>,
+    pub webhooks: Vec<WebhookManifest>,
     pub credentials: Option<CredentialSharing>,
     pub media: Option<MediaManifest>,
     pub acquire: Option<AcquireManifest>,
@@ -1121,6 +1126,9 @@ rejected.
   real message arrives, so the guest process may sleep in between. Needs
   `[capabilities.network] mode = "outbound"`; every URL must also pass
   the network grant.
+- `webhooks`: Inbound webhooks the host serves for each instance (`[[webhooks]]`);
+  see [`crate::webhooks`](webhooks.md). Declaring any grants the fixed
+  [`crate::WEBHOOKS_BINDING`](webhooks.md#webhooks_binding) binding.
 - `credentials`: How the store accounts this storefront connects may be shared
   between Bookclerk instances (`credentials`); see
   [`CredentialSharing`](#credentialsharing) and [`Self::credential_sharing`](#pluginmanifestcredential_sharing). Only a
@@ -1404,7 +1412,8 @@ Names of the non-database bindings this manifest exposes on `env`.
 ##### Returns
 
 `CONFIG` (when `[vars]` is present), the resolved `[secrets]`,
-`[work_fs]`, `[oauth]`, `[sockets]` names, every `[[kv_namespaces]]` binding,
+`[work_fs]`, `[oauth]`, `[sockets]` names, `WEBHOOKS` (with `[[webhooks]]`),
+every `[[kv_namespaces]]` binding,
 every distinct `[[events.producers]]` binding, and every
 `[[queues.producers]]` binding, in that order.
 

@@ -205,6 +205,18 @@ pub fn get_ai(self) -> Result<Client>
 pub fn has_ai(&self) -> bool
 ```
 
+#### Reader::get_webhooks
+
+```rust
+pub fn get_webhooks(self) -> Result<Client>
+```
+
+#### Reader::has_webhooks
+
+```rust
+pub fn has_webhooks(&self) -> bool
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -533,6 +545,24 @@ pub fn set_ai(&mut self, value: Client)
 pub fn has_ai(&self) -> bool
 ```
 
+#### Builder::get_webhooks
+
+```rust
+pub fn get_webhooks(self) -> Result<Client>
+```
+
+#### Builder::set_webhooks
+
+```rust
+pub fn set_webhooks(&mut self, value: Client)
+```
+
+#### Builder::has_webhooks
+
+```rust
+pub fn has_webhooks(&self) -> bool
+```
+
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
 
 ### Pipeline
@@ -607,6 +637,12 @@ pub fn get_origin(&self) -> Client
 
 ```rust
 pub fn get_ai(&self) -> Client
+```
+
+#### Pipeline::get_webhooks
+
+```rust
+pub fn get_webhooks(&self) -> Client
 ```
 
 Implements: `FromTypelessPipeline`

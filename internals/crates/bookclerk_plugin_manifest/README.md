@@ -102,6 +102,21 @@ assert_eq!(manifest.id, "echo");
 - [`setting_network::DestinationScope`](setting_network.md#destinationscope)
 - [`setting_network::SettingDestination`](setting_network.md#settingdestination)
 - [`setting_network::SettingDestinationError`](setting_network.md#settingdestinationerror)
+- [`webhooks::is_valid_webhook_name`](../bookclerk_plugin_abi/webhooks.md#is_valid_webhook_name)
+- [`webhooks::validate_webhooks`](webhooks.md#validate_webhooks)
+- [`webhooks::HmacSignature`](webhooks.md#hmacsignature)
+- [`webhooks::SignatureEncoding`](webhooks.md#signatureencoding)
+- [`webhooks::WebhookManifest`](webhooks.md#webhookmanifest)
+- [`webhooks::WebhookSignature`](webhooks.md#webhooksignature)
+- [`webhooks::DEFAULT_WEBHOOK_MAX_BODY_BYTES`](webhooks.md#default_webhook_max_body_bytes)
+- [`webhooks::DEFAULT_WEBHOOK_RATE_PER_MINUTE`](webhooks.md#default_webhook_rate_per_minute)
+- [`webhooks::DEFAULT_WEBHOOK_RETENTION_SECS`](webhooks.md#default_webhook_retention_secs)
+- [`webhooks::MAX_WEBHOOKS`](webhooks.md#max_webhooks)
+- [`webhooks::MAX_WEBHOOK_BODY_BYTES`](webhooks.md#max_webhook_body_bytes)
+- [`webhooks::MAX_WEBHOOK_HEADERS`](webhooks.md#max_webhook_headers)
+- [`webhooks::MAX_WEBHOOK_RATE_PER_MINUTE`](webhooks.md#max_webhook_rate_per_minute)
+- [`webhooks::MAX_WEBHOOK_RETENTION_SECS`](webhooks.md#max_webhook_retention_secs)
+- [`webhooks::WEBHOOKS_BINDING`](webhooks.md#webhooks_binding)
 - [`workerd_contract::apply_author_compatibility_date`](workerd_contract.md#apply_author_compatibility_date)
 - [`workerd_contract::module_load_key`](workerd_contract.md#module_load_key)
 - [`workerd_contract::validate_author_compatibility_date`](workerd_contract.md#validate_author_compatibility_date)
@@ -212,6 +227,7 @@ assert_eq!(manifest.id, "echo");
 - [`logo`](logo.md): Plugin logo validation: remote `http(s)` URL or relative image path.
 - [`setting_network`](setting_network.md): Network destinations named by plugin settings.
 - [`types`](types.md): `plugin.toml` types: manifest root and nested capability / workerd tables.
+- [`webhooks`](webhooks.md): `[[webhooks]]`: inbound HTTP endpoints the host serves for a plugin.
 - [`workerd_contract`](workerd_contract.md): Author compatibility date, flag allowlist, and module-extension rules.
 
 ## Functions

@@ -142,6 +142,8 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`SocketHandler`](#sockethandler) | class | Guest handler for host-brokered sockets (`Entrypoints.socketHandler`). |
 | [`Origin`](#origin) | class | The library, as a relay `ingress` plugin reaches it (`Bindings.origin`, `ORIGIN` in the Workers idiom). The plugin turns each request its provider delivers into a `fetch` and streams the response back. The host treats every request as the `tunnel` transport: public `https`, never loopback, with the client address the plugin reports. |
 | [`Ingress`](#ingress) | class | A public address provider (`Entrypoints.ingress`): the one `ingress` family instance the library runs. A relay provider carries traffic to `Bindings.origin`; a direct provider keeps a DNS name pointing at this install. |
+| [`Webhooks`](#webhooks) | class | Host-served inbound webhooks, granted through `Bindings.webhooks`. |
+| [`WebhookHandler`](#webhookhandler) | class | Guest handler for inbound webhooks (`Entrypoints.webhookHandler`). |
 | [`ContentSource`](#contentsource) | class | Storefront content source (not byte Source). Every method takes and returns typed structs from the "Typed method payloads" section. |
 | [`RemoteLibrary`](#remotelibrary) | class | `remoteLibrary` entrypoint: long-running remote-library lifecycle (start / stop, library rescan, listening sync, external-user polling). Event delivery is `EventConsumer`; credential verification is `Oidc`. |
 | [`PluginCli`](#plugincli) | class | `cli` entrypoint: guest commands under `bookclerk plugins <id> <command>`. |
@@ -351,9 +353,20 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`IngressStarted`](#ingressstarted) | class | Success payload of `Ingress.start`. |
 | [`IngressStartReplyOk`](#ingressstartreplyok) | class | `IngressStartReply` member `ok`. |
 | [`IngressStartReplyErr`](#ingressstartreplyerr) | class | `IngressStartReply` member `err`. |
+| [`WebhookUrl`](#webhookurl) | class | Success payload of `Webhooks.url`. |
+| [`WebhookUrlReplyOk`](#webhookurlreplyok) | class | `WebhookUrlReply` member `ok`. |
+| [`WebhookUrlReplyErr`](#webhookurlreplyerr) | class | `WebhookUrlReply` member `err`. |
+| [`WebhookPullRequest`](#webhookpullrequest) | class | Arguments of `Webhooks.pull`. |
+| [`WebhookHeader`](#webhookheader) | class | One request header kept with a delivery. |
+| [`WebhookDelivery`](#webhookdelivery) | class | One stored request, leased to the guest. |
+| [`WebhookPullPage`](#webhookpullpage) | class | Success payload of `Webhooks.pull`. |
+| [`WebhookPullReplyOk`](#webhookpullreplyok) | class | `WebhookPullReply` member `ok`. |
+| [`WebhookPullReplyErr`](#webhookpullreplyerr) | class | `WebhookPullReply` member `err`. |
 | [`IngressHealth`](#ingresshealth) | class | Success payload of `Ingress.health`. |
 | [`IngressHealthReplyOk`](#ingresshealthreplyok) | class | `IngressHealthReply` member `ok`. |
 | [`IngressHealthReplyErr`](#ingresshealthreplyerr) | class | `IngressHealthReply` member `err`. |
+| [`WebhookAckRequest`](#webhookackrequest) | class | Arguments of `Webhooks.ack`. |
+| [`WebhookDelivered`](#webhookdelivered) | class | Argument of `WebhookHandler.delivered`. |
 | [`DbValueNull`](#dbvaluenull) | class | `DbValue` member `null`. |
 | [`DbValueBoolean`](#dbvalueboolean) | class | `DbValue` member `boolean`. |
 | [`DbValueInt64`](#dbvalueint64) | class | `DbValue` member `int64`. |
@@ -525,6 +538,8 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`SocketListReply`](#socketlistreply) | constant | Result union of `Sockets.list`. |
 | [`SocketMessageReply`](#socketmessagereply) | constant | Reply of `SocketHandler.message`. |
 | [`IngressStartReply`](#ingressstartreply) | constant | Result union of `Ingress.start`. |
+| [`WebhookUrlReply`](#webhookurlreply) | constant | Result union of `Webhooks.url`. |
+| [`WebhookPullReply`](#webhookpullreply) | constant | Result union of `Webhooks.pull`. |
 | [`IngressHealthReply`](#ingresshealthreply) | constant | Result union of `Ingress.health`. |
 | [`DbValue`](#dbvalue) | constant | One typed SQL cell or bind parameter. |
 | [`OptionalColumnReference`](#optionalcolumnreference) | constant | Per-column `REFERENCES` slot in `CreateTableSchema`. |
@@ -1021,6 +1036,7 @@ the binding.
 - `network`: `NETWORK`: what the operator granted this plugin's network, including the destination each network setting names and whether it is approved, so a guest can tell an unapproved destination from an unreachable one.
 - `origin`: `ORIGIN`: the library itself, for a relay `ingress` plugin to send the public requests it carries to; null unless the plugin is the library's active relay ingress. Null when the guest does not export this capability.
 - `ai`: `AI`: runs models other plugins serve; null unless `[ai]` names the tasks the plugin calls and the operator granted them. Null when the guest does not export this capability.
+- `webhooks`: `WEBHOOKS`: the instance's inbound webhooks, their URLs and the deliveries the host stored; null unless `[[webhooks]]` is declared and granted. Null when the guest does not export this capability.
 
 ### NetworkGrant
 
@@ -1083,6 +1099,7 @@ refuses an entrypoint the manifest or operator grant did not allow.
 - `notifier`: `notifier` entrypoint. Null when the guest does not export this capability.
 - `ingress`: `ingress` entrypoint. Null when the guest does not export this capability.
 - `ai`: `ai` entrypoint. Null when the guest does not export this capability.
+- `webhookHandler`: `[[webhooks]]` handler: called after the host stores deliveries. Null when the guest does not export this capability.
 
 ### EntrypointsReplyOk
 
@@ -3120,6 +3137,93 @@ Take the public address down; stopping a stopped one is not an error.
 
 `EmptyReply`
 
+### Webhooks
+
+```python
+class Webhooks(Protocol)
+```
+
+Host-served inbound webhooks, granted through `Bindings.webhooks`.
+
+The host serves each `[[webhooks]]` row at a secret URL under the
+library's public origin, checks every request against the row's body cap,
+rate limit and signature rule, stores it and answers at once. The guest
+takes stored deliveries with `pull` and settles them with `ack`, in the
+manner of a Cloudflare Queues HTTP pull consumer: a pulled delivery stays
+leased until acknowledged, retried, or its visibility timeout ends.
+
+#### Webhooks.url
+
+```python
+async def url(self, name: str) -> WebhookUrlReply
+```
+
+The URL an outside service should call for one webhook.
+
+**Args**
+
+- `name`: `[[webhooks]]` name.
+
+**Returns**
+
+`WebhookUrlReply`
+
+#### Webhooks.pull
+
+```python
+async def pull(self, request: WebhookPullRequest) -> WebhookPullReply
+```
+
+Lease up to `batchSize` stored deliveries, oldest first.
+
+**Args**
+
+- `request`: Webhook, batch size, visibility timeout.
+
+**Returns**
+
+`WebhookPullReply`
+
+#### Webhooks.ack
+
+```python
+async def ack(self, request: WebhookAckRequest) -> EmptyReply
+```
+
+Acknowledge finished deliveries and offer retried ones again at once.
+
+**Args**
+
+- `request`: Webhook and lease ids.
+
+**Returns**
+
+`EmptyReply`
+
+### WebhookHandler
+
+```python
+class WebhookHandler(Protocol)
+```
+
+Guest handler for inbound webhooks (`Entrypoints.webhookHandler`).
+
+#### WebhookHandler.delivered
+
+```python
+async def delivered(self, event: WebhookDelivered) -> EmptyReply
+```
+
+The host stored deliveries for one webhook; the guest pulls them.
+
+**Args**
+
+- `event`: Webhook and how many wait.
+
+**Returns**
+
+`EmptyReply`
+
 ### ContentSource
 
 ```python
@@ -3934,6 +4038,7 @@ it with `plugin.toml` and the operator grant; widening is rejected at spawn.
 - `queueProducers`: Queues the guest may send to through its `[[queues.producers]]` bindings.
 - `crons`: Five-field UTC cron schedules the default entrypoint handles (`scheduled(controller)` trigger, `[triggers] crons`), normalized to single spaces.
 - `sockets`: True when the guest declared `[sockets]`: it receives the host-brokered `Sockets` binding and may export a `SocketHandler` for pushed messages.
+- `webhooks`: True when the guest declared `[[webhooks]]`: it receives the host- served `Webhooks` binding and may export a `WebhookHandler` the host wakes when it stores deliveries.
 
 ### CatalogCapabilities
 
@@ -6943,6 +7048,134 @@ Typed failure; `code` is a `PluginErrorCode` wire string.
 - `kind`: Always `"err"`.
 - `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
+### WebhookUrl
+
+```python
+class WebhookUrl(TypedDict)
+```
+
+Success payload of `Webhooks.url`.
+
+**Attributes**
+
+- `url`: Absolute `https://` URL; empty when the library cannot be reached from the Internet or webhooks are turned off, and the plugin should use its fallback. Omitted when absent (wire zero value).
+
+### WebhookUrlReplyOk
+
+```python
+class WebhookUrlReplyOk(TypedDict)
+```
+
+`WebhookUrlReply` member `ok`.
+
+Success: the URL, or none.
+
+**Attributes**
+
+- `kind`: Always `"ok"`.
+- `value`: Success: the URL, or none.
+
+### WebhookUrlReplyErr
+
+```python
+class WebhookUrlReplyErr(TypedDict)
+```
+
+`WebhookUrlReply` member `err`.
+
+Typed failure; `code` is a `PluginErrorCode` wire string.
+
+**Attributes**
+
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
+
+### WebhookPullRequest
+
+```python
+class WebhookPullRequest(TypedDict)
+```
+
+Arguments of `Webhooks.pull`.
+
+**Attributes**
+
+- `name`: `[[webhooks]]` name.
+- `batchSize`: Most deliveries to lease, 1 to `maxWebhookPullBatch`.
+- `visibilityTimeoutMs`: How long leased deliveries stay hidden from the next pull, in milliseconds, at most `maxWebhookVisibilityMs`; zero means one minute.
+
+### WebhookHeader
+
+```python
+class WebhookHeader(TypedDict)
+```
+
+One request header kept with a delivery.
+
+**Attributes**
+
+- `name`: Lowercase header name, one the row's `headers` names or `content-type`.
+- `value`: Header value as received.
+
+### WebhookDelivery
+
+```python
+class WebhookDelivery(TypedDict)
+```
+
+One stored request, leased to the guest.
+
+**Attributes**
+
+- `leaseId`: Lease id for `ack`, at most `maxWebhookLeaseIdBytes`; a new one each time the delivery is pulled.
+- `receivedAtUnixMs`: When the host stored the request, in Unix milliseconds.
+- `attempt`: How many times this delivery has been pulled, counting this one.
+- `headers`: Kept request headers, in the order the row names them.
+- `body`: Request body as received, at most the row's `max_body_bytes`.
+
+### WebhookPullPage
+
+```python
+class WebhookPullPage(TypedDict)
+```
+
+Success payload of `Webhooks.pull`.
+
+**Attributes**
+
+- `deliveries`: Leased deliveries, oldest first.
+- `missed`: True when the host dropped deliveries for this webhook since the last pull (the waiting cap was full or a delivery expired unacknowledged): the guest should treat what it follows as incomplete.
+
+### WebhookPullReplyOk
+
+```python
+class WebhookPullReplyOk(TypedDict)
+```
+
+`WebhookPullReply` member `ok`.
+
+Success: the leased deliveries.
+
+**Attributes**
+
+- `kind`: Always `"ok"`.
+- `value`: Success: the leased deliveries.
+
+### WebhookPullReplyErr
+
+```python
+class WebhookPullReplyErr(TypedDict)
+```
+
+`WebhookPullReply` member `err`.
+
+Typed failure; `code` is a `PluginErrorCode` wire string.
+
+**Attributes**
+
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
+
 ### IngressHealth
 
 ```python
@@ -6985,6 +7218,33 @@ Typed failure; `code` is a `PluginErrorCode` wire string.
 
 - `kind`: Always `"err"`.
 - `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
+
+### WebhookAckRequest
+
+```python
+class WebhookAckRequest(TypedDict)
+```
+
+Arguments of `Webhooks.ack`.
+
+**Attributes**
+
+- `name`: `[[webhooks]]` name.
+- `acks`: Leases whose deliveries are done and are deleted.
+- `retries`: Leases whose deliveries the next pull offers again.
+
+### WebhookDelivered
+
+```python
+class WebhookDelivered(TypedDict)
+```
+
+Argument of `WebhookHandler.delivered`.
+
+**Attributes**
+
+- `name`: `[[webhooks]]` name.
+- `waiting`: Deliveries waiting for this webhook when the host called.
 
 ### DbValueNull
 
@@ -9158,6 +9418,22 @@ IngressStartReply = Union[IngressStartReplyOk, IngressStartReplyErr]
 ```
 
 Result union of `Ingress.start`.
+
+### WebhookUrlReply
+
+```python
+WebhookUrlReply = Union[WebhookUrlReplyOk, WebhookUrlReplyErr]
+```
+
+Result union of `Webhooks.url`.
+
+### WebhookPullReply
+
+```python
+WebhookPullReply = Union[WebhookPullReplyOk, WebhookPullReplyErr]
+```
+
+Result union of `Webhooks.pull`.
 
 ### IngressHealthReply
 

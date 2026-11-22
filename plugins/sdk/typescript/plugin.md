@@ -699,6 +699,30 @@ Adapter dispatch for `SocketHandler.message`.
 
 What the handler asks of the host (`pollEvents`).
 
+##### bookclerkWebhookDelivered()
+
+```ts
+bookclerkWebhookDelivered(context, wire): Promise<void>;
+```
+
+**`Internal`**
+
+Adapter dispatch for `WebhookHandler.delivered`. Without a
+`webhookDelivered` handler the call is acknowledged and ignored.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `context` | [`GrantedContext`](#grantedcontext) | Granted bindings for this invocation. |
+| `wire` | `Partial`\<[`WebhookDeliveredEvent`](env.md#webhookdeliveredevent)\> | Wire `WebhookDelivered`. |
+
+###### Returns
+
+`Promise`\<`void`\>
+
+Resolves when the author's handler completes.
+
 ##### databaseMigrations()?
 
 ```ts
@@ -847,6 +871,28 @@ shutdown?(): void | Promise<void>;
 ```
 
 Releases guest resources.
+
+###### Returns
+
+`void` \| `Promise`\<`void`\>
+
+##### webhookDelivered()?
+
+```ts
+webhookDelivered?(event): void | Promise<void>;
+```
+
+`[[webhooks]]` handler: the host stored requests for one webhook. Pull
+them with `env.WEBHOOKS.pull(event.name)`. The host coalesces calls, so
+one call may stand for several requests; read until a pull comes back
+empty. Without this handler the plugin reads requests on its own
+schedule.
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `event` | [`WebhookDeliveredEvent`](env.md#webhookdeliveredevent) |
 
 ###### Returns
 
@@ -5366,6 +5412,26 @@ storage?: Destination;
 
 [`GrantedContext`](#grantedcontext).[`storage`](#storage-1)
 
+##### webhooks?
+
+```ts
+webhooks?: WebhooksTransport;
+```
+
+The `WEBHOOKS` grant, when `[[webhooks]]` is declared.
+
+###### Inherited from
+
+[`GrantedContext`](#grantedcontext).[`webhooks`](#webhooks-1)
+
+##### webhooksToken?
+
+```ts
+webhooksToken?: string;
+```
+
+Webhooks-only bearer for `/webhooks/*`; stripped before dispatch.
+
 ***
 
 ### ByteRange
@@ -5674,6 +5740,14 @@ storage?: Destination;
 ```
 
 `WORK_FS` object store, when granted.
+
+##### webhooks?
+
+```ts
+webhooks?: WebhooksTransport;
+```
+
+The `WEBHOOKS` grant, when `[[webhooks]]` is declared.
 
 ***
 
@@ -6160,6 +6234,18 @@ storage?: Destination;
 ###### Inherited from
 
 [`GrantedContext`](#grantedcontext).[`storage`](#storage-1)
+
+##### webhooks?
+
+```ts
+webhooks?: WebhooksTransport;
+```
+
+The `WEBHOOKS` grant, when `[[webhooks]]` is declared.
+
+###### Inherited from
+
+[`GrantedContext`](#grantedcontext).[`webhooks`](#webhooks-1)
 
 ***
 
@@ -6962,6 +7048,7 @@ type AuthorStub = Pick<BookclerkEntrypoint,
   | "bookclerkScheduled"
   | "bookclerkSocketMessage"
   | "bookclerkSocketClosed"
+  | "bookclerkWebhookDelivered"
   | "bookclerkJob"
   | "bookclerkDatabaseMigrations"
 | "bookclerkShutdown">;
@@ -7186,7 +7273,8 @@ const TRIGGER_FAMILIES: Readonly<Record<
   | "queueConsumer"
   | "scheduledHandler"
   | "jobRunner"
-| "socketHandler", string>>;
+  | "socketHandler"
+| "webhookHandler", string>>;
 ```
 
 Wire names of the trigger families the launcher may ask `openInvocation` about.
@@ -7204,6 +7292,7 @@ capabilities: named entrypoints must be declared in `entrypoints`,
 `eventConsumer` needs a non-empty `consumes`, `queueConsumer` needs a
 non-empty `queueConsumers`, `scheduledHandler` needs a non-empty `crons`,
 `socketHandler` needs `sockets` (`[sockets]` in the manifest),
+`webhookHandler` needs `webhooks` (`[[webhooks]]` in the manifest),
 and `jobRunner` needs `jobs` or the `storage`
 entrypoint (storage guests run the host `stream_copy` job). Unknown names
 and a missing manifest fail closed.

@@ -96,6 +96,8 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`SocketHandler`](#sockethandler) | trait | `[sockets]` handler: what arrives on host-brokered sockets. |
 | [`Sockets`](#sockets) | trait | Host-brokered outbound WebSockets granted on `Bindings::sockets`. |
 | [`Source`](#source) | trait | Source capability that can open a named object as a stream. |
+| [`WebhookHandler`](#webhookhandler) | trait | `[[webhooks]]` handler: told when the host stored deliveries. |
+| [`Webhooks`](#webhooks) | trait | Host-served inbound webhooks granted on `Bindings::webhooks`. |
 | [`GuestReceiptPersist`](#guestreceiptpersist) | struct | Host-stamped hint for adapters to persist guest replay payload before COMMIT. |
 | [`AdapterExecuteRequest`](#adapterexecuterequest) | struct | Adapter execute payload: canonical SQL, structured proofs, optional receipt. |
 | [`CanonicalExecuteRequest`](#canonicalexecuterequest) | struct | Host-desugared canonical SQL. Proofs are not yet bound. |
@@ -156,6 +158,8 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`SocketsClient`](#socketsclient) | struct | Guest-side client for the host `Sockets` binding. |
 | [`SourceClient`](#sourceclient) | struct | Host-side `Source` over a capnp source stub. |
 | [`SourceServer`](#sourceserver) | struct | Cap'n Proto server wrapping a `Source`. |
+| [`WebhookHandlerClient`](#webhookhandlerclient) | struct | Host-side client for a guest's `WebhookHandler`. |
+| [`WebhooksClient`](#webhooksclient) | struct | Guest-side client for the host `Webhooks` binding. |
 | [`CopyResult`](#copyresult) | struct | Result of a server-side copy. |
 | [`DomainEvent`](#domainevent) | struct | Domain event (not a job). Outbox-produced, at-least-once, idempotent consume. |
 | [`ExtensibleConfig`](#extensibleconfig) | struct | Versioned plugin-specific config (not a substitute for typed ABI fields). |
@@ -191,6 +195,8 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`EventReadMessage`](#eventreadmessage) | enum | A value `roundtrip_event_read_message` decoded. |
 | [`SocketCodec`](#socketcodec) | enum | Which socket Cap'n Proto struct `roundtrip_socket_message` decodes. |
 | [`SocketWireMessage`](#socketwiremessage) | enum | A value `roundtrip_socket_message` decoded. |
+| [`WebhookCodec`](#webhookcodec) | enum | Which webhook Cap'n Proto struct `roundtrip_webhook_message` decodes. |
+| [`WebhookWireMessage`](#webhookwiremessage) | enum | A value `roundtrip_webhook_message` decoded. |
 | [`EventResult`](#eventresult) | enum | Per-event result of `crate::EventConsumer::event`. |
 | [`JobOutcome`](#joboutcome) | enum | Outcome of `crate::JobRunner::job`. |
 | [`MoveManyTarget`](#movemanytarget) | enum | What a `MoveManyRequest` moves. |
@@ -245,6 +251,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`pull_byte_source_to_writer`](#pull_byte_source_to_writer) | function | Pulls `source` into `writer` using bounded windows. |
 | [`roundtrip_event_read_message`](#roundtrip_event_read_message) | function | Decodes one unpacked single-segment `EventReadRequest` or `EventReadPage` message with the codec the RPC server and client use, then checks `read(write(v)) == v`. The fuzz target and its replay test drive this, so they reach the same bounds checks a peer's bytes do. |
 | [`roundtrip_socket_message`](#roundtrip_socket_message) | function | Decodes one unpacked single-segment `SocketConnectRequest` or `SocketMessage` with the codec the RPC server and client use, then checks `read(write(v)) == v`. The `socket_request` fuzz target and its replay test drive this, so they reach the same decoder a peer's bytes do; the caller then applies `crate::sockets` checks to the value. |
+| [`roundtrip_webhook_message`](#roundtrip_webhook_message) | function | Decodes one unpacked single-segment webhook message with the codec the RPC server and client use, then checks `read(write(v)) == v`. The `webhook_rpc` fuzz target and its replay test drive this, so they reach the same decoder a peer's bytes do; the caller then applies the `crate::webhooks` checks to the value. |
 | [`serve_plugin`](#serve_plugin) | function | Serves `plugin` as the bootstrap object on a two-party vat over `reader`/`writer`. |
 | [`serve_plugin_stdio`](#serve_plugin_stdio) | function | Serves `plugin` on stdin/stdout. Must run on a current-thread runtime + `LocalSet`. |
 | [`serve_socket_broker`](#serve_socket_broker) | function | Serves the socket broker's side of the host-to-broker link. |
@@ -326,6 +333,13 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`MAX_SOCKET_HEADERS`](#max_socket_headers) | constant | Most request headers, and separately subprotocols, on one `Sockets.connect`. |
 | [`MAX_SOCKET_URL_BYTES`](#max_socket_url_bytes) | constant | Longest `Sockets.connect` URL, in bytes. |
 | [`MAX_STREAM_WINDOW_BYTES`](#max_stream_window_bytes) | constant | Maximum bytes returned by one `ByteSource.pull` (flow-control window). |
+| [`MAX_WEBHOOK_BODY_BYTES`](#max_webhook_body_bytes) | constant | Largest stored webhook request body, in bytes (1 MiB). |
+| [`MAX_WEBHOOK_HEADERS`](#max_webhook_headers) | constant | Most request headers a `[[webhooks]]` row keeps. |
+| [`MAX_WEBHOOK_HEADER_VALUE_BYTES`](#max_webhook_header_value_bytes) | constant | Longest kept request header value, in bytes. |
+| [`MAX_WEBHOOK_LEASE_ID_BYTES`](#max_webhook_lease_id_bytes) | constant | Longest `WebhookDelivery.leaseId`, in bytes. |
+| [`MAX_WEBHOOK_NAME_BYTES`](#max_webhook_name_bytes) | constant | Longest `[[webhooks]]` name, in bytes. |
+| [`MAX_WEBHOOK_PULL_BATCH`](#max_webhook_pull_batch) | constant | Most deliveries one `Webhooks.pull` returns. |
+| [`MAX_WEBHOOK_VISIBILITY_MS`](#max_webhook_visibility_ms) | constant | Longest `Webhooks.pull` visibility timeout, in milliseconds (12 hours). |
 | [`PRODUCT_API_VERSION`](#product_api_version) | constant | Product ABI version (`apiVersion` / `plugin.toml` `api_version`). |
 | [`PURCHASE_HINTS_BUDGET`](#purchase_hints_budget) | constant | How long the default `ContentSource::purchase_hints` keeps starting one-title lookups before answering with what it has. Well under the host's 10 s batch deadline, so even a slow last lookup lands before it and a store without a bulk endpoint still returns the titles it priced. |
 | [`PURCHASE_HINTS_CONCURRENCY`](#purchase_hints_concurrency) | constant | How many one-title lookups the default `ContentSource::purchase_hints` keeps in flight at once. A store without a bulk endpoint answers a page of cards in about a quarter of the time one lookup after another takes, while staying a polite handful of requests rather than a burst. |
@@ -675,7 +689,14 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`generated::OriginHeader`](generated.md#originheader)
 - [`generated::OriginRequest`](generated.md#originrequest)
 - [`generated::IngressStarted`](generated.md#ingressstarted)
+- [`generated::WebhookUrl`](generated.md#webhookurl)
+- [`generated::WebhookPullRequest`](generated.md#webhookpullrequest)
+- [`generated::WebhookHeader`](generated.md#webhookheader)
+- [`generated::WebhookDelivery`](generated.md#webhookdelivery)
+- [`generated::WebhookPullPage`](generated.md#webhookpullpage)
 - [`generated::IngressHealth`](generated.md#ingresshealth)
+- [`generated::WebhookAckRequest`](generated.md#webhookackrequest)
+- [`generated::WebhookDelivered`](generated.md#webhookdelivered)
 - [`generated::write_event_consumer_spec`](generated.md#write_event_consumer_spec)
 - [`generated::read_event_consumer_spec`](generated.md#read_event_consumer_spec)
 - [`generated::write_plugin_capabilities`](generated.md#write_plugin_capabilities)
@@ -994,10 +1015,28 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`generated::read_ingress_started`](generated.md#read_ingress_started)
 - [`generated::write_ingress_start_reply`](generated.md#write_ingress_start_reply)
 - [`generated::read_ingress_start_reply`](generated.md#read_ingress_start_reply)
+- [`generated::write_webhook_url`](generated.md#write_webhook_url)
+- [`generated::read_webhook_url`](generated.md#read_webhook_url)
+- [`generated::write_webhook_url_reply`](generated.md#write_webhook_url_reply)
+- [`generated::read_webhook_url_reply`](generated.md#read_webhook_url_reply)
+- [`generated::write_webhook_pull_request`](generated.md#write_webhook_pull_request)
+- [`generated::read_webhook_pull_request`](generated.md#read_webhook_pull_request)
+- [`generated::write_webhook_header`](generated.md#write_webhook_header)
+- [`generated::read_webhook_header`](generated.md#read_webhook_header)
+- [`generated::write_webhook_delivery`](generated.md#write_webhook_delivery)
+- [`generated::read_webhook_delivery`](generated.md#read_webhook_delivery)
+- [`generated::write_webhook_pull_page`](generated.md#write_webhook_pull_page)
+- [`generated::read_webhook_pull_page`](generated.md#read_webhook_pull_page)
+- [`generated::write_webhook_pull_reply`](generated.md#write_webhook_pull_reply)
+- [`generated::read_webhook_pull_reply`](generated.md#read_webhook_pull_reply)
 - [`generated::write_ingress_health`](generated.md#write_ingress_health)
 - [`generated::read_ingress_health`](generated.md#read_ingress_health)
 - [`generated::write_ingress_health_reply`](generated.md#write_ingress_health_reply)
 - [`generated::read_ingress_health_reply`](generated.md#read_ingress_health_reply)
+- [`generated::write_webhook_ack_request`](generated.md#write_webhook_ack_request)
+- [`generated::read_webhook_ack_request`](generated.md#read_webhook_ack_request)
+- [`generated::write_webhook_delivered`](generated.md#write_webhook_delivered)
+- [`generated::read_webhook_delivered`](generated.md#read_webhook_delivered)
 - [`generated::READ_ANY_COUNT`](generated.md#read_any_count)
 - [`generated::read_any_message`](generated.md#read_any_message)
 - [`generated::RoundTripFailure`](generated.md#roundtripfailure)
@@ -1033,6 +1072,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`sockets`](sockets.md): Sans-IO checks for host-brokered sockets (`Bindings.sockets`).
 - [`sql_desugar`](sql_desugar.md): Host semantic desugars for canonical Bookclerk SQL.
 - [`sql_types`](sql_types.md): Bookclerk SQL v1 types, CAST matrix, and fail-closed expression checking.
+- [`webhooks`](webhooks.md): Sans-IO checks for host-served inbound webhooks (`Bindings.webhooks`).
 - [`plugin_capnp`](plugin_capnp/README.md): Generated Cap'n Proto RPC interfaces (`schema/plugin.capnp`).
 - [`plugin_host_capnp`](plugin_host_capnp/README.md): Host-private Cap'n Proto RPC interfaces (`schema/plugin_host.capnp`).
 
@@ -4095,6 +4135,122 @@ Opens `key` for streamed reading.
 
 Implemented by: `SourceClient`
 
+### WebhookHandler
+
+```rust
+pub trait WebhookHandler {
+    fn delivered<'life0, 'async_trait>(
+        &'life0 self,
+        _event: WebhookDelivered,
+    ) -> Pin<Box<dyn Future<Output = Result<()>> + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
+}
+```
+
+`[[webhooks]]` handler: told when the host stored deliveries.
+
+#### WebhookHandler::delivered
+
+```rust
+fn delivered<'life0, 'async_trait>(
+    &'life0 self,
+    _event: WebhookDelivered,
+) -> Pin<Box<dyn Future<Output = Result<()>> + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+The host stored deliveries for one webhook; the guest pulls them
+through [`Bindings::webhooks`](#bindings). The default ignores the call, and the
+plugin reads deliveries on its own schedule.
+
+Implemented by: `WebhookHandlerClient`
+
+### Webhooks
+
+```rust
+pub trait Webhooks {
+    fn url<'life0, 'async_trait>(
+        &'life0 self,
+        name: String,
+    ) -> Pin<Box<dyn Future<Output = Result<Option<String>>> + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
+    fn pull<'life0, 'async_trait>(
+        &'life0 self,
+        request: WebhookPullRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<WebhookPullPage>> + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
+    fn ack<'life0, 'async_trait>(
+        &'life0 self,
+        request: WebhookAckRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<()>> + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
+}
+```
+
+Host-served inbound webhooks granted on [`Bindings::webhooks`](#bindings).
+
+The host serves each `[[webhooks]]` row at a secret URL under the
+library's public origin, checks and stores each request, and keeps it
+until the guest acknowledges it or it expires. The methods are shaped
+like a pulled queue so a feed can treat webhook deliveries and queue
+messages alike.
+
+#### Webhooks::url
+
+```rust
+fn url<'life0, 'async_trait>(
+    &'life0 self,
+    name: String,
+) -> Pin<Box<dyn Future<Output = Result<Option<String>>> + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+The URL an outside service should call for webhook `name`; `None`
+when the library cannot be reached from the Internet or webhooks are
+turned off.
+
+#### Webhooks::pull
+
+```rust
+fn pull<'life0, 'async_trait>(
+    &'life0 self,
+    request: WebhookPullRequest,
+) -> Pin<Box<dyn Future<Output = Result<WebhookPullPage>> + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Leases up to `request.batch_size` waiting deliveries, oldest first.
+
+#### Webhooks::ack
+
+```rust
+fn ack<'life0, 'async_trait>(
+    &'life0 self,
+    request: WebhookAckRequest,
+) -> Pin<Box<dyn Future<Output = Result<()>> + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Deletes acknowledged deliveries and offers retried ones again.
+
+Implemented by: `WebhooksClient`
+
 ## Structs
 
 ### GuestReceiptPersist
@@ -4665,6 +4821,7 @@ pub struct Bindings {
     pub queues: Vec<NamedQueueBinding>,
     pub kv: Vec<NamedKvBinding>,
     pub sockets: Option<Box<dyn Sockets>>,
+    pub webhooks: Option<Box<dyn Webhooks>>,
     pub network: NetworkGrant,
     pub notify: Option<Box<dyn NotificationRaiser>>,
     pub origin: Option<Box<dyn Origin>>,
@@ -4693,6 +4850,8 @@ declare (or the operator did not grant) the binding.
 - `kv`: Named `[[kv_namespaces]]` bindings; empty when none is granted.
 - `sockets`: `SOCKETS`: host-brokered WebSockets; `None` unless `[sockets]` is
   granted.
+- `webhooks`: `WEBHOOKS`: the instance's inbound webhooks; `None` unless the
+  manifest declares `[[webhooks]]`.
 - `network`: `NETWORK`: the network grant in effect (see
   [`BindingValues::network`](#bindingvalues)).
 - `notify`: `NOTIFY`: raises declared notification types; `None` unless the
@@ -4778,6 +4937,7 @@ pub struct Entrypoints {
     pub metadata: Option<Box<dyn MetadataProvider>>,
     pub covers: Option<Box<dyn CoverFetcher>>,
     pub socket_handler: Option<Box<dyn SocketHandler>>,
+    pub webhook_handler: Option<Box<dyn WebhookHandler>>,
     pub metadata_files: Option<Box<dyn MetadataFiles>>,
     pub notifier: Option<Box<dyn Notifier>>,
     pub ingress: Option<Box<dyn Ingress>>,
@@ -4806,6 +4966,7 @@ allow, so a guest cannot widen its surface here.
 - `metadata`: `metadata` entrypoint.
 - `covers`: `covers` entrypoint.
 - `socket_handler`: `[sockets]` handler.
+- `webhook_handler`: `[[webhooks]]` handler.
 - `metadata_files`: `metadataFiles` entrypoint.
 - `notifier`: `notifier` entrypoint.
 - `ingress`: `ingress` entrypoint.
@@ -5210,6 +5371,7 @@ pub struct HostBindings {
     pub queues: Vec<(String, String, Arc<dyn QueueProducer>)>,
     pub kv: Vec<(String, String, Arc<dyn KvNamespace>)>,
     pub sockets: Option<Arc<dyn Sockets>>,
+    pub webhooks: Option<Arc<dyn Webhooks>>,
     pub notify: Option<Arc<dyn NotificationRaiser>>,
     pub origin: Option<Arc<dyn Origin>>,
     pub ai: Option<Arc<dyn AiRunner>>,
@@ -5229,6 +5391,7 @@ guest receives on `open`.
 - `queues`: Named `[[queues.producers]]` producers as `(binding, queue, producer)`.
 - `kv`: Named `[[kv_namespaces]]` namespaces as `(binding, namespace, kv)`.
 - `sockets`: `SOCKETS` broker link; `None` unless `[sockets]` is granted.
+- `webhooks`: `WEBHOOKS` store; `None` unless the manifest declares `[[webhooks]]`.
 - `notify`: `NOTIFY` raiser; `None` unless the manifest declares
   `[[notifications.types]]`.
 - `origin`: `ORIGIN`: the library; `None` unless the plugin is the active relay
@@ -5544,6 +5707,7 @@ pub struct OpenedEntrypoints {
     pub metadata: Option<MetadataProviderClient>,
     pub covers: Option<CoverFetcherClient>,
     pub socket_handler: Option<SocketHandlerClient>,
+    pub webhook_handler: Option<WebhookHandlerClient>,
     pub metadata_files: Option<MetadataFilesClient>,
     pub notifier: Option<NotifierClient>,
     pub ingress: Option<IngressClient>,
@@ -5569,6 +5733,7 @@ means the guest did not export that entrypoint.
 - `metadata`: `metadata` entrypoint.
 - `covers`: `covers` entrypoint.
 - `socket_handler`: `[sockets]` handler.
+- `webhook_handler`: `[[webhooks]]` handler.
 - `metadata_files`: `metadataFiles` entrypoint.
 - `notifier`: `notifier` entrypoint.
 - `ingress`: `ingress` entrypoint.
@@ -5889,6 +6054,46 @@ pub fn new(inner: Arc<dyn Source>, window: u32) -> Self
 Serves `inner`.
 
 Implements: `Server`
+
+### WebhookHandlerClient
+
+```rust
+pub struct WebhookHandlerClient {
+    /* private fields */
+}
+```
+
+Host-side client for a guest's [`WebhookHandler`](#webhookhandler).
+
+#### WebhookHandlerClient::new
+
+```rust
+pub fn new(client: Client) -> Self
+```
+
+Wraps a `WebhookHandler` capability client.
+
+Implements: `Clone`, `WebhookHandler`
+
+### WebhooksClient
+
+```rust
+pub struct WebhooksClient {
+    /* private fields */
+}
+```
+
+Guest-side client for the host [`Webhooks`](#webhooks) binding.
+
+#### WebhooksClient::new
+
+```rust
+pub fn new(client: Client) -> Self
+```
+
+Wraps a `Webhooks` capability client.
+
+Implements: `Clone`, `Webhooks`
 
 ### CopyResult
 
@@ -6910,6 +7115,46 @@ A value [`roundtrip_socket_message`](#roundtrip_socket_message) decoded.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### WebhookCodec
+
+```rust
+pub enum WebhookCodec {
+    PullRequest,
+    AckRequest,
+    Delivery,
+}
+```
+
+Which webhook Cap'n Proto struct [`roundtrip_webhook_message`](#roundtrip_webhook_message) decodes.
+
+**Variants**
+
+- `PullRequest`: `WebhookPullRequest`, which the host decodes from a guest.
+- `AckRequest`: `WebhookAckRequest`, which the host decodes from a guest.
+- `Delivery`: `WebhookDelivery`, which a guest decodes from the host.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
+### WebhookWireMessage
+
+```rust
+pub enum WebhookWireMessage {
+    PullRequest(WebhookPullRequest),
+    AckRequest(WebhookAckRequest),
+    Delivery(WebhookDelivery),
+}
+```
+
+A value [`roundtrip_webhook_message`](#roundtrip_webhook_message) decoded.
+
+**Variants**
+
+- `PullRequest`: A decoded `WebhookPullRequest`.
+- `AckRequest`: A decoded `WebhookAckRequest`.
+- `Delivery`: A decoded `WebhookDelivery`.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### EventResult
 
 ```rust
@@ -7896,6 +8141,36 @@ The decoded value.
 [`RoundTripFailure::Codec`](generated.md#roundtripfailure) when a decoded value does not survive `write`
 then `read` intact.
 
+### roundtrip_webhook_message
+
+```rust
+pub fn roundtrip_webhook_message(
+    codec: WebhookCodec,
+    bytes: &[u8],
+) -> Result<WebhookWireMessage, RoundTripFailure>
+```
+
+Decodes one unpacked single-segment webhook message with the codec the
+RPC server and client use, then checks `read(write(v)) == v`. The
+`webhook_rpc` fuzz target and its replay test drive this, so they reach
+the same decoder a peer's bytes do; the caller then applies the
+[`crate::webhooks`](webhooks.md) checks to the value.
+
+#### Arguments
+
+* `codec` - Which struct the message holds.
+* `bytes` - The message, as `capnp::serialize` writes it.
+
+#### Returns
+
+The decoded value.
+
+#### Errors
+
+[`RoundTripFailure::Rejected`](generated.md#roundtripfailure) when the bytes do not decode;
+[`RoundTripFailure::Codec`](generated.md#roundtripfailure) when a decoded value does not survive `write`
+then `read` intact.
+
 ### serve_plugin
 
 ```rust
@@ -8695,6 +8970,62 @@ pub const MAX_STREAM_WINDOW_BYTES: u32 = crate::plugin_capnp::MAX_STREAM_WINDOW_
 ```
 
 Maximum bytes returned by one `ByteSource.pull` (flow-control window).
+
+### MAX_WEBHOOK_BODY_BYTES
+
+```rust
+pub const MAX_WEBHOOK_BODY_BYTES: u32 = crate::plugin_capnp::MAX_WEBHOOK_BODY_BYTES;
+```
+
+Largest stored webhook request body, in bytes (1 MiB).
+
+### MAX_WEBHOOK_HEADERS
+
+```rust
+pub const MAX_WEBHOOK_HEADERS: u32 = crate::plugin_capnp::MAX_WEBHOOK_HEADERS;
+```
+
+Most request headers a `[[webhooks]]` row keeps.
+
+### MAX_WEBHOOK_HEADER_VALUE_BYTES
+
+```rust
+pub const MAX_WEBHOOK_HEADER_VALUE_BYTES: u32 = crate::plugin_capnp::MAX_WEBHOOK_HEADER_VALUE_BYTES;
+```
+
+Longest kept request header value, in bytes.
+
+### MAX_WEBHOOK_LEASE_ID_BYTES
+
+```rust
+pub const MAX_WEBHOOK_LEASE_ID_BYTES: u32 = crate::plugin_capnp::MAX_WEBHOOK_LEASE_ID_BYTES;
+```
+
+Longest `WebhookDelivery.leaseId`, in bytes.
+
+### MAX_WEBHOOK_NAME_BYTES
+
+```rust
+pub const MAX_WEBHOOK_NAME_BYTES: u32 = crate::plugin_capnp::MAX_WEBHOOK_NAME_BYTES;
+```
+
+Longest `[[webhooks]]` name, in bytes.
+
+### MAX_WEBHOOK_PULL_BATCH
+
+```rust
+pub const MAX_WEBHOOK_PULL_BATCH: u32 = crate::plugin_capnp::MAX_WEBHOOK_PULL_BATCH;
+```
+
+Most deliveries one `Webhooks.pull` returns.
+
+### MAX_WEBHOOK_VISIBILITY_MS
+
+```rust
+pub const MAX_WEBHOOK_VISIBILITY_MS: u32 = crate::plugin_capnp::MAX_WEBHOOK_VISIBILITY_MS;
+```
+
+Longest `Webhooks.pull` visibility timeout, in milliseconds (12 hours).
 
 ### PRODUCT_API_VERSION
 

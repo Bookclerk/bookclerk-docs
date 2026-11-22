@@ -96,6 +96,8 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`SocketBroker`](#socketbroker) | struct | The host's handle on one plugin instance's socket broker. |
 | [`SpawnPlan`](#spawnplan) | struct | Everything the spawn path needs to start one guest. |
 | [`WorkerdFrontDoor`](#workerdfrontdoor) | struct | Resolved `bookclerk-workerd` launcher and the pinned `workerd` beside it. |
+| [`HostWebhooks`](#hostwebhooks) | struct | The `WEBHOOKS` hook of one session: the library, the deployed instance and the declared rows. |
+| [`WebhookEndpoint`](#webhookendpoint) | struct | What the public route needs to check a request for one webhook of an instance this node runs. |
 | [`SpawnHealth`](#spawnhealth) | enum | Result of spawn plus the health RPC. |
 | [`StateScope`](#statescope) | enum | Whose library a guest works for, which keeps one library's plugin state apart from another's on the same install. |
 | [`PluginError`](#pluginerror) | enum | Failures from discovery, RPC, consent, or plugin adapters. |
@@ -267,6 +269,8 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`recent_spawn_diagnostics`](#recent_spawn_diagnostics) | function | Bounded startup log for the current process. |
 | [`retry_abandoned_acl_journals`](#retry_abandoned_acl_journals) | function | Retry abandoned journals for every plugin under `files_dir/plugin-state`. |
 | [`revoke_plugin_state_before_purge`](#revoke_plugin_state_before_purge) | function | Revoke this plugin's journal before `--purge-state` deletes the directory. |
+| [`set_webhook_public_origin`](#set_webhook_public_origin) | function | Sets the origin webhook URLs are built on. |
+| [`webhook_public_origin`](#webhook_public_origin) | function | The origin webhook URLs are built on, when one is set. |
 | [`SessionShutdown`](#sessionshutdown) | type alias | Shutdown hook invoked the moment a live session is fenced. |
 | [`Result`](#result) | type alias | Result alias for `PluginError`. |
 | [`GuestDatabaseFactory`](#guestdatabasefactory) | type alias | Send-safe constructor for a per-binding `bookclerk_plugin_sdk::GuestDatabase`. |
@@ -318,9 +322,11 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`TEST_OBSERVE_EXTRA_ENDPOINT_ENV`](#test_observe_extra_endpoint_env) | constant | Host-process request to publish candidate-endpoint observation metadata. |
 | [`ON_DEMAND_USER_POLL_INTERVAL`](#on_demand_user_poll_interval) | constant | How often the host polls a sleeping remote library for new users. |
 | [`RESIDENT_USER_POLL_INTERVAL`](#resident_user_poll_interval) | constant | How often the host polls a resident remote library for new users. |
+| [`WEBHOOKS_GRANT_BINDING`](#webhooks_grant_binding) | constant | Grant token that authorizes every `[[webhooks]]` row of a plugin. |
 
 ## Re-exports
 
+- [`bookclerk_workerd::webhook_request`](../bookclerk_workerd/webhook_request.md)
 - [`bookclerk_plugin_sdk::protocol`](../../../plugins/sdk/rust/protocol.md)
 - [`bookclerk_plugin_sdk::methods`](../../../plugins/sdk/rust/methods.md)
 - [`bookclerk_plugin_sdk::CatalogHit`](../bookclerk_plugin_abi/generated.md#cataloghit)
@@ -1576,6 +1582,36 @@ Native guest pid for `plugin_instance_id`, when this process spawned it.
 ##### Panics
 
 Panics when the deployment guest lock is poisoned.
+
+#### LiveDeploymentRuntime::webhook_endpoint
+
+```rust
+pub fn webhook_endpoint(
+    &self,
+    plugin_instance_id: &str,
+    name: &str,
+) -> Option<WebhookEndpoint>
+```
+
+The `[[webhooks]]` row `name` of the instance this node runs, with
+the row's signing secret when it names one and the operator set it.
+
+##### Returns
+
+`None` when this node runs no guest for `plugin_instance_id` or its
+manifest declares no row `name`.
+
+#### LiveDeploymentRuntime::wake_webhook
+
+```rust
+pub fn wake_webhook(&self, plugin_instance_id: &str, event: WebhookDelivered)
+```
+
+Tells the instance's resident guest that requests wait for webhook
+`event.name`, without waiting for its answer.
+
+A sleeping on-demand guest is not started: it pulls on its next call,
+and a storage guest's feed is read on its next sync pass.
 
 Implements: `DeploymentRuntime`
 
@@ -3708,6 +3744,20 @@ runtime.
 Returns a plugin error when the guest did not export `ingress` or the
 method fails.
 
+#### PluginSession::deliver_webhook_wake
+
+```rust
+pub async fn deliver_webhook_wake(&self, event: WebhookDelivered) -> Result<()>
+```
+
+Tells the guest's `webhookHandler` entrypoint that requests wait for
+one of its webhooks.
+
+##### Errors
+
+Returns a plugin error when the guest did not export `webhookHandler`
+or its handler failed.
+
 #### PluginSession::deliver_socket_event
 
 ```rust
@@ -4341,6 +4391,7 @@ pub struct SessionServices {
     pub sockets: Option<SocketBroker>,
     pub ai: Option<Arc<AiRouter>>,
     pub origin: Option<Arc<dyn Origin + Send + Sync>>,
+    pub webhooks: Option<PluginInstanceId>,
 }
 ```
 
@@ -4390,6 +4441,10 @@ binding on the manifest declaration plus the covering consent grant.
   instance. The session hands it out only when the manifest also
   exports `ingress` with `[ingress] kind = "relay"`; `None` never
   exposes `ORIGIN`.
+- `webhooks`: The deployed instance whose inbound webhooks back the `WEBHOOKS`
+  binding. The session hands the binding out only when the manifest
+  declares `[[webhooks]]`, the covering grant has the `webhooks` token
+  and the library store is attached; `None` never exposes `WEBHOOKS`.
 
 #### SessionServices::with_event_outbox
 
@@ -4741,6 +4796,39 @@ overrides, no `PATH`). A test seam for missing-launcher planning.
 Returns an error when `dir` lacks `bookclerk-workerd` or `workerd`.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### HostWebhooks
+
+```rust
+pub struct HostWebhooks {
+    /* private fields */
+}
+```
+
+The `WEBHOOKS` hook of one session: the library, the deployed instance
+and the declared rows.
+
+Implements: `Clone`, `Webhooks`
+
+### WebhookEndpoint
+
+```rust
+pub struct WebhookEndpoint {
+    pub row: WebhookManifest,
+    pub secret: Option<Zeroizing<Vec<u8>>>,
+}
+```
+
+What the public route needs to check a request for one webhook of an
+instance this node runs.
+
+**Fields**
+
+- `row`: The manifest's `[[webhooks]]` row.
+- `secret`: The row's signing secret, when its rule names one and the operator
+  set it.
+
+Implements: `Clone`, `Debug`
 
 ## Enums
 
@@ -7577,6 +7665,26 @@ Returns an error when a journal file is still present, when a live session
 holds one, or when a rejected record remains and `discard_rejected` is
 false. Purge then leaves plugin-state in place.
 
+### set_webhook_public_origin
+
+```rust
+pub fn set_webhook_public_origin(origin: Option<&str>)
+```
+
+Sets the origin webhook URLs are built on.
+
+The daemon calls this once it knows its public origin and that webhooks
+are on (`plugins.webhooks = "auto"`), and with `None` to stop handing URLs
+out. A trailing `/` is dropped.
+
+### webhook_public_origin
+
+```rust
+pub fn webhook_public_origin() -> Option<String>
+```
+
+The origin webhook URLs are built on, when one is set.
+
 ## Type aliases
 
 ### SessionShutdown
@@ -8049,3 +8157,11 @@ pub const RESIDENT_USER_POLL_INTERVAL: Duration = _;
 How often the host polls a resident remote library for new users.
 
 A resident guest is running anyway, so a short interval costs one RPC.
+
+### WEBHOOKS_GRANT_BINDING
+
+```rust
+pub const WEBHOOKS_GRANT_BINDING: &str = "webhooks";
+```
+
+Grant token that authorizes every `[[webhooks]]` row of a plugin.

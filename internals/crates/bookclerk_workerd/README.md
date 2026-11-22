@@ -50,6 +50,7 @@ See `docs/plugins/README.md` for jail / workerd isolation requirements.
 - [`granted`](granted.md): Host-granted HTTP reverse channel for workerd isolates: `JobRunner.job` streams (`Source` / `Destination` / `ProgressSink`), the job's `Cancellation` long poll (`/cancel`), named database sessions (`/db/execute`, `/db/execute-streamed`), and the `EVENTS` outbox binding (`/events/publish`, `/events/read`), the `NOTIFY` binding (`/notify/raise`), the `AI` binding (`/ai/run`), and the `SOCKETS` broker binding (`/sockets/*`, parsed in `crate::granted_sockets`).
 - [`granted_http`](granted_http.md): Sans-IO HTTP/1.1 parsing for the granted reverse channel.
 - [`granted_sockets`](granted_sockets.md): `POST /sockets/<op>` on the granted reverse channel: a workerd isolate's `env.SOCKETS` calls, parsed and answered over plain byte slices.
+- [`granted_webhooks`](granted_webhooks.md): `POST /webhooks/<op>` on the granted reverse channel: a workerd isolate's `env.WEBHOOKS` calls, parsed and answered over plain byte slices.
 - [`inherited_link`](inherited_link.md): Open a host-inherited sibling link (`fd:<n>` / `handle:<n>`) as a Tokio stream.
 - [`invoke`](invoke.md): `POST /invoke`: the Cap'n Proto data plane between the launcher and the adapter isolate.
 - [`pin`](pin.md): Pinned Cloudflare `workerd` release metadata shared with `bookclerk-dev`.
@@ -59,3 +60,4 @@ See `docs/plugins/README.md` for jail / workerd isolation requirements.
 - [`socket_table`](socket_table.md): The socket broker's bookkeeping, without I/O.
 - [`state_sweep`](state_sweep.md): Removes isolate state directories that a killed launcher left behind.
 - [`unix_bind`](unix_bind.md): Unix-domain listeners that stay under `sockaddr_un` limits.
+- [`webhook_request`](webhook_request.md): Sans-IO checks for one request on the public webhook route (`POST /hooks/<token>/<name>`), in the order the route applies them.

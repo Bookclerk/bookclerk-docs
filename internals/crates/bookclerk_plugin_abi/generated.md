@@ -130,7 +130,14 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`OriginHeader`](#originheader) | struct | One header field on an `Origin.fetch` request or response. |
 | [`OriginRequest`](#originrequest) | struct | The head of one public request a relay `ingress` plugin carries (`Origin.fetch`). Its scheme is `https` and its authority is the library's public origin; neither is the plugin's to choose. |
 | [`IngressStarted`](#ingressstarted) | struct | Success payload of `Ingress.start`. |
+| [`WebhookUrl`](#webhookurl) | struct | Success payload of `Webhooks.url`. |
+| [`WebhookPullRequest`](#webhookpullrequest) | struct | Arguments of `Webhooks.pull`. |
+| [`WebhookHeader`](#webhookheader) | struct | One request header kept with a delivery. |
+| [`WebhookDelivery`](#webhookdelivery) | struct | One stored request, leased to the guest. |
+| [`WebhookPullPage`](#webhookpullpage) | struct | Success payload of `Webhooks.pull`. |
 | [`IngressHealth`](#ingresshealth) | struct | Success payload of `Ingress.health`. |
+| [`WebhookAckRequest`](#webhookackrequest) | struct | Arguments of `Webhooks.ack`. |
+| [`WebhookDelivered`](#webhookdelivered) | struct | Argument of `WebhookHandler.delivered`. |
 | [`Entrypoint`](#entrypoint) | enum | Named entrypoint a plugin exports (Cloudflare Workers named-entrypoint analogue). Each value is a capability the host calls over RPC; triggers on the default entrypoint (`event`, `job`) are declared separately. |
 | [`PortalAuthMode`](#portalauthmode) | enum | Portal Accounts connect mode for storefronts. |
 | [`CliArgKind`](#cliargkind) | enum | Value kind for a `CliArgSpec`. |
@@ -477,10 +484,28 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`read_ingress_started`](#read_ingress_started) | function | Decode a `IngressStarted` from a Cap'n Proto reader. |
 | [`write_ingress_start_reply`](#write_ingress_start_reply) | function | Encode a `IngressStartReply` union from a typed result. |
 | [`read_ingress_start_reply`](#read_ingress_start_reply) | function | Decode a `IngressStartReply` union into a typed result. |
+| [`write_webhook_url`](#write_webhook_url) | function | Encode a `WebhookUrl` onto a Cap'n Proto builder. |
+| [`read_webhook_url`](#read_webhook_url) | function | Decode a `WebhookUrl` from a Cap'n Proto reader. |
+| [`write_webhook_url_reply`](#write_webhook_url_reply) | function | Encode a `WebhookUrlReply` union from a typed result. |
+| [`read_webhook_url_reply`](#read_webhook_url_reply) | function | Decode a `WebhookUrlReply` union into a typed result. |
+| [`write_webhook_pull_request`](#write_webhook_pull_request) | function | Encode a `WebhookPullRequest` onto a Cap'n Proto builder. |
+| [`read_webhook_pull_request`](#read_webhook_pull_request) | function | Decode a `WebhookPullRequest` from a Cap'n Proto reader. |
+| [`write_webhook_header`](#write_webhook_header) | function | Encode a `WebhookHeader` onto a Cap'n Proto builder. |
+| [`read_webhook_header`](#read_webhook_header) | function | Decode a `WebhookHeader` from a Cap'n Proto reader. |
+| [`write_webhook_delivery`](#write_webhook_delivery) | function | Encode a `WebhookDelivery` onto a Cap'n Proto builder. |
+| [`read_webhook_delivery`](#read_webhook_delivery) | function | Decode a `WebhookDelivery` from a Cap'n Proto reader. |
+| [`write_webhook_pull_page`](#write_webhook_pull_page) | function | Encode a `WebhookPullPage` onto a Cap'n Proto builder. |
+| [`read_webhook_pull_page`](#read_webhook_pull_page) | function | Decode a `WebhookPullPage` from a Cap'n Proto reader. |
+| [`write_webhook_pull_reply`](#write_webhook_pull_reply) | function | Encode a `WebhookPullReply` union from a typed result. |
+| [`read_webhook_pull_reply`](#read_webhook_pull_reply) | function | Decode a `WebhookPullReply` union into a typed result. |
 | [`write_ingress_health`](#write_ingress_health) | function | Encode a `IngressHealth` onto a Cap'n Proto builder. |
 | [`read_ingress_health`](#read_ingress_health) | function | Decode a `IngressHealth` from a Cap'n Proto reader. |
 | [`write_ingress_health_reply`](#write_ingress_health_reply) | function | Encode a `IngressHealthReply` union from a typed result. |
 | [`read_ingress_health_reply`](#read_ingress_health_reply) | function | Decode a `IngressHealthReply` union into a typed result. |
+| [`write_webhook_ack_request`](#write_webhook_ack_request) | function | Encode a `WebhookAckRequest` onto a Cap'n Proto builder. |
+| [`read_webhook_ack_request`](#read_webhook_ack_request) | function | Decode a `WebhookAckRequest` from a Cap'n Proto reader. |
+| [`write_webhook_delivered`](#write_webhook_delivered) | function | Encode a `WebhookDelivered` onto a Cap'n Proto builder. |
+| [`read_webhook_delivered`](#read_webhook_delivered) | function | Decode a `WebhookDelivered` from a Cap'n Proto reader. |
 | [`read_any_message`](#read_any_message) | function | Decodes `bytes` as an unpacked single-segment Cap'n Proto message whose root is the struct `selector` names, through that struct's `read_*` codec, and drops the result. |
 | [`roundtrip_any_message`](#roundtrip_any_message) | function | Decodes `bytes` as the struct `selector` names (as `read_any_message` does), writes the value back through that struct's `write_*` codec, decodes the result and requires it to equal the first value. |
 | [`READ_ANY_COUNT`](#read_any_count) | constant | Number of root structs `read_any_message` can decode; selectors are `0..READ_ANY_COUNT` in schema order. |
@@ -522,6 +547,7 @@ pub struct PluginCapabilities {
     pub queue_producers: Vec<String>,
     pub crons: Vec<String>,
     pub sockets: bool,
+    pub webhooks: bool,
 }
 ```
 
@@ -544,6 +570,9 @@ it with `plugin.toml` and the operator grant; widening is rejected at spawn.
   single spaces.
 - `sockets`: True when the guest declared `\[sockets\]`: it receives the host-brokered
   `Sockets` binding and may export a `SocketHandler` for pushed messages.
+- `webhooks`: True when the guest declared `\[\[webhooks\]\]`: it receives the host-served
+  `Webhooks` binding and may export a `WebhookHandler` the host wakes when
+  it stores deliveries.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -3505,6 +3534,109 @@ Success payload of `Ingress.start`.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
+### WebhookUrl
+
+```rust
+pub struct WebhookUrl {
+    pub url: Option<String>,
+}
+```
+
+Success payload of `Webhooks.url`.
+
+**Fields**
+
+- `url`: Absolute `https://` URL; empty when the library cannot be reached from
+  the Internet or webhooks are turned off, and the plugin should use its
+  fallback.
+  `None` when absent (wire zero value).
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### WebhookPullRequest
+
+```rust
+pub struct WebhookPullRequest {
+    pub name: String,
+    pub batch_size: u32,
+    pub visibility_timeout_ms: u32,
+}
+```
+
+Arguments of `Webhooks.pull`.
+
+**Fields**
+
+- `name`: `\[\[webhooks\]\]` name.
+- `batch_size`: Most deliveries to lease, 1 to `maxWebhookPullBatch`.
+- `visibility_timeout_ms`: How long leased deliveries stay hidden from the next pull, in
+  milliseconds, at most `maxWebhookVisibilityMs`; zero means one minute.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### WebhookHeader
+
+```rust
+pub struct WebhookHeader {
+    pub name: String,
+    pub value: String,
+}
+```
+
+One request header kept with a delivery.
+
+**Fields**
+
+- `name`: Lowercase header name, one the row's `headers` names or `content-type`.
+- `value`: Header value as received.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### WebhookDelivery
+
+```rust
+pub struct WebhookDelivery {
+    pub lease_id: String,
+    pub received_at_unix_ms: u64,
+    pub attempt: u32,
+    pub headers: Vec<WebhookHeader>,
+    pub body: Vec<u8>,
+}
+```
+
+One stored request, leased to the guest.
+
+**Fields**
+
+- `lease_id`: Lease id for `ack`, at most `maxWebhookLeaseIdBytes`; a new one each
+  time the delivery is pulled.
+- `received_at_unix_ms`: When the host stored the request, in Unix milliseconds.
+- `attempt`: How many times this delivery has been pulled, counting this one.
+- `headers`: Kept request headers, in the order the row names them.
+- `body`: Request body as received, at most the row's `max_body_bytes`.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### WebhookPullPage
+
+```rust
+pub struct WebhookPullPage {
+    pub deliveries: Vec<WebhookDelivery>,
+    pub missed: bool,
+}
+```
+
+Success payload of `Webhooks.pull`.
+
+**Fields**
+
+- `deliveries`: Leased deliveries, oldest first.
+- `missed`: True when the host dropped deliveries for this webhook since the last
+  pull (the waiting cap was full or a delivery expired unacknowledged):
+  the guest should treat what it follows as incomplete.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
 ### IngressHealth
 
 ```rust
@@ -3521,6 +3653,44 @@ Success payload of `Ingress.health`.
 - `serving`: True when the address is serving.
 - `detail`: Why it is not serving, for the operator; empty when serving.
   `None` when absent (wire zero value).
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### WebhookAckRequest
+
+```rust
+pub struct WebhookAckRequest {
+    pub name: String,
+    pub acks: Vec<String>,
+    pub retries: Vec<String>,
+}
+```
+
+Arguments of `Webhooks.ack`.
+
+**Fields**
+
+- `name`: `\[\[webhooks\]\]` name.
+- `acks`: Leases whose deliveries are done and are deleted.
+- `retries`: Leases whose deliveries the next pull offers again.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### WebhookDelivered
+
+```rust
+pub struct WebhookDelivered {
+    pub name: String,
+    pub waiting: u32,
+}
+```
+
+Argument of `WebhookHandler.delivered`.
+
+**Fields**
+
+- `name`: `\[\[webhooks\]\]` name.
+- `waiting`: Deliveries waiting for this webhook when the host called.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -8600,6 +8770,182 @@ Decode a `IngressStartReply` union into a typed result.
 
 Returns a Cap'n Proto error when the union is unset or a field is malformed.
 
+### write_webhook_url
+
+```rust
+pub fn write_webhook_url(b: Builder<'_>, v: &WebhookUrl) -> Result<()>
+```
+
+Encode a [`WebhookUrl`](#webhookurl) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_webhook_url
+
+```rust
+pub fn read_webhook_url(r: Reader<'_>) -> Result<WebhookUrl>
+```
+
+Decode a [`WebhookUrl`](#webhookurl) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_webhook_url_reply
+
+```rust
+pub fn write_webhook_url_reply(
+    b: Builder<'_>,
+    v: &Result<WebhookUrl, PluginError>,
+) -> Result<()>
+```
+
+Encode a `WebhookUrlReply` union from a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when a nested field cannot be encoded.
+
+### read_webhook_url_reply
+
+```rust
+pub fn read_webhook_url_reply(r: Reader<'_>) -> Result<Result<WebhookUrl, PluginError>>
+```
+
+Decode a `WebhookUrlReply` union into a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when the union is unset or a field is malformed.
+
+### write_webhook_pull_request
+
+```rust
+pub fn write_webhook_pull_request(b: Builder<'_>, v: &WebhookPullRequest) -> Result<()>
+```
+
+Encode a [`WebhookPullRequest`](#webhookpullrequest) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_webhook_pull_request
+
+```rust
+pub fn read_webhook_pull_request(r: Reader<'_>) -> Result<WebhookPullRequest>
+```
+
+Decode a [`WebhookPullRequest`](#webhookpullrequest) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_webhook_header
+
+```rust
+pub fn write_webhook_header(b: Builder<'_>, v: &WebhookHeader) -> Result<()>
+```
+
+Encode a [`WebhookHeader`](#webhookheader) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_webhook_header
+
+```rust
+pub fn read_webhook_header(r: Reader<'_>) -> Result<WebhookHeader>
+```
+
+Decode a [`WebhookHeader`](#webhookheader) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_webhook_delivery
+
+```rust
+pub fn write_webhook_delivery(b: Builder<'_>, v: &WebhookDelivery) -> Result<()>
+```
+
+Encode a [`WebhookDelivery`](#webhookdelivery) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_webhook_delivery
+
+```rust
+pub fn read_webhook_delivery(r: Reader<'_>) -> Result<WebhookDelivery>
+```
+
+Decode a [`WebhookDelivery`](#webhookdelivery) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_webhook_pull_page
+
+```rust
+pub fn write_webhook_pull_page(b: Builder<'_>, v: &WebhookPullPage) -> Result<()>
+```
+
+Encode a [`WebhookPullPage`](#webhookpullpage) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_webhook_pull_page
+
+```rust
+pub fn read_webhook_pull_page(r: Reader<'_>) -> Result<WebhookPullPage>
+```
+
+Decode a [`WebhookPullPage`](#webhookpullpage) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_webhook_pull_reply
+
+```rust
+pub fn write_webhook_pull_reply(
+    b: Builder<'_>,
+    v: &Result<WebhookPullPage, PluginError>,
+) -> Result<()>
+```
+
+Encode a `WebhookPullReply` union from a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when a nested field cannot be encoded.
+
+### read_webhook_pull_reply
+
+```rust
+pub fn read_webhook_pull_reply(
+    r: Reader<'_>,
+) -> Result<Result<WebhookPullPage, PluginError>>
+```
+
+Decode a `WebhookPullReply` union into a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when the union is unset or a field is malformed.
+
 ### write_ingress_health
 
 ```rust
@@ -8653,6 +8999,54 @@ Decode a `IngressHealthReply` union into a typed result.
 
 Returns a Cap'n Proto error when the union is unset or a field is malformed.
 
+### write_webhook_ack_request
+
+```rust
+pub fn write_webhook_ack_request(b: Builder<'_>, v: &WebhookAckRequest) -> Result<()>
+```
+
+Encode a [`WebhookAckRequest`](#webhookackrequest) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_webhook_ack_request
+
+```rust
+pub fn read_webhook_ack_request(r: Reader<'_>) -> Result<WebhookAckRequest>
+```
+
+Decode a [`WebhookAckRequest`](#webhookackrequest) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_webhook_delivered
+
+```rust
+pub fn write_webhook_delivered(b: Builder<'_>, v: &WebhookDelivered) -> Result<()>
+```
+
+Encode a [`WebhookDelivered`](#webhookdelivered) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_webhook_delivered
+
+```rust
+pub fn read_webhook_delivered(r: Reader<'_>) -> Result<WebhookDelivered>
+```
+
+Decode a [`WebhookDelivered`](#webhookdelivered) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
 ### read_any_message
 
 ```rust
@@ -8705,7 +9099,7 @@ when the decoded value does not survive `write_*` then `read_*` intact.
 ### READ_ANY_COUNT
 
 ```rust
-pub const READ_ANY_COUNT: u8 = 161;
+pub const READ_ANY_COUNT: u8 = 170;
 ```
 
 Number of root structs [`read_any_message`](#read_any_message) can decode; selectors are

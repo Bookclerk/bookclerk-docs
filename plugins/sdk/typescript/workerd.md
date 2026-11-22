@@ -1989,6 +1989,36 @@ Re-exports [unpackEmbeddingVectors](plugin.md#unpackembeddingvectors)
 
 ***
 
+### WebhookDeliveredEvent
+
+Re-exports [WebhookDeliveredEvent](env.md#webhookdeliveredevent)
+
+***
+
+### WebhookMessage
+
+Re-exports [WebhookMessage](env.md#webhookmessage)
+
+***
+
+### WebhookPullOptions
+
+Re-exports [WebhookPullOptions](env.md#webhookpulloptions)
+
+***
+
+### WebhookPullResult
+
+Re-exports [WebhookPullResult](env.md#webhookpullresult)
+
+***
+
+### WebhooksBinding
+
+Re-exports [WebhooksBinding](env.md#webhooksbinding)
+
+***
+
 ### WireQueueBatch
 
 Re-exports [WireQueueBatch](plugin.md#wirequeuebatch)

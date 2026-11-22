@@ -151,6 +151,12 @@ pub fn has_crons(&self) -> bool
 pub fn get_sockets(self) -> bool
 ```
 
+#### Reader::get_webhooks
+
+```rust
+pub fn get_webhooks(self) -> bool
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -414,6 +420,18 @@ pub fn get_sockets(self) -> bool
 
 ```rust
 pub fn set_sockets(&mut self, value: bool)
+```
+
+#### Builder::get_webhooks
+
+```rust
+pub fn get_webhooks(self) -> bool
+```
+
+#### Builder::set_webhooks
+
+```rust
+pub fn set_webhooks(&mut self, value: bool)
 ```
 
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`

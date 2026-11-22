@@ -873,6 +873,17 @@ filesystem); null unless `[work_fs]` is granted. Job input/output travel on
 `JobRunner.job(controller)`, never here.
 Null when the guest does not export this capability.
 
+##### webhooks?
+
+```ts
+webhooks?: Webhooks | null;
+```
+
+`WEBHOOKS`: the instance's inbound webhooks, their URLs and the
+deliveries the host stored; null unless `[[webhooks]]` is declared and
+granted.
+Null when the guest does not export this capability.
+
 ***
 
 ### Brand
@@ -3621,6 +3632,15 @@ storefront?: ContentSource | null;
 ```
 
 `storefront` entrypoint.
+Null when the guest does not export this capability.
+
+##### webhookHandler?
+
+```ts
+webhookHandler?: WebhookHandler | null;
+```
+
+`[[webhooks]]` handler: called after the host stores deliveries.
 Null when the guest does not export this capability.
 
 ***
@@ -8313,6 +8333,16 @@ sockets: boolean;
 True when the guest declared `[sockets]`: it receives the host-brokered
 `Sockets` binding and may export a `SocketHandler` for pushed messages.
 
+##### webhooks
+
+```ts
+webhooks: boolean;
+```
+
+True when the guest declared `[[webhooks]]`: it receives the host-served
+`Webhooks` binding and may export a `WebhookHandler` the host wakes when
+it stores deliveries.
+
 ***
 
 ### PluginCli
@@ -11170,6 +11200,316 @@ empty, `.` or `..` segment.
 
 ***
 
+### WebhookAckRequest
+
+Arguments of `Webhooks.ack`.
+
+#### Properties
+
+##### acks
+
+```ts
+acks: string[];
+```
+
+Leases whose deliveries are done and are deleted.
+
+##### name
+
+```ts
+name: string;
+```
+
+`[[webhooks]]` name.
+
+##### retries
+
+```ts
+retries: string[];
+```
+
+Leases whose deliveries the next pull offers again.
+
+***
+
+### WebhookDelivered
+
+Argument of `WebhookHandler.delivered`.
+
+#### Properties
+
+##### name
+
+```ts
+name: string;
+```
+
+`[[webhooks]]` name.
+
+##### waiting
+
+```ts
+waiting: number;
+```
+
+Deliveries waiting for this webhook when the host called.
+
+***
+
+### WebhookDelivery
+
+One stored request, leased to the guest.
+
+#### Properties
+
+##### attempt
+
+```ts
+attempt: number;
+```
+
+How many times this delivery has been pulled, counting this one.
+
+##### body
+
+```ts
+body: Uint8Array;
+```
+
+Request body as received, at most the row's `max_body_bytes`.
+
+##### headers
+
+```ts
+headers: WebhookHeader[];
+```
+
+Kept request headers, in the order the row names them.
+
+##### leaseId
+
+```ts
+leaseId: string;
+```
+
+Lease id for `ack`, at most `maxWebhookLeaseIdBytes`; a new one each
+time the delivery is pulled.
+
+##### receivedAtUnixMs
+
+```ts
+receivedAtUnixMs: number;
+```
+
+When the host stored the request, in Unix milliseconds.
+
+***
+
+### WebhookHandler
+
+Guest handler for inbound webhooks (`Entrypoints.webhookHandler`).
+
+#### Methods
+
+##### delivered()
+
+```ts
+delivered(event): Promise<EmptyReply>;
+```
+
+The host stored deliveries for one webhook; the guest pulls them.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `event` | [`WebhookDelivered`](#webhookdelivered) | Webhook and how many wait. |
+
+###### Returns
+
+`Promise`\<[`EmptyReply`](#emptyreply)\>
+
+[EmptyReply](#emptyreply)
+
+***
+
+### WebhookHeader
+
+One request header kept with a delivery.
+
+#### Properties
+
+##### name
+
+```ts
+name: string;
+```
+
+Lowercase header name, one the row's `headers` names or `content-type`.
+
+##### value
+
+```ts
+value: string;
+```
+
+Header value as received.
+
+***
+
+### WebhookPullPage
+
+Success payload of `Webhooks.pull`.
+
+#### Properties
+
+##### deliveries
+
+```ts
+deliveries: WebhookDelivery[];
+```
+
+Leased deliveries, oldest first.
+
+##### missed
+
+```ts
+missed: boolean;
+```
+
+True when the host dropped deliveries for this webhook since the last
+pull (the waiting cap was full or a delivery expired unacknowledged):
+the guest should treat what it follows as incomplete.
+
+***
+
+### WebhookPullRequest
+
+Arguments of `Webhooks.pull`.
+
+#### Properties
+
+##### batchSize
+
+```ts
+batchSize: number;
+```
+
+Most deliveries to lease, 1 to `maxWebhookPullBatch`.
+
+##### name
+
+```ts
+name: string;
+```
+
+`[[webhooks]]` name.
+
+##### visibilityTimeoutMs
+
+```ts
+visibilityTimeoutMs: number;
+```
+
+How long leased deliveries stay hidden from the next pull, in
+milliseconds, at most `maxWebhookVisibilityMs`; zero means one minute.
+
+***
+
+### Webhooks
+
+Host-served inbound webhooks, granted through `Bindings.webhooks`.
+
+The host serves each `[[webhooks]]` row at a secret URL under the
+library's public origin, checks every request against the row's body cap,
+rate limit and signature rule, stores it and answers at once. The guest
+takes stored deliveries with `pull` and settles them with `ack`, in the
+manner of a Cloudflare Queues HTTP pull consumer: a pulled delivery stays
+leased until acknowledged, retried, or its visibility timeout ends.
+
+#### Methods
+
+##### ack()
+
+```ts
+ack(request): Promise<EmptyReply>;
+```
+
+Acknowledge finished deliveries and offer retried ones again at once.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `request` | [`WebhookAckRequest`](#webhookackrequest) | Webhook and lease ids. |
+
+###### Returns
+
+`Promise`\<[`EmptyReply`](#emptyreply)\>
+
+[EmptyReply](#emptyreply)
+
+##### pull()
+
+```ts
+pull(request): Promise<WebhookPullReply>;
+```
+
+Lease up to `batchSize` stored deliveries, oldest first.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `request` | [`WebhookPullRequest`](#webhookpullrequest) | Webhook, batch size, visibility timeout. |
+
+###### Returns
+
+`Promise`\<[`WebhookPullReply`](#webhookpullreply)\>
+
+[WebhookPullReply](#webhookpullreply)
+
+##### url()
+
+```ts
+url(name): Promise<WebhookUrlReply>;
+```
+
+The URL an outside service should call for one webhook.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `name` | `string` | `[[webhooks]]` name. |
+
+###### Returns
+
+`Promise`\<[`WebhookUrlReply`](#webhookurlreply)\>
+
+[WebhookUrlReply](#webhookurlreply)
+
+***
+
+### WebhookUrl
+
+Success payload of `Webhooks.url`.
+
+#### Properties
+
+##### url?
+
+```ts
+url?: string;
+```
+
+Absolute `https://` URL; empty when the library cannot be reached from
+the Internet or webhooks are turned off, and the plugin should use its
+fallback.
+Omitted when absent (wire zero value).
+
+***
+
 ### WriteOptions
 
 Options for `Destination.put`.
@@ -12756,6 +13096,42 @@ type UserRelationsReply =
 ```
 
 Result union of `AdapterDatabaseSession.listUserRelations`.
+
+***
+
+### WebhookPullReply
+
+```ts
+type WebhookPullReply = 
+  | {
+  kind: "ok";
+  value: WebhookPullPage;
+}
+  | {
+  kind: "err";
+  value: PluginError;
+};
+```
+
+Result union of `Webhooks.pull`.
+
+***
+
+### WebhookUrlReply
+
+```ts
+type WebhookUrlReply = 
+  | {
+  kind: "ok";
+  value: WebhookUrl;
+}
+  | {
+  kind: "err";
+  value: PluginError;
+};
+```
+
+Result union of `Webhooks.url`.
 
 ## References
 

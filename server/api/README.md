@@ -41,6 +41,14 @@ Liveness.
 | --- | --- |
 | [`GET /health`](health.md#get-health) | Serves `GET /health` with a static `ok` payload for liveness probes. |
 
+### [Webhooks](webhooks.md)
+
+Inbound webhooks for plugins, outside operator auth: the URL token is the credential.
+
+| Route | Summary |
+| --- | --- |
+| [`POST /hooks/{token}/{name}`](webhooks.md#post-hookstokenname) | Stores one inbound webhook request for a plugin instance. |
+
 ### [Spec](spec.md)
 
 This document.

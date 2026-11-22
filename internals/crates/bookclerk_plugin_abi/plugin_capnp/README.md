@@ -91,6 +91,13 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | [`MAX_ORIGIN_HEADER_BYTES`](#max_origin_header_bytes) | constant |  |
 | [`MAX_ORIGIN_TARGET_BYTES`](#max_origin_target_bytes) | constant |  |
 | [`MAX_INGRESS_ORIGIN_BYTES`](#max_ingress_origin_bytes) | constant |  |
+| [`MAX_WEBHOOK_PULL_BATCH`](#max_webhook_pull_batch) | constant |  |
+| [`MAX_WEBHOOK_LEASE_ID_BYTES`](#max_webhook_lease_id_bytes) | constant |  |
+| [`MAX_WEBHOOK_VISIBILITY_MS`](#max_webhook_visibility_ms) | constant |  |
+| [`MAX_WEBHOOK_BODY_BYTES`](#max_webhook_body_bytes) | constant |  |
+| [`MAX_WEBHOOK_HEADERS`](#max_webhook_headers) | constant |  |
+| [`MAX_WEBHOOK_NAME_BYTES`](#max_webhook_name_bytes) | constant |  |
+| [`MAX_WEBHOOK_HEADER_VALUE_BYTES`](#max_webhook_header_value_bytes) | constant |  |
 | [`MAX_KV_METADATA_BYTES`](#max_kv_metadata_bytes) | constant |  |
 | [`MAX_NETWORK_GRANT_ENTRIES`](#max_network_grant_entries) | constant |  |
 | [`MAX_PLUGIN_MIGRATION_OPS`](#max_plugin_migration_ops) | constant |  |
@@ -209,6 +216,8 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`socket_handler`](socket_handler/README.md)
 - [`origin`](origin/README.md)
 - [`ingress`](ingress/README.md)
+- [`webhooks`](webhooks/README.md)
+- [`webhook_handler`](webhook_handler/README.md)
 - [`content_source`](content_source/README.md)
 - [`remote_library`](remote_library/README.md)
 - [`plugin_cli`](plugin_cli/README.md)
@@ -380,8 +389,17 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`origin_request`](origin_request.md)
 - [`ingress_started`](ingress_started.md)
 - [`ingress_start_reply`](ingress_start_reply.md)
+- [`webhook_url`](webhook_url.md)
+- [`webhook_url_reply`](webhook_url_reply.md)
+- [`webhook_pull_request`](webhook_pull_request.md)
+- [`webhook_header`](webhook_header.md)
+- [`webhook_delivery`](webhook_delivery.md)
+- [`webhook_pull_page`](webhook_pull_page.md)
+- [`webhook_pull_reply`](webhook_pull_reply.md)
 - [`ingress_health`](ingress_health.md)
 - [`ingress_health_reply`](ingress_health_reply.md)
+- [`webhook_ack_request`](webhook_ack_request.md)
+- [`webhook_delivered`](webhook_delivered.md)
 - [`db_value`](db_value.md)
 - [`db_column`](db_column.md)
 - [`db_row`](db_row.md)
@@ -1215,6 +1233,48 @@ pub const MAX_ORIGIN_TARGET_BYTES: u32 = 8192;
 
 ```rust
 pub const MAX_INGRESS_ORIGIN_BYTES: u32 = 253;
+```
+
+### MAX_WEBHOOK_PULL_BATCH
+
+```rust
+pub const MAX_WEBHOOK_PULL_BATCH: u32 = 100;
+```
+
+### MAX_WEBHOOK_LEASE_ID_BYTES
+
+```rust
+pub const MAX_WEBHOOK_LEASE_ID_BYTES: u32 = 128;
+```
+
+### MAX_WEBHOOK_VISIBILITY_MS
+
+```rust
+pub const MAX_WEBHOOK_VISIBILITY_MS: u32 = 43200000;
+```
+
+### MAX_WEBHOOK_BODY_BYTES
+
+```rust
+pub const MAX_WEBHOOK_BODY_BYTES: u32 = 1048576;
+```
+
+### MAX_WEBHOOK_HEADERS
+
+```rust
+pub const MAX_WEBHOOK_HEADERS: u32 = 16;
+```
+
+### MAX_WEBHOOK_NAME_BYTES
+
+```rust
+pub const MAX_WEBHOOK_NAME_BYTES: u32 = 32;
+```
+
+### MAX_WEBHOOK_HEADER_VALUE_BYTES
+
+```rust
+pub const MAX_WEBHOOK_HEADER_VALUE_BYTES: u32 = 8192;
 ```
 
 ### MAX_KV_METADATA_BYTES

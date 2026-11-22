@@ -97,6 +97,7 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`FilterEffect`](#filtereffect) | enum | Whether a `FilterRule` lets matching books in or keeps them out. |
 | [`FilterField`](#filterfield) | enum | The book field a `FilterRule` matches one value of. |
 | [`PlacementMediaKind`](#placementmediakind) | enum | What a book is, as a destination filter sees it. |
+| [`WebhooksExposure`](#webhooksexposure) | enum | `plugins.webhooks`: whether the public webhook route is open. |
 | [`RelayedLevel`](#relayedlevel) | enum | The level a relayed line is logged at. |
 | [`SubmitReplyError`](#submitreplyerror) | enum | Why a collector reply was refused. |
 | [`EventLevel`](#eventlevel) | enum | Severity of one logged event in a report. |
@@ -2073,6 +2074,7 @@ pub struct PluginsConfig {
     pub jail: PluginsJailConfig,
     pub registries: Vec<PluginRegistryEntry>,
     pub allow_unverified_publisher: bool,
+    pub webhooks: WebhooksExposure,
 }
 ```
 
@@ -2094,6 +2096,8 @@ ones it loads.
 - `allow_unverified_publisher`: When true, community packages without independent publisher authenticity
   may be installed without `--allow-unverified-publisher` (digests are still
   required). Bookclerk does not verify publisher signatures.
+- `webhooks`: Whether plugins' `[[webhooks]]` take requests from the Internet on
+  `POST /hooks/<token>/<name>`.
 
 #### PluginsConfig::apply_env_overrides
 
@@ -3887,6 +3891,43 @@ The kind of a library title from its content kind label (`book`,
 else is a book.
 
 Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
+
+### WebhooksExposure
+
+```rust
+pub enum WebhooksExposure {
+    Auto,
+    Off,
+}
+```
+
+`plugins.webhooks`: whether the public webhook route is open.
+
+**Variants**
+
+- `Auto`: Hand out webhook URLs and take requests when
+  `integrations.public_origin` is an `https` origin on a globally
+  reachable host. The default.
+- `Off`: Hand out no webhook URLs and answer every request on the route with
+  503; stored requests stay until they expire.
+
+#### WebhooksExposure::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+Canonical spelling, as written in `config.toml`.
+
+#### WebhooksExposure::parse
+
+```rust
+pub fn parse(value: &str) -> Option<Self>
+```
+
+Parses a config or settings value.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
 ### RelayedLevel
 

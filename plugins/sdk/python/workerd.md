@@ -51,6 +51,9 @@ Outside the isolate (authoring / unit tests), lightweight stubs stand in for
 | [`SocketsBinding`](#socketsbinding) | class | `[sockets]` binding (`env.SOCKETS`): dial host-held WebSockets. |
 | [`StorageEntrypoint`](#storageentrypoint) | class | `storage` entrypoint (`Destination` interface): an object store the host writes to. |
 | [`StorefrontEntrypoint`](#storefrontentrypoint) | class | `storefront` entrypoint (`ContentSource` interface). |
+| [`WebhookMessage`](#webhookmessage) | class | One stored webhook request, leased to this pull. |
+| [`WebhookPullResult`](#webhookpullresult) | class | One pull's leased requests. |
+| [`WebhooksBinding`](#webhooksbinding) | class | `[[webhooks]]` binding (`env.WEBHOOKS`). |
 | [`pack_embedding_vectors`](#pack_embedding_vectors) | function | Pack embedding vectors into the wire form of `AiTextEmbeddingsOutput["vectors"]`. |
 | [`unpack_embedding_vectors`](#unpack_embedding_vectors) | function | Split the wire form of `AiTextEmbeddingsOutput["vectors"]` into vectors. |
 | [`cli_args`](#cli_args) | function | Turn `CliInvokeParams.args` (`[{name, value}]`) into a `{name: value}` dict. |
@@ -69,6 +72,7 @@ Outside the isolate (authoring / unit tests), lightweight stubs stand in for
 | [`transport_kv`](#transport_kv) | function | Wrap the adapter's granted KV stub as a `KvNamespace`. |
 | [`transport_queue`](#transport_queue) | function | Wrap the adapter's granted queue stub as a `QueueBinding`. |
 | [`transport_sockets`](#transport_sockets) | function | Wrap the adapter's granted sockets stub as a `SocketsBinding`. |
+| [`transport_webhooks`](#transport_webhooks) | function | Wrap the adapter's granted webhooks stub as a `WebhooksBinding`. |
 | [`FEATURE_SCALAR_LIMITS`](#feature_scalar_limits) | constant | Guest honors scalar / stream-window / list-page caps (`rpc.scalarLimits`). |
 | [`FEATURE_STORAGE_CHANGES`](#feature_storage_changes) | constant | Guest implements `Destination.changes` (`storage.changes`). |
 | [`FEATURE_STORAGE_CONDITIONAL_WRITE`](#feature_storage_conditional_write) | constant | Guest enforces `WriteOptions.ifMatch` / `ifNoneMatch` (`storage.conditionalWrite`). |
@@ -90,6 +94,10 @@ Outside the isolate (authoring / unit tests), lightweight stubs stand in for
 | [`MAX_SOCKET_ATTACHMENT_BYTES`](#max_socket_attachment_bytes) | constant | Largest per-socket attachment the host keeps for a sleeping guest. |
 | [`MAX_SOCKET_FRAME_BYTES`](#max_socket_frame_bytes) | constant | Largest WebSocket message, text or binary, that `Sockets.send` accepts or `SocketHandler.message` delivers. |
 | [`MAX_STREAM_WINDOW_BYTES`](#max_stream_window_bytes) | constant | Maximum bytes returned by one `ByteSource.pull` (flow-control window). |
+| [`MAX_WEBHOOK_LEASE_ID_BYTES`](#max_webhook_lease_id_bytes) | constant | Longest `WebhookDelivery.leaseId`, in bytes. |
+| [`MAX_WEBHOOK_NAME_BYTES`](#max_webhook_name_bytes) | constant | Longest `[[webhooks]]` name, in bytes. |
+| [`MAX_WEBHOOK_PULL_BATCH`](#max_webhook_pull_batch) | constant | Most deliveries one `Webhooks.pull` returns. |
+| [`MAX_WEBHOOK_VISIBILITY_MS`](#max_webhook_visibility_ms) | constant | Longest `Webhooks.pull` visibility timeout, in milliseconds (12 hours). |
 | [`PRODUCT_API_VERSION`](#product_api_version) | constant | Product ABI version (`plugin.toml` `api_version` / `describe().apiVersion`). |
 
 ## Classes
@@ -318,6 +326,17 @@ async def bookclerkSocketClosed(self, context: Any=None, wire: Any=None) -> None
 Adapter dispatch: a host-held socket closed, to `web_socket_close(ws, code, reason, was_clean)`.
 
 Without a handler the close is acknowledged and ignored.
+
+#### BookclerkEntrypoint.bookclerkWebhookDelivered
+
+```python
+async def bookclerkWebhookDelivered(self, context: Any=None, wire: Any=None) -> None
+```
+
+Adapter dispatch: the host stored requests, to `webhook_delivered(name, waiting)`.
+
+Without a handler the call is acknowledged and ignored; the plugin
+pulls on its own schedule.
 
 #### BookclerkEntrypoint.bookclerkJob
 
@@ -2088,6 +2107,120 @@ async def diagnose(self)
 
 Operator-facing diagnostic lines (list of strings).
 
+### WebhookMessage
+
+```python
+@dataclass(frozen=True)
+class WebhookMessage
+```
+
+One stored webhook request, leased to this pull.
+
+**Attributes**
+
+- `lease_id`: Pass to [`WebhooksBinding.ack`](#webhooksbindingack) to finish or retry it.
+- `timestamp`: When the host received it.
+- `attempts`: How many pulls have leased it, this one included.
+- `headers`: The kept headers, lowercase names.
+- `body`: The request body as sent.
+
+### WebhookPullResult
+
+```python
+@dataclass(frozen=True)
+class WebhookPullResult
+```
+
+One pull's leased requests.
+
+**Attributes**
+
+- `messages`: Leased requests, oldest first.
+- `missed`: True when requests expired or were dropped since the last pull, so the plugin should resynchronize another way.
+
+### WebhooksBinding
+
+```python
+class WebhooksBinding
+```
+
+`[[webhooks]]` binding (`env.WEBHOOKS`).
+
+Requests outside services send to the webhook's URL wait in the library
+until the plugin pulls them; each pull leases a batch, and `ack`
+finishes or retries each lease.
+
+#### WebhooksBinding.__init__
+
+```python
+def __init__(self, stub: Any) -> None
+```
+
+#### WebhooksBinding.url
+
+```python
+async def url(self, name: str) -> str | None
+```
+
+The URL an outside service should call for webhook `name`.
+
+**Returns**
+
+The URL, or `None` when the library cannot be reached from the
+Internet or webhooks are turned off.
+
+#### WebhooksBinding.pull
+
+```python
+async def pull(
+    self,
+    name: str,
+    *,
+    batch_size: int=DEFAULT_WEBHOOK_PULL_BATCH,
+    visibility_timeout_ms: int=0,
+) -> WebhookPullResult
+```
+
+Lease up to `batch_size` waiting requests, oldest first.
+
+**Args**
+
+- `name`: The `[[webhooks]]` row.
+- `batch_size`: 1 to `MAX_WEBHOOK_PULL_BATCH`.
+- `visibility_timeout_ms`: How long leased requests stay hidden from the next pull; 0 means one minute.
+
+**Returns**
+
+The leased requests and whether any were missed.
+
+**Raises**
+
+- `PluginError`: `invalid_params` for an out-of-range option.
+
+#### WebhooksBinding.ack
+
+```python
+async def ack(
+    self,
+    name: str,
+    *,
+    acks: list[str] | None=None,
+    retries: list[str] | None=None,
+) -> None
+```
+
+Finish or retry leased requests.
+
+**Args**
+
+- `name`: The `[[webhooks]]` row.
+- `acks`: Leases whose requests are done and deleted.
+- `retries`: Leases whose requests the next pull offers again.
+
+**Raises**
+
+- `PluginError`: `invalid_params` for a malformed lease, too many leases, or a lease in both lists.
+
 ## Functions
 
 ### pack_embedding_vectors
@@ -2430,6 +2563,22 @@ Wrap the adapter's granted sockets stub as a [`SocketsBinding`](#socketsbinding)
 
 The author-facing binding.
 
+### transport_webhooks
+
+```python
+def transport_webhooks(stub: Any) -> WebhooksBinding
+```
+
+Wrap the adapter's granted webhooks stub as a [`WebhooksBinding`](#webhooksbinding).
+
+**Args**
+
+- `stub`: `WebhooksTransport`-shaped JS stub from the granted context.
+
+**Returns**
+
+The author-facing binding.
+
 ## Constants
 
 ### FEATURE_SCALAR_LIMITS
@@ -2601,6 +2750,38 @@ MAX_STREAM_WINDOW_BYTES: int = 1048576
 ```
 
 Maximum bytes returned by one `ByteSource.pull` (flow-control window).
+
+### MAX_WEBHOOK_LEASE_ID_BYTES
+
+```python
+MAX_WEBHOOK_LEASE_ID_BYTES: int = 128
+```
+
+Longest `WebhookDelivery.leaseId`, in bytes.
+
+### MAX_WEBHOOK_NAME_BYTES
+
+```python
+MAX_WEBHOOK_NAME_BYTES: int = 32
+```
+
+Longest `[[webhooks]]` name, in bytes.
+
+### MAX_WEBHOOK_PULL_BATCH
+
+```python
+MAX_WEBHOOK_PULL_BATCH: int = 100
+```
+
+Most deliveries one `Webhooks.pull` returns.
+
+### MAX_WEBHOOK_VISIBILITY_MS
+
+```python
+MAX_WEBHOOK_VISIBILITY_MS: int = 43200000
+```
+
+Longest `Webhooks.pull` visibility timeout, in milliseconds (12 hours).
 
 ### PRODUCT_API_VERSION
 

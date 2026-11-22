@@ -112,6 +112,7 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`plugin_placements`](plugin_placements.md): SeaORM entity for `plugin_placements`: the scheduler's input per instance.
 - [`plugin_schemas`](plugin_schemas.md): SeaORM entity for the `plugin_schemas` table.
 - [`plugin_versions`](plugin_versions.md): SeaORM entity for `plugin_versions`: one installed version of a plugin.
+- [`plugin_webhooks`](plugin_webhooks.md): SeaORM entity for `plugin_webhooks`: one inbound webhook of one plugin instance, with its URL token (storage destinations ADR, `docs/adr/storage-destinations.md`, decision 6).
 - [`portal_identities`](portal_identities.md): SeaORM entity for the `portal_identities` table.
 - [`portal_sessions`](portal_sessions.md): SeaORM entity for the `portal_sessions` table.
 - [`remote_plugin_consents`](remote_plugin_consents.md): SeaORM entity for `remote_plugin_consents`: on a branch node, this install's operator consent for each owner plugin a library wants to run here (written by `control_plane::remote_consents`).

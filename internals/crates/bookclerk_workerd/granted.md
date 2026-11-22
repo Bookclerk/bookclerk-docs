@@ -79,6 +79,7 @@ pub struct GrantedSlot {
     pub queue: Option<Rc<dyn QueueProducer>>,
     pub kv: Option<Rc<dyn KvNamespace>>,
     pub sockets: Option<Rc<dyn Sockets>>,
+    pub webhooks: Option<Rc<dyn Webhooks>>,
     pub notify: Option<Rc<dyn NotificationRaiser>>,
     pub origin: Option<Rc<dyn Origin>>,
     pub ai: Option<Rc<dyn AiRunner>>,
@@ -111,6 +112,7 @@ or an `EVENTS` publisher.
   binding.
 - `kv`: Host KV namespace, when this grant is one `[[kv_namespaces]]` binding.
 - `sockets`: Host socket broker, when this grant is the `SOCKETS` binding.
+- `webhooks`: Host webhook store, when this grant is the `WEBHOOKS` binding.
 - `notify`: Host notification router entry, when this grant is the `NOTIFY`
   binding.
 - `origin`: The library, when this grant is a relay ingress plugin's `ORIGIN`
@@ -134,6 +136,15 @@ pub fn sockets_only(sockets: Rc<dyn Sockets>, expires: Instant) -> Self
 
 A grant that only reaches the instance's socket broker over
 `/sockets/*` (no streams, no database, no events, no KV).
+
+#### GrantedSlot::webhooks_only
+
+```rust
+pub fn webhooks_only(webhooks: Rc<dyn Webhooks>, expires: Instant) -> Self
+```
+
+A grant that only reaches the instance's webhook store over
+`/webhooks/*` (no streams, no database, no events, no KV).
 
 #### GrantedSlot::kv_only
 
