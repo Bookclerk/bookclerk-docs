@@ -1167,6 +1167,18 @@ Re-exports [IngressEntrypoint](plugin.md#ingressentrypoint)
 
 ***
 
+### IngressHealth
+
+Re-exports [IngressHealth](generated.md#ingresshealth-1)
+
+***
+
+### IngressStarted
+
+Re-exports [IngressStarted](generated.md#ingressstarted)
+
+***
+
 ### Instant
 
 Re-exports [Instant](plugin.md#instant)
