@@ -75,6 +75,7 @@ Outside the isolate (authoring / unit tests), lightweight stubs stand in for
 | [`transport_webhooks`](#transport_webhooks) | function | Wrap the adapter's granted webhooks stub as a `WebhooksBinding`. |
 | [`FEATURE_SCALAR_LIMITS`](#feature_scalar_limits) | constant | Guest honors scalar / stream-window / list-page caps (`rpc.scalarLimits`). |
 | [`FEATURE_STORAGE_CHANGES`](#feature_storage_changes) | constant | Guest implements `Destination.changes` (`storage.changes`). |
+| [`FEATURE_STORAGE_CHECKED_WRITE`](#feature_storage_checked_write) | constant | Guest enforces `WriteOptions.ifMatch` / `ifNoneMatch` by writing, then checking and withdrawing its write when another got in first (`storage.checkedWrite`); a reader may briefly see the losing write. |
 | [`FEATURE_STORAGE_CONDITIONAL_WRITE`](#feature_storage_conditional_write) | constant | Guest enforces `WriteOptions.ifMatch` / `ifNoneMatch` (`storage.conditionalWrite`). |
 | [`FEATURE_STORAGE_COPY`](#feature_storage_copy) | constant | Guest implements server-side `Destination.copy` (`storage.copy`). |
 | [`FEATURE_STORAGE_DELETE_MANY`](#feature_storage_delete_many) | constant | Guest implements `Destination.deleteMany` (`storage.deleteMany`). |
@@ -2596,6 +2597,16 @@ FEATURE_STORAGE_CHANGES: str = 'storage.changes'
 ```
 
 Guest implements `Destination.changes` (`storage.changes`).
+
+### FEATURE_STORAGE_CHECKED_WRITE
+
+```python
+FEATURE_STORAGE_CHECKED_WRITE: str = 'storage.checkedWrite'
+```
+
+Guest enforces `WriteOptions.ifMatch` / `ifNoneMatch` by writing, then
+checking and withdrawing its write when another got in first
+(`storage.checkedWrite`); a reader may briefly see the losing write.
 
 ### FEATURE_STORAGE_CONDITIONAL_WRITE
 

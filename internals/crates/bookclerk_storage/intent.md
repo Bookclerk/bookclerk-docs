@@ -49,6 +49,7 @@ pub struct StorageCapabilities {
     pub delete_many: bool,
     pub head_many: bool,
     pub conditional_write: bool,
+    pub checked_write: bool,
     pub changes: bool,
     pub translate_keys: bool,
 }
@@ -72,6 +73,11 @@ after the check).
 - `head_many`: Batch probes ([`StorageBackend::head_many`](README.md#storagebackendhead_many)).
 - `conditional_write`: Conditional writes enforced by the backend
   ([`StorageBackend::put_stream_conditional`](README.md#storagebackendput_stream_conditional)).
+- `checked_write`: Conditional writes the backend enforces without an atomic
+  primitive: it writes, then checks and withdraws its write when
+  another got in first, so a reader may briefly see the losing write
+  ([`StorageBackend::put_stream_conditional`](README.md#storagebackendput_stream_conditional) reports `atomic: false`).
+  Ignored when [`Self::conditional_write`](#storagecapabilities) is set.
 - `changes`: A change feed ([`StorageBackend::changes`](README.md#storagebackendchanges)).
 - `translate_keys`: Its own translation of host keys ([`StorageBackend::translate_keys`](README.md#storagebackendtranslate_keys));
   without it a host key is stored as written.

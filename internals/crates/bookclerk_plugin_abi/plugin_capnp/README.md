@@ -111,6 +111,7 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | [`FEATURE_STORAGE_DELETE_MANY`](#feature_storage_delete_many) | constant |  |
 | [`FEATURE_STORAGE_HEAD_MANY`](#feature_storage_head_many) | constant |  |
 | [`FEATURE_STORAGE_CONDITIONAL_WRITE`](#feature_storage_conditional_write) | constant |  |
+| [`FEATURE_STORAGE_CHECKED_WRITE`](#feature_storage_checked_write) | constant |  |
 | [`FEATURE_STORAGE_CHANGES`](#feature_storage_changes) | constant |  |
 | [`FEATURE_STORAGE_TRANSLATE_KEYS`](#feature_storage_translate_keys) | constant |  |
 
@@ -1353,6 +1354,12 @@ pub const FEATURE_STORAGE_HEAD_MANY: &str = "storage.headMany";
 
 ```rust
 pub const FEATURE_STORAGE_CONDITIONAL_WRITE: &str = "storage.conditionalWrite";
+```
+
+### FEATURE_STORAGE_CHECKED_WRITE
+
+```rust
+pub const FEATURE_STORAGE_CHECKED_WRITE: &str = "storage.checkedWrite";
 ```
 
 ### FEATURE_STORAGE_CHANGES

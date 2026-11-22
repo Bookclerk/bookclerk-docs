@@ -23,6 +23,7 @@ natively (see `docs/plugins/abi.md#intent-operations`).
 | [`head_many`](#head_many) | function | Probes up to `MAX_BATCH_KEYS` keys, one entry per key in order. |
 | [`translate_keys`](#translate_keys) | function | Translates up to `MAX_BATCH_KEYS` host keys into the keys the backend stores them under, one per key in order. |
 | [`changes`](#changes) | function | Serves `changes` from the backend's change feed. |
+| [`changes_page`](#changes_page) | function | The ABI page of a change-feed page; `None` (no feed) is an empty page that says changes may have been missed, so the host lists instead. |
 
 ## Functions
 
@@ -195,3 +196,12 @@ missed, so the host lists instead.
 
 Returns `invalidCursor` for a cursor the feed does not accept, and the
 feed's other failures.
+
+### changes_page
+
+```rust
+pub fn changes_page(page: Option<ChangeFeedPage>) -> ChangesPage
+```
+
+The ABI page of a change-feed page; `None` (no feed) is an empty page
+that says changes may have been missed, so the host lists instead.

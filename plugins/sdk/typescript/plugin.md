@@ -7821,6 +7821,12 @@ Re-exports [FEATURE_STORAGE_CHANGES](abi.md#feature_storage_changes)
 
 ***
 
+### FEATURE\_STORAGE\_CHECKED\_WRITE
+
+Re-exports [FEATURE_STORAGE_CHECKED_WRITE](abi.md#feature_storage_checked_write)
+
+***
+
 ### FEATURE\_STORAGE\_CONDITIONAL\_WRITE
 
 Re-exports [FEATURE_STORAGE_CONDITIONAL_WRITE](abi.md#feature_storage_conditional_write)

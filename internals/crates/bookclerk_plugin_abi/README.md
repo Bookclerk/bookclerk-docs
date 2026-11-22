@@ -277,6 +277,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`SQLITE_FAMILY_INSERT_OR_IGNORE_MAX_EXTRA`](#sqlite_family_insert_or_ignore_max_extra) | constant | Conservative extra bytes for one `INSERT OR IGNORE` unique-conflict rewrite (conflict clause plus optional `SELECT` source wrap). |
 | [`FEATURE_SCALAR_LIMITS`](#feature_scalar_limits) | constant | Guest honors scalar / stream-window / list-page caps. |
 | [`FEATURE_STORAGE_CHANGES`](#feature_storage_changes) | constant | Guest implements `super::Destination::changes`. |
+| [`FEATURE_STORAGE_CHECKED_WRITE`](#feature_storage_checked_write) | constant | Guest enforces `super::WriteOptions::if_match` and `super::WriteOptions::if_none_match` without an atomic primitive: it writes, then checks and withdraws its write when another got in first, so a reader may briefly see the losing write. The host reports such a write as not atomic. |
 | [`FEATURE_STORAGE_CONDITIONAL_WRITE`](#feature_storage_conditional_write) | constant | Guest enforces `super::WriteOptions::if_match` and `super::WriteOptions::if_none_match`. |
 | [`FEATURE_STORAGE_COPY`](#feature_storage_copy) | constant | Guest implements server-side `super::Destination::copy`. |
 | [`FEATURE_STORAGE_DELETE_MANY`](#feature_storage_delete_many) | constant | Guest implements `super::Destination::delete_many`. |
@@ -8506,6 +8507,18 @@ pub const FEATURE_STORAGE_CHANGES: &str = crate::plugin_capnp::FEATURE_STORAGE_C
 ```
 
 Guest implements [`super::Destination::changes`](#destinationchanges).
+
+### FEATURE_STORAGE_CHECKED_WRITE
+
+```rust
+pub const FEATURE_STORAGE_CHECKED_WRITE: &str = crate::plugin_capnp::FEATURE_STORAGE_CHECKED_WRITE;
+```
+
+Guest enforces [`super::WriteOptions::if_match`](#writeoptions) and
+[`super::WriteOptions::if_none_match`](#writeoptions) without an atomic primitive: it
+writes, then checks and withdraws its write when another got in first,
+so a reader may briefly see the losing write. The host reports such a
+write as not atomic.
 
 ### FEATURE_STORAGE_CONDITIONAL_WRITE
 

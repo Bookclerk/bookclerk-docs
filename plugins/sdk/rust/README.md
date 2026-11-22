@@ -127,8 +127,9 @@ A plugin that declares `[[webhooks]]` (see
 `Webhooks` on `Bindings::webhooks` in `open` (`url`, `pull` and `ack`,
 with `WebhookPullRequest` and `WebhookAckRequest`), and may return a
 `WebhookHandler` on `Entrypoints::webhook_handler`, whose `delivered` the
-host calls on a running guest once a request is stored.
-`bookclerk_plugin_abi::webhooks` has the checks the host applies, so a
+host calls on a running guest once a request is stored. The SDK re-exports
+these types and the `MAX_WEBHOOK_PULL_BATCH` and
+`MAX_WEBHOOK_VISIBILITY_MS` limits. `bookclerk_plugin_abi::webhooks` has the checks the host applies, so a
 plugin can validate a pull before sending it.
 
 ## Author tools
@@ -526,6 +527,7 @@ submodules unless you need module-level docs.
 - [`bookclerk_plugin_abi::WriteOptions`](../../../internals/crates/bookclerk_plugin_abi/README.md#writeoptions)
 - [`bookclerk_plugin_abi::FEATURE_SCALAR_LIMITS`](../../../internals/crates/bookclerk_plugin_abi/README.md#feature_scalar_limits)
 - [`bookclerk_plugin_abi::FEATURE_STORAGE_CHANGES`](../../../internals/crates/bookclerk_plugin_abi/README.md#feature_storage_changes)
+- [`bookclerk_plugin_abi::FEATURE_STORAGE_CHECKED_WRITE`](../../../internals/crates/bookclerk_plugin_abi/README.md#feature_storage_checked_write)
 - [`bookclerk_plugin_abi::FEATURE_STORAGE_CONDITIONAL_WRITE`](../../../internals/crates/bookclerk_plugin_abi/README.md#feature_storage_conditional_write)
 - [`bookclerk_plugin_abi::FEATURE_STORAGE_COPY`](../../../internals/crates/bookclerk_plugin_abi/README.md#feature_storage_copy)
 - [`bookclerk_plugin_abi::FEATURE_STORAGE_DELETE_MANY`](../../../internals/crates/bookclerk_plugin_abi/README.md#feature_storage_delete_many)
@@ -585,6 +587,16 @@ submodules unless you need module-level docs.
 - [`bookclerk_plugin_abi::MAX_AI_LANGUAGES`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_ai_languages)
 - [`bookclerk_plugin_abi::MAX_AI_MODELS`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_ai_models)
 - [`bookclerk_plugin_abi::MAX_AI_MODEL_NAME_BYTES`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_ai_model_name_bytes)
+- [`bookclerk_plugin_abi::WebhookAckRequest`](../../../internals/crates/bookclerk_plugin_abi/generated.md#webhookackrequest)
+- [`bookclerk_plugin_abi::WebhookDelivered`](../../../internals/crates/bookclerk_plugin_abi/generated.md#webhookdelivered)
+- [`bookclerk_plugin_abi::WebhookDelivery`](../../../internals/crates/bookclerk_plugin_abi/generated.md#webhookdelivery)
+- [`bookclerk_plugin_abi::WebhookHandler`](../../../internals/crates/bookclerk_plugin_abi/README.md#webhookhandler)
+- [`bookclerk_plugin_abi::WebhookHeader`](../../../internals/crates/bookclerk_plugin_abi/generated.md#webhookheader)
+- [`bookclerk_plugin_abi::WebhookPullPage`](../../../internals/crates/bookclerk_plugin_abi/generated.md#webhookpullpage)
+- [`bookclerk_plugin_abi::WebhookPullRequest`](../../../internals/crates/bookclerk_plugin_abi/generated.md#webhookpullrequest)
+- [`bookclerk_plugin_abi::Webhooks`](../../../internals/crates/bookclerk_plugin_abi/README.md#webhooks)
+- [`bookclerk_plugin_abi::MAX_WEBHOOK_PULL_BATCH`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_webhook_pull_batch)
+- [`bookclerk_plugin_abi::MAX_WEBHOOK_VISIBILITY_MS`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_webhook_visibility_ms)
 
 ## Modules
 

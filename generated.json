@@ -1037,6 +1037,7 @@
     "internals/crates/bookclerk_source/abi",
     "internals/crates/bookclerk_storage/README",
     "internals/crates/bookclerk_storage/b2_api",
+    "internals/crates/bookclerk_storage/b2_events",
     "internals/crates/bookclerk_storage/fs_kind",
     "internals/crates/bookclerk_storage/guest",
     "internals/crates/bookclerk_storage/intent",

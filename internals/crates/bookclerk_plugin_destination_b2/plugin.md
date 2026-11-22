@@ -27,6 +27,8 @@ Implements: `PluginWorker`
 pub fn destination_from(
     config: &ExtensibleConfig,
     secrets: &ExtensibleConfig,
+    hooks: Option<Box<dyn Webhooks>>,
+    state_dir: Option<&Path>,
 ) -> Result<ObjectStoreDestination<B2Backend>, PluginError>
 ```
 
@@ -37,8 +39,11 @@ Nothing is sent to B2 until the first storage call.
 
 * `config` - the instance settings.
 * `secrets` - the instance's sealed secrets.
+* `hooks` - the instance's webhook binding, when the host granted one.
+* `state_dir` - where the change feed keeps its state (under the
+  guest's `HOME`); `None` leaves the feed off.
 
 #### Errors
 
 Returns invalid_params for a missing or malformed setting or secret, and
-internal when the client cannot be constructed.
+internal when the client or the feed's state directory cannot be made.

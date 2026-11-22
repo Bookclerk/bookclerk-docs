@@ -561,6 +561,18 @@ Guest implements `Destination.changes` (`storage.changes`).
 
 ***
 
+### FEATURE\_STORAGE\_CHECKED\_WRITE
+
+```ts
+const FEATURE_STORAGE_CHECKED_WRITE: "storage.checkedWrite";
+```
+
+Guest enforces `WriteOptions.ifMatch` / `ifNoneMatch` by writing, then
+checking and withdrawing its write when another got in first
+(`storage.checkedWrite`); a reader may briefly see the losing write.
+
+***
+
 ### FEATURE\_STORAGE\_CONDITIONAL\_WRITE
 
 ```ts
