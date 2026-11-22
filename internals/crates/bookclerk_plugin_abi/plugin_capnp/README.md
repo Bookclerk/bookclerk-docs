@@ -33,6 +33,8 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | [`NotificationAudience`](#notificationaudience) | enum |  |
 | [`NotificationAlertAction`](#notificationalertaction) | enum |  |
 | [`NotifyDestinationKind`](#notifydestinationkind) | enum |  |
+| [`AiTask`](#aitask) | enum |  |
+| [`AiTextRole`](#aitextrole) | enum |  |
 | [`DbType`](#dbtype) | enum |  |
 | [`DbStatementKind`](#dbstatementkind) | enum |  |
 | [`DbResultSelection`](#dbresultselection) | enum |  |
@@ -70,6 +72,12 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | [`MAX_NOTIFICATION_FIELDS`](#max_notification_fields) | constant |  |
 | [`MAX_NOTIFICATION_FIELD_BYTES`](#max_notification_field_bytes) | constant |  |
 | [`MAX_NOTIFIER_ADDRESS_BYTES`](#max_notifier_address_bytes) | constant |  |
+| [`MAX_AI_MODEL_NAME_BYTES`](#max_ai_model_name_bytes) | constant |  |
+| [`MAX_AI_MODELS`](#max_ai_models) | constant |  |
+| [`MAX_AI_EMBED_TEXTS`](#max_ai_embed_texts) | constant |  |
+| [`MAX_AI_EMBED_TEXT_BYTES`](#max_ai_embed_text_bytes) | constant |  |
+| [`MAX_AI_EMBED_DIMENSIONS`](#max_ai_embed_dimensions) | constant |  |
+| [`MAX_AI_LANGUAGES`](#max_ai_languages) | constant |  |
 | [`MAX_METADATA_AUDIO_FILES`](#max_metadata_audio_files) | constant |  |
 | [`MAX_KV_KEY_BYTES`](#max_kv_key_bytes) | constant |  |
 | [`MAX_SOCKET_FRAME_BYTES`](#max_socket_frame_bytes) | constant |  |
@@ -210,6 +218,8 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`metadata_files`](metadata_files/README.md)
 - [`notifier`](notifier/README.md)
 - [`notification_raiser`](notification_raiser/README.md)
+- [`ai_models`](ai_models/README.md)
+- [`ai_runner`](ai_runner/README.md)
 - [`json_enum`](json_enum.md)
 - [`event_consumer_spec`](event_consumer_spec.md)
 - [`plugin_capabilities`](plugin_capabilities.md)
@@ -343,6 +353,17 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`notify_raise_params`](notify_raise_params.md)
 - [`notify_raised`](notify_raised.md)
 - [`notify_raise_reply`](notify_raise_reply.md)
+- [`ai_model`](ai_model.md)
+- [`ai_model_list`](ai_model_list.md)
+- [`ai_models_reply`](ai_models_reply.md)
+- [`ai_embed_text`](ai_embed_text.md)
+- [`ai_text_embeddings_input`](ai_text_embeddings_input.md)
+- [`ai_text_embeddings_output`](ai_text_embeddings_output.md)
+- [`ai_input`](ai_input.md)
+- [`ai_output`](ai_output.md)
+- [`ai_run_params`](ai_run_params.md)
+- [`ai_run_ok`](ai_run_ok.md)
+- [`ai_run_reply`](ai_run_reply.md)
 - [`socket_frame`](socket_frame.md)
 - [`socket_header`](socket_header.md)
 - [`socket_auto_response`](socket_auto_response.md)
@@ -484,6 +505,7 @@ pub enum Entrypoint {
     MetadataFiles = 8,
     Notifier = 9,
     Ingress = 10,
+    Ai = 11,
 }
 ```
 
@@ -793,6 +815,27 @@ pub enum NotifyDestinationKind {
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<NotifyDestinationKind>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
 
+### AiTask
+
+```rust
+pub enum AiTask {
+    TextEmbeddings = 0,
+}
+```
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<AiTask>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
+
+### AiTextRole
+
+```rust
+pub enum AiTextRole {
+    Document = 0,
+    Query = 1,
+}
+```
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<AiTextRole>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
+
 ### DbType
 
 ```rust
@@ -1058,6 +1101,42 @@ pub const MAX_NOTIFICATION_FIELD_BYTES: u32 = 1024;
 
 ```rust
 pub const MAX_NOTIFIER_ADDRESS_BYTES: u32 = 4096;
+```
+
+### MAX_AI_MODEL_NAME_BYTES
+
+```rust
+pub const MAX_AI_MODEL_NAME_BYTES: u32 = 192;
+```
+
+### MAX_AI_MODELS
+
+```rust
+pub const MAX_AI_MODELS: u32 = 64;
+```
+
+### MAX_AI_EMBED_TEXTS
+
+```rust
+pub const MAX_AI_EMBED_TEXTS: u32 = 64;
+```
+
+### MAX_AI_EMBED_TEXT_BYTES
+
+```rust
+pub const MAX_AI_EMBED_TEXT_BYTES: u32 = 16384;
+```
+
+### MAX_AI_EMBED_DIMENSIONS
+
+```rust
+pub const MAX_AI_EMBED_DIMENSIONS: u32 = 4096;
+```
+
+### MAX_AI_LANGUAGES
+
+```rust
+pub const MAX_AI_LANGUAGES: u32 = 64;
 ```
 
 ### MAX_METADATA_AUDIO_FILES

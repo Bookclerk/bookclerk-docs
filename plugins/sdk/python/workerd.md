@@ -11,7 +11,7 @@ The default export is a module-level `Default` class extending
 [`BookclerkEntrypoint`](#bookclerkentrypoint) with optional `event(batch)` / `job(job)`
 triggers. Named entrypoints from `plugin.toml` `entrypoints` are module-level
 classes named after the wire name (`Storefront`, `Storage`, `RemoteLibrary`,
-`DatabaseAdapter`, `Cli`, `Oidc`, `Metadata`, `Covers`, `MetadataFiles`, `Notifier`) extending the matching `*Entrypoint`
+`DatabaseAdapter`, `Cli`, `Oidc`, `Metadata`, `Covers`, `MetadataFiles`, `Notifier`, `Ai`) extending the matching `*Entrypoint`
 base. The launcher's adapter isolate reaches them only through the
 `bookclerk*` dispatch methods; authors neither call nor override those.
 
@@ -37,6 +37,8 @@ Outside the isolate (authoring / unit tests), lightweight stubs stand in for
 | [`IngressEntrypoint`](#ingressentrypoint) | class | `ingress` entrypoint: gives the library a public `https` address. |
 | [`MetadataEntrypoint`](#metadataentrypoint) | class | `metadata` entrypoint: bibliographic lookups against a public catalog. |
 | [`NamedEntrypoint`](#namedentrypoint) | class | Base for named entrypoints. |
+| [`AiBinding`](#aibinding) | class | `AI` binding, present when `plugin.toml` lists tasks under `[ai].calls`. |
+| [`AiEntrypoint`](#aientrypoint) | class | `ai` entrypoint: serves models to the host and to plugins with the grant. |
 | [`NotifierEntrypoint`](#notifierentrypoint) | class | `notifier` entrypoint: delivers messages the host already rendered. |
 | [`NotifyBinding`](#notifybinding) | class | `NOTIFY` binding, present when `plugin.toml` declares `[[notifications.types]]`. |
 | [`OidcEntrypoint`](#oidcentrypoint) | class | `oidc` entrypoint: relying-party client templates and credential verification. |
@@ -49,6 +51,8 @@ Outside the isolate (authoring / unit tests), lightweight stubs stand in for
 | [`SocketsBinding`](#socketsbinding) | class | `[sockets]` binding (`env.SOCKETS`): dial host-held WebSockets. |
 | [`StorageEntrypoint`](#storageentrypoint) | class | `storage` entrypoint (`Destination` interface): an object store the host writes to. |
 | [`StorefrontEntrypoint`](#storefrontentrypoint) | class | `storefront` entrypoint (`ContentSource` interface). |
+| [`pack_embedding_vectors`](#pack_embedding_vectors) | function | Pack embedding vectors into the wire form of `AiTextEmbeddingsOutput["vectors"]`. |
+| [`unpack_embedding_vectors`](#unpack_embedding_vectors) | function | Split the wire form of `AiTextEmbeddingsOutput["vectors"]` into vectors. |
 | [`cli_args`](#cli_args) | function | Turn `CliInvokeParams.args` (`[{name, value}]`) into a `{name: value}` dict. |
 | [`decode_extensible_config`](#decode_extensible_config) | function | Decode an `ExtensibleConfig` into the plain value on `env.CONFIG`. |
 | [`decode_socket_attachment`](#decode_socket_attachment) | function | Decode stored socket attachment bytes. |
@@ -1132,6 +1136,100 @@ Adapter dispatch: call `method` with the granted bindings installed.
 
 - `PluginError`: `unsupported` for methods outside `bookclerk_methods`.
 
+### AiBinding
+
+```python
+class AiBinding
+```
+
+`AI` binding, present when `plugin.toml` lists tasks under `[ai].calls`.
+
+The host routes each run to the deployed plugin that serves the model.
+The adapter isolate owns the ai grant; this wrapper converts Python
+values into the JS values the adapter stub expects.
+
+#### AiBinding.__init__
+
+```python
+def __init__(self, stub: Any) -> None
+```
+
+#### AiBinding.run
+
+```python
+async def run(
+    self,
+    model: str,
+    *,
+    text: str | list[str],
+    role: abi.AiTextRole='document',
+) -> dict[str, Any]
+```
+
+Run one text-embedding model on one input (`env.AI.run`).
+
+**Args**
+
+- `model`: `@<plugin id>/<model id>`, or a task alias such as `@library/text-embeddings` for the model the library chose.
+- `text`: One text or a batch (at most `MAX_AI_EMBED_TEXTS`), none empty.
+- `role`: `document` for stored content, `query` for a search query matched against documents.
+
+**Returns**
+
+``{"shape": [texts, dimensions], "data": [[...], ...], "model":
+..., "revision": ..., "fallbacks": [...]}``. Vectors are
+comparable only when their model and revision match.
+
+**Raises**
+
+- `PluginError`: `invalid_params` for a malformed run, `not_found` when nothing deployed serves the model, `forbidden` for a task that is not granted, `rate_limited` past the plugin's budget, `deadline_exceeded` or `unavailable` when the model plugin cannot answer.
+
+### AiEntrypoint
+
+```python
+class AiEntrypoint(NamedEntrypoint)
+```
+
+`ai` entrypoint: serves models to the host and to plugins with the grant.
+
+`[ai].serves` in `plugin.toml` declares the tasks. The host checks
+every listing and every reply, so a wrong vector count or length fails
+the run.
+
+#### AiEntrypoint.health
+
+```python
+async def health(self) -> abi.HealthOk
+```
+
+Liveness / readiness probe (`HealthOk`).
+
+#### AiEntrypoint.models
+
+```python
+async def models(self) -> abi.AiModelList
+```
+
+The models served now (`AiModelList`).
+
+Must be cheap: do not load a model here. Change a model's
+`revision` whenever its weights, tokenizer or loaded language packs
+change, because outputs are comparable only within one revision.
+
+#### AiEntrypoint.run
+
+```python
+async def run(self, _params: abi.AiRunParams) -> abi.AiRunOk
+```
+
+Run one model on one input (`AiRunOk`).
+
+Raise `not_found` for a model this plugin does not serve and
+`invalid_params` for an input of another task. For text embeddings
+return one vector per text, in input order
+([`pack_embedding_vectors`](#pack_embedding_vectors)), with the model's listed
+`dimensions` and `revision`; leave `model` unset.
+
 ### NotifierEntrypoint
 
 ```python
@@ -1991,6 +2089,47 @@ async def diagnose(self)
 Operator-facing diagnostic lines (list of strings).
 
 ## Functions
+
+### pack_embedding_vectors
+
+```python
+def pack_embedding_vectors(vectors: Sequence[Sequence[float]]) -> bytes
+```
+
+Pack embedding vectors into the wire form of `AiTextEmbeddingsOutput["vectors"]`.
+
+**Args**
+
+- `vectors`: One vector per input text, all of one length.
+
+**Returns**
+
+Little-endian 32-bit floats, concatenated.
+
+**Raises**
+
+- `PluginError`: `internal` when the vectors differ in length.
+
+### unpack_embedding_vectors
+
+```python
+def unpack_embedding_vectors(data: bytes, dimensions: int) -> list[list[float]]
+```
+
+Split the wire form of `AiTextEmbeddingsOutput["vectors"]` into vectors.
+
+**Args**
+
+- `data`: Little-endian 32-bit floats, concatenated.
+- `dimensions`: Numbers per vector.
+
+**Returns**
+
+One vector per `dimensions` numbers.
+
+**Raises**
+
+- `PluginError`: `internal` when the bytes are not whole vectors.
 
 ### cli_args
 

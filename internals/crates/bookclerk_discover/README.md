@@ -21,7 +21,6 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`CatalogSearchHit`](#catalogsearchhit) | struct | One autocomplete / results-page hit (possibly spanning multiple storefronts). |
 | [`CatalogSearchPage`](#catalogsearchpage) | struct | Paged catalog-search response. |
 | [`CatalogSearchPageOpts`](#catalogsearchpageopts) | struct | Options for `catalog_search_page`. |
-| [`OnnxEmbedder`](#onnxembedder) | struct | ONNX MiniLM embedder (fastembed). Loaded on demand; drop to free RAM. |
 | [`CosineHit`](#cosinehit) | struct | One cosine-similarity neighbor from an embedding query. |
 | [`HashEmbedder`](#hashembedder) | struct | Deterministic offline embedder for discovery similarity. |
 | [`StoreEdition`](#storeedition) | struct | One storefront edition of a work (for multi-store purchase links). |
@@ -60,10 +59,8 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`catalog_search`](#catalog_search) | function | Search every configured storefront catalog and merge by work identity. |
 | [`catalog_search_page`](#catalog_search_page) | function | Paged multi-store catalog browse (filters + sort + cursor). |
 | [`catalog_search_with_field`](#catalog_search_with_field) | function | Like `catalog_search`, optionally scoping storefront queries to a facet (author / narrator / series / genre). When `language` is set it is applied as a hard include filter (unknown/missing language still passes). |
-| [`default_embedding_model_id`](#default_embedding_model_id) | function | Preferred model id for this build (ONNX MiniLM; runtime may fall back). |
 | [`embed_dirty_works`](#embed_dirty_works) | function | Embed works whose text hash changed (or are missing), and drop the embeddings of works that no longer exist. |
-| [`embedding_model_id`](#embedding_model_id) | function | Resolve the configured model id. |
-| [`open_embedder`](#open_embedder) | function | Open an embedder for the current build / config. |
+| [`open_embedder`](#open_embedder) | function | Opens the embedder the host uses while no plugin serves text embeddings. |
 | [`text_for_work`](#text_for_work) | function | Build the text blob embedded for a work. |
 | [`candidate_map_key`](#candidate_map_key) | function | Stable HashMap key for a storefront candidate (hard id, soft title+author, or source:product). |
 | [`hard_work_key`](#hard_work_key) | function | Hard bibliographic key: canonical ISBN first, then ASIN. |
@@ -112,8 +109,8 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`pool_wish_editions`](#pool_wish_editions) | function | Asks each store about the editions a wish names and records the answers in the shared pool. |
 | [`record_wish_member_offers`](#record_wish_member_offers) | function | Stores the member prices `hints` quote for editions already pooled. |
 | [`EMBED_PAGE_WORKS`](#embed_page_works) | constant | Works read per page by `embed_dirty_works`; also the most texts one embedder call receives. |
-| [`MODEL_ALL_MINILM_L6_V2_Q`](#model_all_minilm_l6_v2_q) | constant | Quantized MiniLM-L6-v2 — ~22 MB ONNX, ~50 MB RAM, 384 dims. |
-| [`MODEL_LOCAL_HASH_V1`](#model_local_hash_v1) | constant | Local hash embedder id used when ONNX is unavailable / disabled. |
+| [`LOCAL_HASH_DIMENSIONS`](#local_hash_dimensions) | constant | Numbers in one hash vector. |
+| [`MODEL_LOCAL_HASH_V1`](#model_local_hash_v1) | constant | Model id stored beside hash vectors. They are never compared with a model's vectors. |
 | [`DEFAULT_MAX_REQUESTS_PER_RUN`](#default_max_requests_per_run) | constant | Default cap on provider asks in one run. |
 | [`METADATA_ENRICH_SOURCE_PREFIX`](#metadata_enrich_source_prefix) | constant | `enrich_source` prefix marking a title filled by a metadata provider; the provider's plugin key follows it. |
 | [`HOUSEHOLD_BLEND_WEIGHT`](#household_blend_weight) | constant | How much a household book counts in a member's taste while it blends in, relative to one of their own. |
@@ -186,7 +183,7 @@ Embeds each input text into a dense float vector of [`Self::dimensions`](#embedd
 
 Returns an error when the operation fails.
 
-Implemented by: `HashEmbedder`, `OnnxEmbedder`
+Implemented by: `HashEmbedder`
 
 ## Structs
 
@@ -586,41 +583,6 @@ Options for [`catalog_search_page`](#catalog_search_page).
 
 Implements: `Clone`, `Debug`
 
-### OnnxEmbedder
-
-```rust
-pub struct OnnxEmbedder {
-    /* private fields */
-}
-```
-
-ONNX MiniLM embedder (fastembed). Loaded on demand; drop to free RAM.
-
-Only built with the `onnx` feature (the hosts' `onnx-embeddings`).
-
-#### OnnxEmbedder::open
-
-```rust
-pub fn open(cache_dir: &Path, intra_threads: usize) -> Result<Self, DiscoverError>
-```
-
-Download (if needed) and load quantized MiniLM into `cache_dir`.
-
-##### Arguments
-
-* `cache_dir` - Directory used to cache downloaded model weights.
-* `intra_threads` - ONNX intra-op thread count (clamped to at least 1).
-
-##### Returns
-
-On success, the inner `Self` value.
-
-##### Errors
-
-Returns an error when the underlying I/O, parse, network, or store operation fails.
-
-Implements: `Embedder`
-
 ### CosineHit
 
 ```rust
@@ -649,9 +611,9 @@ pub struct HashEmbedder {
 
 Deterministic offline embedder for discovery similarity.
 
-Not semantic like MiniLM — used when ONNX fails to load or when
-`prefer_onnx` is false. Still enables the full pipeline (hash → store →
-cosine) for CI and constrained hosts.
+It carries no meaning: two texts score alike only when they share
+words. It keeps the whole pipeline (hash → store → cosine) working while
+no plugin serves text embeddings.
 
 #### HashEmbedder::new
 
@@ -1136,8 +1098,6 @@ pub struct RecommendOptions {
     pub storefront_max_remote_calls: usize,
     pub exclude_graphicaudio_series_sets: bool,
     pub disabled_shelves: Vec<String>,
-    pub models_dir: Option<PathBuf>,
-    pub embed_intra_threads: usize,
     pub embeddings_enabled: bool,
 }
 ```
@@ -1147,7 +1107,7 @@ Tunables for [`recommend`](#recommend).
 **Fields**
 
 - `limit`: Maximum number of recommendations to return.
-- `embedding_model`: Embedding model id used for similarity (`all-minilm-l6-v2-q`, …).
+- `embedding_model`: Model id of the vectors compared for similarity (`local-hash-v1`, …).
 - `region`: Marketplace / region code (`us`, `uk`, …) for catalog lookups.
 - `include_purchase_hints`: When true, attach buy links to each recommendation.
 - `external_user_id`: When set, only listening rows for this external user influence ranking.
@@ -1162,12 +1122,7 @@ Tunables for [`recommend`](#recommend).
 - `exclude_graphicaudio_series_sets`: Drop GraphicAudio Magento series-set SKUs from discovery candidates.
 - `disabled_shelves`: Shelf kinds / ids to hide (`finish_series`, `author`, `genre`, `from_store`, …).
   Empty = offer every shelf Discover can build.
-- `models_dir`: Where the ONNX model lives. `Some` means candidates are embedded with
-  ONNX MiniLM when it loads (local-hash when it doesn't); `None` means
-  local-hash only, without trying ONNX.
-- `embed_intra_threads`: ONNX intra-op thread count for the embedder (clamped ≥ 1).
 - `embeddings_enabled`: When false, skip embedding similarity and use heuristic ranking only.
-  Which embedder scores similarity is chosen by [`Self::models_dir`](#recommendoptions).
 
 Implements: `Clone`, `Debug`, `Default`
 
@@ -1908,14 +1863,6 @@ On success, the inner `Vec<CatalogSearchHit>` value.
 
 Returns an error when the underlying I/O, parse, network, or store operation fails.
 
-### default_embedding_model_id
-
-```rust
-pub fn default_embedding_model_id() -> &'static str
-```
-
-Preferred model id for this build (ONNX MiniLM; runtime may fall back).
-
 ### embed_dirty_works
 
 ```rust
@@ -1947,51 +1894,17 @@ How many embeddings were written.
 Returns an error when a store read or write fails, or when the
 embedder fails or returns a different number of vectors than texts.
 
-### embedding_model_id
-
-```rust
-pub fn embedding_model_id(configured: &str) -> &str
-```
-
-Resolve the configured model id.
-
-#### Arguments
-
-* `configured` - Configured model id from config/env; empty selects the build default.
-
-#### Returns
-
-String result for this operation.
-
 ### open_embedder
 
 ```rust
-pub fn open_embedder(
-    models_dir: &Path,
-    intra_threads: usize,
-    prefer_onnx: bool,
-) -> Result<Box<dyn Embedder>, DiscoverError>
+pub fn open_embedder() -> Box<dyn Embedder>
 ```
 
-Open an embedder for the current build / config.
-
-When `prefer_onnx` is true, tries quantized MiniLM via fastembed/ort and
-**warns + falls back** to the local-hash embedder if load/download fails
-(missing glibc symbols, offline host, corrupt cache, …).
-
-#### Arguments
-
-* `models_dir` - Directory that holds (or will hold) embedding model files.
-* `intra_threads` - ONNX intra-op thread count (clamped to at least 1).
-* `prefer_onnx` - When true, try MiniLM ONNX first and fall back to hash embeddings on failure.
+Opens the embedder the host uses while no plugin serves text embeddings.
 
 #### Returns
 
-On success, the inner `Box<dyn Embedder>` value.
-
-#### Errors
-
-Returns an error when the underlying I/O, parse, network, or store operation fails.
+The local-hash embedder, [`LOCAL_HASH_DIMENSIONS`](#local_hash_dimensions) numbers a vector.
 
 ### text_for_work
 
@@ -3115,13 +3028,13 @@ pub const EMBED_PAGE_WORKS: u64 = 128;
 Works read per page by [`embed_dirty_works`](#embed_dirty_works); also the most texts one
 embedder call receives.
 
-### MODEL_ALL_MINILM_L6_V2_Q
+### LOCAL_HASH_DIMENSIONS
 
 ```rust
-pub const MODEL_ALL_MINILM_L6_V2_Q: &str = "all-minilm-l6-v2-q";
+pub const LOCAL_HASH_DIMENSIONS: usize = 384;
 ```
 
-Quantized MiniLM-L6-v2 — ~22 MB ONNX, ~50 MB RAM, 384 dims.
+Numbers in one hash vector.
 
 ### MODEL_LOCAL_HASH_V1
 
@@ -3129,7 +3042,8 @@ Quantized MiniLM-L6-v2 — ~22 MB ONNX, ~50 MB RAM, 384 dims.
 pub const MODEL_LOCAL_HASH_V1: &str = "local-hash-v1";
 ```
 
-Local hash embedder id used when ONNX is unavailable / disabled.
+Model id stored beside hash vectors. They are never compared with a
+model's vectors.
 
 ### DEFAULT_MAX_REQUESTS_PER_RUN
 

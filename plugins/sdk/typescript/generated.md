@@ -362,6 +362,347 @@ Canonical SQL text.
 
 ***
 
+### AiEmbedText
+
+One text to embed.
+
+#### Properties
+
+##### role
+
+```ts
+role: "document" | "query";
+```
+
+Document or query.
+
+##### text
+
+```ts
+text: string;
+```
+
+The text, at most `maxAiEmbedTextBytes`; never empty.
+
+***
+
+### AiInput
+
+Input to one model run: one field per `AiTask`, and exactly one is set
+(the others are null). A new task appends a field.
+
+#### Properties
+
+##### textEmbeddings
+
+```ts
+textEmbeddings: AiTextEmbeddingsInput;
+```
+
+`textEmbeddings` task.
+
+***
+
+### AiModel
+
+One model an `ai` plugin serves.
+
+#### Properties
+
+##### dimensions?
+
+```ts
+dimensions?: number;
+```
+
+Text embeddings: numbers per vector, at most `maxAiEmbedDimensions`.
+Omitted when absent (wire zero value).
+
+##### languages
+
+```ts
+languages: string[];
+```
+
+BCP 47 tags of the languages the model is loaded for, at most
+`maxAiLanguages`; empty when it has no language packs.
+
+##### maxTokens?
+
+```ts
+maxTokens?: number;
+```
+
+Text embeddings: tokens read from one text; the rest is cut off.
+Omitted when absent (wire zero value).
+
+##### modelId
+
+```ts
+modelId: string;
+```
+
+Model id within the plugin (`bekko-a8m`): lowercase letters, digits,
+`.`, `_` and `-`. Callers name it `@<plugin id>/<model id>`; the whole
+name is at most `maxAiModelNameBytes`.
+
+##### revision
+
+```ts
+revision: string;
+```
+
+Digest of everything that decides the output: weights, tokenizer and
+the language packs loaded. Outputs are comparable only when it matches.
+
+##### task
+
+```ts
+task: "textEmbeddings";
+```
+
+The model's one task.
+
+***
+
+### AiModelList
+
+Success payload of `AiModels.models`.
+
+#### Properties
+
+##### models
+
+```ts
+models: AiModel[];
+```
+
+Served models, at most `maxAiModels`, each `modelId` once.
+
+***
+
+### AiModels
+
+`ai` entrypoint: serves models. The plugin lists the models it serves,
+each with one task, and runs one model on one input. The host routes
+every call (its own and other plugins' through the `AI` binding) to the
+deployed plugin that serves the named model; a model plugin never learns
+who asked. Bulk work arrives as many `run` calls from a host job, each
+within the per-call caps.
+
+#### Methods
+
+##### health()
+
+```ts
+health(): Promise<HealthReply>;
+```
+
+Liveness / readiness probe: model files present and loadable.
+
+###### Returns
+
+`Promise`\<[`HealthReply`](#healthreply)\>
+
+[HealthReply](#healthreply)
+
+##### models()
+
+```ts
+models(): Promise<AiModelsReply>;
+```
+
+The models this plugin serves right now, under its current settings.
+
+###### Returns
+
+`Promise`\<[`AiModelsReply`](#aimodelsreply)\>
+
+[AiModelsReply](#aimodelsreply)
+
+##### run()
+
+```ts
+run(params): Promise<AiRunReply>;
+```
+
+Run one model on one input.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `params` | [`AiRunParams`](#airunparams) | Model name and the task's input. |
+
+###### Returns
+
+`Promise`\<[`AiRunReply`](#airunreply)\>
+
+[AiRunReply](#airunreply)
+
+***
+
+### AiOutput
+
+Output of one model run: one field per `AiTask`, and exactly one is set
+(the others are null). A new task appends a field.
+
+#### Properties
+
+##### textEmbeddings
+
+```ts
+textEmbeddings: AiTextEmbeddingsOutput;
+```
+
+`textEmbeddings` task.
+
+***
+
+### AiRunner
+
+`AI` binding: runs a model by name, as `env.AI.run(model, input)` does on
+Cloudflare Workers. The host checks the caller's `[ai]` grant for the
+model's task, applies the call's deadline and the caller's budget, and
+forwards to the serving plugin's `AiModels.run`.
+
+#### Methods
+
+##### run()
+
+```ts
+run(params): Promise<AiRunReply>;
+```
+
+Run one model on one input.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `params` | [`AiRunParams`](#airunparams) | Model name or task alias, and the task's input. |
+
+###### Returns
+
+`Promise`\<[`AiRunReply`](#airunreply)\>
+
+[AiRunReply](#airunreply)
+
+***
+
+### AiRunOk
+
+Success payload of a model run.
+
+#### Properties
+
+##### model?
+
+```ts
+model?: string;
+```
+
+Full name of the model that ran (`@<plugin id>/<model id>`), so a
+caller that used a task alias knows what answered. Set by the host on
+`AiRunner.run`; empty on `AiModels.run`.
+Omitted when absent (wire zero value).
+
+##### output
+
+```ts
+output: AiOutput;
+```
+
+The output; the field set matches the model's task.
+
+***
+
+### AiRunParams
+
+Params of `AiModels.run` and `AiRunner.run`.
+
+#### Properties
+
+##### input
+
+```ts
+input: AiInput;
+```
+
+The input; the field set must match the model's task.
+
+##### model
+
+```ts
+model: string;
+```
+
+On `AiModels.run`, the plugin's own `AiModel.modelId`. On
+`AiRunner.run`, `@<plugin id>/<model id>` or a task alias
+(`@library/text-embeddings`: the model the library chose for the task).
+
+***
+
+### AiTextEmbeddingsInput
+
+Input of the `textEmbeddings` task.
+
+#### Properties
+
+##### texts
+
+```ts
+texts: AiEmbedText[];
+```
+
+Texts to embed, 1 to `maxAiEmbedTexts`.
+
+***
+
+### AiTextEmbeddingsOutput
+
+Output of the `textEmbeddings` task.
+
+#### Properties
+
+##### dimensions
+
+```ts
+dimensions: number;
+```
+
+Numbers per vector; equals the model's `AiModel.dimensions`.
+
+##### fallbacks
+
+```ts
+fallbacks: number[];
+```
+
+Indexes (into the input texts, ascending, each once) of the texts
+where the tokenizer met text outside the loaded language packs and
+fell back to smaller pieces; such a vector should be recomputed after
+the missing pack is added.
+
+##### revision
+
+```ts
+revision: string;
+```
+
+`AiModel.revision` of the model that made the vectors.
+
+##### vectors
+
+```ts
+vectors: Uint8Array;
+```
+
+One vector per input text, in input order: `dimensions` little-endian
+IEEE 754 32-bit floats each, concatenated. Every number is finite.
+
+***
+
 ### AuthenticateUserParams
 
 Params of `Oidc.authenticateUser`.
@@ -404,6 +745,16 @@ adapter: DatabaseAdapterConfig;
 Database-adapter bootstrap for the `databaseAdapter` entrypoint. First-party
 host-managed adapters receive host-private connect params in `config`;
 third-party adapters receive this typed bootstrap (and an empty `config`).
+
+##### ai?
+
+```ts
+ai?: AiRunner | null;
+```
+
+`AI`: runs models other plugins serve; null unless `[ai]` names the
+tasks the plugin calls and the operator granted them.
+Null when the guest does not export this capability.
 
 ##### cancel?
 
@@ -3118,6 +3469,15 @@ Exported entrypoints returned by `PluginWorker.open`. One capability per
 refuses an entrypoint the manifest or operator grant did not allow.
 
 #### Properties
+
+##### ai?
+
+```ts
+ai?: AiModels | null;
+```
+
+`ai` entrypoint.
+Null when the guest does not export this capability.
 
 ##### cli?
 
@@ -7906,7 +8266,8 @@ entrypoints: (
   | "covers"
   | "metadataFiles"
   | "notifier"
-  | "ingress")[];
+  | "ingress"
+  | "ai")[];
 ```
 
 Named entrypoints the guest exports.
@@ -10894,6 +11255,44 @@ Result union of `Database.openSession`.
 
 ***
 
+### AiModelsReply
+
+```ts
+type AiModelsReply = 
+  | {
+  kind: "ok";
+  value: AiModelList;
+}
+  | {
+  kind: "err";
+  value: PluginError;
+};
+```
+
+Result union of `AiModels.models`.
+
+***
+
+### AiRunReply
+
+```ts
+type AiRunReply = 
+  | {
+  kind: "ok";
+  value: AiRunOk;
+}
+  | {
+  kind: "err";
+  value: PluginError;
+};
+```
+
+Result union of `AiModels.run` and `AiRunner.run`. A model the plugin
+does not serve is `not_found`; an input for another task is
+`invalid_params`; a caller without the grant gets `forbidden`.
+
+***
+
 ### CatalogDetailReply
 
 ```ts
@@ -12363,6 +12762,18 @@ Result union of `AdapterDatabaseSession.listUserRelations`.
 ### Abridgement
 
 Re-exports [Abridgement](abi.md#abridgement)
+
+***
+
+### AiTask
+
+Re-exports [AiTask](abi.md#aitask)
+
+***
+
+### AiTextRole
+
+Re-exports [AiTextRole](abi.md#aitextrole)
 
 ***
 

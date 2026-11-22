@@ -123,6 +123,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`watch_grants_loop`](#watch_grants_loop) | function | Watch `plugin-grants.json` until the process exits. |
 | [`install_bundled_platform_plugins`](#install_bundled_platform_plugins) | function | Installs bundled platform plugins from beside the running executable into `files_dir`. |
 | [`active_processes_for`](#active_processes_for) | function | Absolute Spec `active_processes` from runtime overhead + extra budget. |
+| [`ai_task_grant`](#ai_task_grant) | function | Grant token for running models of `task` through the `AI` binding. |
 | [`canonical_event_filter`](#canonical_event_filter) | function | Minified JSON for an event filter; `null` / missing → `None`. |
 | [`consent_request`](#consent_request) | function | Build the consent request surface from a manifest and its PluginKey. |
 | [`consent_request_alias`](#consent_request_alias) | function | Build the consent request surface from a manifest (alias only; tests). |
@@ -270,7 +271,10 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`Result`](#result) | type alias | Result alias for `PluginError`. |
 | [`GuestDatabaseFactory`](#guestdatabasefactory) | type alias | Send-safe constructor for a per-binding `bookclerk_plugin_sdk::GuestDatabase`. |
 | [`SettingDestinationMap`](#settingdestinationmap) | type alias | Per setting key, the destinations a plugin's instances name now. |
+| [`AI_BINDING_RUN_TIMEOUT`](#ai_binding_run_timeout) | constant | Longest one run through the `AI` binding may take. |
+| [`AI_ITEMS_PER_MINUTE`](#ai_items_per_minute) | constant | Input items (texts, for text embeddings) one plugin session may send through `AI` per minute. The budget refills continuously and allows a burst of the whole minute. Work over many items belongs in a job that the host runs against the model plugin itself. |
 | [`GRANT_WATCH_INTERVAL`](#grant_watch_interval) | constant | How often the daemon re-reads `plugin-grants.json` when no in-process notify fires. |
+| [`AI_TASK_BINDING_PREFIX`](#ai_task_binding_prefix) | constant | Grant `bindings` entry prefix for one `[ai].calls` task (`ai:<task>`, such as `ai:textEmbeddings`): the plugin may run models of that task through its `AI` binding. |
 | [`GRANTS_FILE`](#grants_file) | constant | Filename under `$BOOKCLERK_FILES_DIR` for persisted grants. |
 | [`GRANT_SCHEMA_VERSION`](#grant_schema_version) | constant | Current persisted `PluginGrant` document version. |
 | [`KNOWN_HOST_BINDINGS`](#known_host_bindings) | constant | Host binding names operators may grant (widen or narrow). |
@@ -1013,7 +1017,7 @@ One approved grant snapshot for a provenance-qualified plugin.
 - `plugin_id`: Display / CLI alias from `plugin.toml` (not security authoritative).
 - `entrypoints`: Approved named entrypoints (wire names: `storefront`, `storage`,
   `databaseAdapter`, `remoteLibrary`, `cli`, `oidc`, `metadata`, `covers`,
-  `metadataFiles`, `notifier`).
+  `metadataFiles`, `notifier`, `ai`).
 - `producers`: Approved event types the plugin may publish through its events binding.
 - `consumers`: Approved event-consumer subscriptions (type + schema + suspend + filter).
 - `jobs`: Approved `[triggers].jobs` types the plugin may handle.
@@ -1142,6 +1146,15 @@ pub fn allows_queue_producer(&self, binding: &str) -> bool
 
 True when this grant authorizes sending through the queue producer
 `binding`.
+
+#### PluginGrant::allows_ai_task
+
+```rust
+pub fn allows_ai_task(&self, task: AiTask) -> bool
+```
+
+True when this grant authorizes running models of `task` through
+the `AI` binding.
 
 #### PluginGrant::allows_job
 
@@ -1439,6 +1452,7 @@ pub struct LiveDeploymentRuntime {
     pub sources: Arc<RwLock<SourceRegistry>>,
     pub integrations: Arc<RwLock<IntegrationRegistry>>,
     pub destinations: Arc<RwLock<DestinationRegistry>>,
+    pub ai: Arc<AiRouter>,
     /* private fields */
 }
 ```
@@ -1453,6 +1467,9 @@ the session on the live registry.
 - `sources`: Storefront sessions the reconciler owns.
 - `integrations`: Integration sessions the reconciler owns.
 - `destinations`: Destination sessions the reconciler owns.
+- `ai`: The node's model router over [`Self::integrations`]: behind every
+  granted `AI` binding, and what the host's own features run models
+  through.
 
 #### LiveDeploymentRuntime::new
 
@@ -3650,6 +3667,26 @@ runtime.
 Returns a plugin error when the guest did not export `notifier` or
 the method fails.
 
+#### PluginSession::ai
+
+```rust
+pub async fn ai<T, F, Fut>(&self, call: F) -> Result<T>
+where
+    T: Send + 'static,
+    F: FnOnce(Box<dyn AiModels>) -> Fut + Send + 'static,
+    Fut: Future<Output = Result<T, PluginError>> + 'static,
+```
+
+One typed `ai` method on the opened primary entrypoints.
+
+`call` runs on the vat thread; its output crosses back to the caller's
+runtime.
+
+##### Errors
+
+Returns a plugin error when the guest did not export `ai` or the
+method fails.
+
 #### PluginSession::ingress
 
 ```rust
@@ -4302,6 +4339,7 @@ pub struct SessionServices {
     pub local_output_root: Option<PathBuf>,
     pub deployed_endpoint: Option<Option<String>>,
     pub sockets: Option<SocketBroker>,
+    pub ai: Option<Arc<AiRouter>>,
     pub origin: Option<Arc<dyn Origin + Send + Sync>>,
 }
 ```
@@ -4340,6 +4378,11 @@ binding on the manifest declaration plus the covering consent grant.
   session hands it out only when the manifest declares `[sockets]` and
   the covering grant has the `sockets` token; `None` never exposes
   `SOCKETS`.
+- `ai`: The node's model router, behind the `AI` binding.
+  
+  The session hands it out only when the manifest lists tasks under
+  `[ai].calls` and the covering grant has the token of at least one;
+  `None` never exposes `AI`.
 - `origin`: The library as a relay ingress plugin reaches it, behind the `ORIGIN`
   binding.
   
@@ -5284,6 +5327,14 @@ pub fn active_processes_for(runtime: GuestRuntimeKind, extra: u32) -> u32
 ```
 
 Absolute Spec `active_processes` from runtime overhead + extra budget.
+
+### ai_task_grant
+
+```rust
+pub fn ai_task_grant(task: AiTask) -> String
+```
+
+Grant token for running models of `task` through the `AI` binding.
 
 ### canonical_event_filter
 
@@ -7568,6 +7619,25 @@ Per setting key, the destinations a plugin's instances name now.
 
 ## Constants
 
+### AI_BINDING_RUN_TIMEOUT
+
+```rust
+pub const AI_BINDING_RUN_TIMEOUT: Duration = _;
+```
+
+Longest one run through the `AI` binding may take.
+
+### AI_ITEMS_PER_MINUTE
+
+```rust
+pub const AI_ITEMS_PER_MINUTE: u32 = 240;
+```
+
+Input items (texts, for text embeddings) one plugin session may send
+through `AI` per minute. The budget refills continuously and allows a
+burst of the whole minute. Work over many items belongs in a job that
+the host runs against the model plugin itself.
+
 ### GRANT_WATCH_INTERVAL
 
 ```rust
@@ -7575,6 +7645,16 @@ pub const GRANT_WATCH_INTERVAL: Duration = _;
 ```
 
 How often the daemon re-reads `plugin-grants.json` when no in-process notify fires.
+
+### AI_TASK_BINDING_PREFIX
+
+```rust
+pub const AI_TASK_BINDING_PREFIX: &str = "ai:";
+```
+
+Grant `bindings` entry prefix for one `[ai].calls` task
+(`ai:<task>`, such as `ai:textEmbeddings`): the plugin may run models of
+that task through its `AI` binding.
 
 ### GRANTS_FILE
 

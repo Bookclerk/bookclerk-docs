@@ -151,6 +151,8 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`MetadataFiles`](#metadatafiles) | class | `metadataFiles` entrypoint: reads and writes metadata files that sit next to an edition's media (sidecars such as `metadata.json`, OPF, NFO or CUE), one dialect per format. The plugin only converts bytes: the host reads the file, chooses every path and writes the result, so a dialect plugin needs no network or file grants. The manifest's `[metadata_files]` table names each dialect, the file names it reads and the fields it carries, so the host routes a file to a sleeping plugin without starting it. |
 | [`Notifier`](#notifier) | class | `notifier` entrypoint: delivers one host-rendered message to one destination (an email address, a chat webhook, a push subscription). The host decides what is worth a notification, who gets it and which instance carries it; the plugin only sends. Each send is one claimed `notify.send` job, so the host owns retries: a reply of `rate_limited`, `unavailable`, `deadline_exceeded` or `cancelled` is retried (`rate_limited` honouring `details.retryAfterMs`), any other error is a permanent failure for that destination. |
 | [`NotificationRaiser`](#notificationraiser) | class | `NOTIFY` binding: raises a notification type the plugin declared in `[[notifications.types]]`. The host router applies the administrators' routing and each patron's preferences; the raising plugin never learns where the notification went. |
+| [`AiModels`](#aimodels) | class | `ai` entrypoint: serves models. The plugin lists the models it serves, each with one task, and runs one model on one input. The host routes every call (its own and other plugins' through the `AI` binding) to the deployed plugin that serves the named model; a model plugin never learns who asked. Bulk work arrives as many `run` calls from a host job, each within the per-call caps. |
+| [`AiRunner`](#airunner) | class | `AI` binding: runs a model by name, as `env.AI.run(model, input)` does on Cloudflare Workers. The host checks the caller's `[ai]` grant for the model's task, applies the call's deadline and the caller's budget, and forwards to the serving plugin's `AiModels.run`. |
 | [`EventConsumerSpec`](#eventconsumerspec) | class | One declared event consumer: a `[[events.consumers]]` row the default entrypoint's `event(batch)` handler accepts. |
 | [`PluginCapabilities`](#plugincapabilities) | class | Typed capability declaration returned by `describe()`. The host compares it with `plugin.toml` and the operator grant; widening is rejected at spawn. |
 | [`CatalogCapabilities`](#catalogcapabilities) | class | Catalog behaviours a storefront declares in `describe()`. Catalog search reads them instead of special-casing plugin ids; every flag defaults to false, so a guest that says nothing keeps the plain behaviour. |
@@ -315,6 +317,19 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`NotifyRaised`](#notifyraised) | class | Success payload of `NotificationRaiser.raise`. |
 | [`NotifyRaiseReplyOk`](#notifyraisereplyok) | class | `NotifyRaiseReply` member `ok`. |
 | [`NotifyRaiseReplyErr`](#notifyraisereplyerr) | class | `NotifyRaiseReply` member `err`. |
+| [`AiModel`](#aimodel) | class | One model an `ai` plugin serves. |
+| [`AiModelList`](#aimodellist) | class | Success payload of `AiModels.models`. |
+| [`AiModelsReplyOk`](#aimodelsreplyok) | class | `AiModelsReply` member `ok`. |
+| [`AiModelsReplyErr`](#aimodelsreplyerr) | class | `AiModelsReply` member `err`. |
+| [`AiEmbedText`](#aiembedtext) | class | One text to embed. |
+| [`AiTextEmbeddingsInput`](#aitextembeddingsinput) | class | Input of the `textEmbeddings` task. |
+| [`AiTextEmbeddingsOutput`](#aitextembeddingsoutput) | class | Output of the `textEmbeddings` task. |
+| [`AiInput`](#aiinput) | class | Input to one model run: one field per `AiTask`, and exactly one is set (the others are null). A new task appends a field. |
+| [`AiOutput`](#aioutput) | class | Output of one model run: one field per `AiTask`, and exactly one is set (the others are null). A new task appends a field. |
+| [`AiRunParams`](#airunparams) | class | Params of `AiModels.run` and `AiRunner.run`. |
+| [`AiRunOk`](#airunok) | class | Success payload of a model run. |
+| [`AiRunReplyOk`](#airunreplyok) | class | `AiRunReply` member `ok`. |
+| [`AiRunReplyErr`](#airunreplyerr) | class | `AiRunReply` member `err`. |
 | [`SocketFrameText`](#socketframetext) | class | `SocketFrame` member `text`. |
 | [`SocketFrameBinary`](#socketframebinary) | class | `SocketFrame` member `binary`. |
 | [`SocketHeader`](#socketheader) | class | One request header on `Sockets.connect`. |
@@ -435,6 +450,8 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`NotificationAudience`](#notificationaudience) | constant | Who a notification type is for. The account audience is reserved to the host; a plugin may declare only operational and patron types. |
 | [`NotificationAlertAction`](#notificationalertaction) | constant | Lifecycle step of an alert, for services such as PagerDuty that open and close incidents. |
 | [`NotifyDestinationKind`](#notifydestinationkind) | constant | Kind of destination a `Notifier` sends to. |
+| [`AiTask`](#aitask) | constant | What a model does. A model has exactly one task, and the task fixes the shape of `AiRunParams.input` and of the reply. |
+| [`AiTextRole`](#aitextrole) | constant | What a text is to an embedding model. Some models embed a search query differently from the documents it is matched against. |
 | [`DbType`](#dbtype) | constant | Universal database cell/parameter domain. Engine-native arrays, enums, unsigned integers, and JSON text sentinels are not baseline ABI values. |
 | [`DbStatementKind`](#dbstatementkind) | constant | How the host classifies a statement for result handling. |
 | [`DbResultSelection`](#dbresultselection) | constant | Which part of a statement's outcome the caller wants back. |
@@ -501,6 +518,8 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`NotifySendReply`](#notifysendreply) | constant | Result union of `Notifier.send`. |
 | [`NotifyValidateReply`](#notifyvalidatereply) | constant | Result union of `Notifier.validateDestination`. An address the plugin refuses is `invalid_params`. |
 | [`NotifyRaiseReply`](#notifyraisereply) | constant | Result union of `NotificationRaiser.raise`. |
+| [`AiModelsReply`](#aimodelsreply) | constant | Result union of `AiModels.models`. |
+| [`AiRunReply`](#airunreply) | constant | Result union of `AiModels.run` and `AiRunner.run`. A model the plugin does not serve is `not_found`; an input for another task is `invalid_params`; a caller without the grant gets `forbidden`. |
 | [`SocketFrame`](#socketframe) | constant | One WebSocket message. |
 | [`SocketConnectReply`](#socketconnectreply) | constant | Result union of `Sockets.connect`. |
 | [`SocketListReply`](#socketlistreply) | constant | Result union of `Sockets.list`. |
@@ -1001,6 +1020,7 @@ the binding.
 - `notify`: `NOTIFY`: raises the notification types the plugin declares in `[[notifications.types]]`; null when it declares none. Null when the guest does not export this capability.
 - `network`: `NETWORK`: what the operator granted this plugin's network, including the destination each network setting names and whether it is approved, so a guest can tell an unapproved destination from an unreachable one.
 - `origin`: `ORIGIN`: the library itself, for a relay `ingress` plugin to send the public requests it carries to; null unless the plugin is the library's active relay ingress. Null when the guest does not export this capability.
+- `ai`: `AI`: runs models other plugins serve; null unless `[ai]` names the tasks the plugin calls and the operator granted them. Null when the guest does not export this capability.
 
 ### NetworkGrant
 
@@ -1062,6 +1082,7 @@ refuses an entrypoint the manifest or operator grant did not allow.
 - `metadataFiles`: `metadataFiles` entrypoint. Null when the guest does not export this capability.
 - `notifier`: `notifier` entrypoint. Null when the guest does not export this capability.
 - `ingress`: `ingress` entrypoint. Null when the guest does not export this capability.
+- `ai`: `ai` entrypoint. Null when the guest does not export this capability.
 
 ### EntrypointsReplyOk
 
@@ -3797,6 +3818,86 @@ Raise one notification.
 
 `NotifyRaiseReply`
 
+### AiModels
+
+```python
+class AiModels(Protocol)
+```
+
+`ai` entrypoint: serves models. The plugin lists the models it serves,
+each with one task, and runs one model on one input. The host routes
+every call (its own and other plugins' through the `AI` binding) to the
+deployed plugin that serves the named model; a model plugin never learns
+who asked. Bulk work arrives as many `run` calls from a host job, each
+within the per-call caps.
+
+#### AiModels.health
+
+```python
+async def health(self) -> HealthReply
+```
+
+Liveness / readiness probe: model files present and loadable.
+
+**Returns**
+
+`HealthReply`
+
+#### AiModels.models
+
+```python
+async def models(self) -> AiModelsReply
+```
+
+The models this plugin serves right now, under its current settings.
+
+**Returns**
+
+`AiModelsReply`
+
+#### AiModels.run
+
+```python
+async def run(self, params: AiRunParams) -> AiRunReply
+```
+
+Run one model on one input.
+
+**Args**
+
+- `params`: Model name and the task's input.
+
+**Returns**
+
+`AiRunReply`
+
+### AiRunner
+
+```python
+class AiRunner(Protocol)
+```
+
+`AI` binding: runs a model by name, as `env.AI.run(model, input)` does on
+Cloudflare Workers. The host checks the caller's `[ai]` grant for the
+model's task, applies the call's deadline and the caller's budget, and
+forwards to the serving plugin's `AiModels.run`.
+
+#### AiRunner.run
+
+```python
+async def run(self, params: AiRunParams) -> AiRunReply
+```
+
+Run one model on one input.
+
+**Args**
+
+- `params`: Model name or task alias, and the task's input.
+
+**Returns**
+
+`AiRunReply`
+
 ### EventConsumerSpec
 
 ```python
@@ -6357,6 +6458,187 @@ Typed failure; `code` is a `PluginErrorCode` wire string.
 - `kind`: Always `"err"`.
 - `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
+### AiModel
+
+```python
+class AiModel(TypedDict)
+```
+
+One model an `ai` plugin serves.
+
+**Attributes**
+
+- `modelId`: Model id within the plugin (`bekko-a8m`): lowercase letters, digits, `.`, `_` and `-`. Callers name it `@<plugin id>/<model id>`; the whole name is at most `maxAiModelNameBytes`.
+- `task`: The model's one task.
+- `revision`: Digest of everything that decides the output: weights, tokenizer and the language packs loaded. Outputs are comparable only when it matches.
+- `dimensions`: Text embeddings: numbers per vector, at most `maxAiEmbedDimensions`. Omitted when absent (wire zero value).
+- `maxTokens`: Text embeddings: tokens read from one text; the rest is cut off. Omitted when absent (wire zero value).
+- `languages`: BCP 47 tags of the languages the model is loaded for, at most `maxAiLanguages`; empty when it has no language packs.
+
+### AiModelList
+
+```python
+class AiModelList(TypedDict)
+```
+
+Success payload of `AiModels.models`.
+
+**Attributes**
+
+- `models`: Served models, at most `maxAiModels`, each `modelId` once.
+
+### AiModelsReplyOk
+
+```python
+class AiModelsReplyOk(TypedDict)
+```
+
+`AiModelsReply` member `ok`.
+
+The served models.
+
+**Attributes**
+
+- `kind`: Always `"ok"`.
+- `value`: The served models.
+
+### AiModelsReplyErr
+
+```python
+class AiModelsReplyErr(TypedDict)
+```
+
+`AiModelsReply` member `err`.
+
+Typed failure; `code` is a `PluginErrorCode` wire string.
+
+**Attributes**
+
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
+
+### AiEmbedText
+
+```python
+class AiEmbedText(TypedDict)
+```
+
+One text to embed.
+
+**Attributes**
+
+- `text`: The text, at most `maxAiEmbedTextBytes`; never empty.
+- `role`: Document or query.
+
+### AiTextEmbeddingsInput
+
+```python
+class AiTextEmbeddingsInput(TypedDict)
+```
+
+Input of the `textEmbeddings` task.
+
+**Attributes**
+
+- `texts`: Texts to embed, 1 to `maxAiEmbedTexts`.
+
+### AiTextEmbeddingsOutput
+
+```python
+class AiTextEmbeddingsOutput(TypedDict)
+```
+
+Output of the `textEmbeddings` task.
+
+**Attributes**
+
+- `dimensions`: Numbers per vector; equals the model's `AiModel.dimensions`.
+- `vectors`: One vector per input text, in input order: `dimensions` little-endian IEEE 754 32-bit floats each, concatenated. Every number is finite.
+- `revision`: `AiModel.revision` of the model that made the vectors.
+- `fallbacks`: Indexes (into the input texts, ascending, each once) of the texts where the tokenizer met text outside the loaded language packs and fell back to smaller pieces; such a vector should be recomputed after the missing pack is added.
+
+### AiInput
+
+```python
+class AiInput(TypedDict)
+```
+
+Input to one model run: one field per `AiTask`, and exactly one is set
+(the others are null). A new task appends a field.
+
+**Attributes**
+
+- `textEmbeddings`: `textEmbeddings` task.
+
+### AiOutput
+
+```python
+class AiOutput(TypedDict)
+```
+
+Output of one model run: one field per `AiTask`, and exactly one is set
+(the others are null). A new task appends a field.
+
+**Attributes**
+
+- `textEmbeddings`: `textEmbeddings` task.
+
+### AiRunParams
+
+```python
+class AiRunParams(TypedDict)
+```
+
+Params of `AiModels.run` and `AiRunner.run`.
+
+**Attributes**
+
+- `model`: On `AiModels.run`, the plugin's own `AiModel.modelId`. On `AiRunner.run`, `@<plugin id>/<model id>` or a task alias (`@library/text-embeddings`: the model the library chose for the task).
+- `input`: The input; the field set must match the model's task.
+
+### AiRunOk
+
+```python
+class AiRunOk(TypedDict)
+```
+
+Success payload of a model run.
+
+**Attributes**
+
+- `output`: The output; the field set matches the model's task.
+- `model`: Full name of the model that ran (`@<plugin id>/<model id>`), so a caller that used a task alias knows what answered. Set by the host on `AiRunner.run`; empty on `AiModels.run`. Omitted when absent (wire zero value).
+
+### AiRunReplyOk
+
+```python
+class AiRunReplyOk(TypedDict)
+```
+
+`AiRunReply` member `ok`.
+
+The model ran.
+
+**Attributes**
+
+- `kind`: Always `"ok"`.
+- `value`: The model ran.
+
+### AiRunReplyErr
+
+```python
+class AiRunReplyErr(TypedDict)
+```
+
+`AiRunReply` member `err`.
+
+Typed failure; `code` is a `PluginErrorCode` wire string.
+
+**Attributes**
+
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
+
 ### SocketFrameText
 
 ```python
@@ -8261,6 +8543,24 @@ NotifyDestinationKind = Literal['channel', 'personal']
 
 Kind of destination a `Notifier` sends to.
 
+### AiTask
+
+```python
+AiTask = Literal['textEmbeddings']
+```
+
+What a model does. A model has exactly one task, and the task fixes the
+shape of `AiRunParams.input` and of the reply.
+
+### AiTextRole
+
+```python
+AiTextRole = Literal['document', 'query']
+```
+
+What a text is to an embedding model. Some models embed a search query
+differently from the documents it is matched against.
+
 ### DbType
 
 ```python
@@ -8800,6 +9100,24 @@ NotifyRaiseReply = Union[NotifyRaiseReplyOk, NotifyRaiseReplyErr]
 ```
 
 Result union of `NotificationRaiser.raise`.
+
+### AiModelsReply
+
+```python
+AiModelsReply = Union[AiModelsReplyOk, AiModelsReplyErr]
+```
+
+Result union of `AiModels.models`.
+
+### AiRunReply
+
+```python
+AiRunReply = Union[AiRunReplyOk, AiRunReplyErr]
+```
+
+Result union of `AiModels.run` and `AiRunner.run`. A model the plugin
+does not serve is `not_found`; an input for another task is
+`invalid_params`; a caller without the grant gets `forbidden`.
 
 ### SocketFrame
 

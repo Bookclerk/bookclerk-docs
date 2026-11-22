@@ -18,6 +18,7 @@ Semantic rules that cannot be expressed in serde alone live in
 | [`NotifierAddressField`](#notifieraddressfield) | struct | One `[[notifier.address_fields]]` row: a value a patron enters to receive notifications on this service. |
 | [`NotificationsManifest`](#notificationsmanifest) | struct | `[notifications]`: the notification types a plugin raises through its `NOTIFY` binding. |
 | [`NotificationTypeManifest`](#notificationtypemanifest) | struct | One `[[notifications.types]]` row. |
+| [`AiManifest`](#aimanifest) | struct | `[ai]`: the model tasks a plugin serves on its `ai` entrypoint and the tasks it calls through its `AI` binding. |
 | [`TcpCapability`](#tcpcapability) | struct | One raw TCP grant: hostname or wildcard plus allowed destination ports. |
 | [`NetworkCapabilities`](#networkcapabilities) | struct | `[capabilities.network]` — mode plus optional workerd host allowlist. |
 | [`OwnUserAgent`](#ownuseragent) | struct | `[capabilities.network.own_user_agent]`: where a plugin keeps its own `User-Agent`. |
@@ -76,6 +77,7 @@ Semantic rules that cannot be expressed in serde alone live in
 | [`DEFAULT_OAUTH_BINDING`](#default_oauth_binding) | constant | Default `binding` for `[oauth]`. |
 | [`DEFAULT_SOCKETS_BINDING`](#default_sockets_binding) | constant | Default `binding` for `[sockets]`. |
 | [`NOTIFY_BINDING`](#notify_binding) | constant | The `NOTIFY` binding a plugin with `[[notifications.types]]` receives; its name is fixed, so no other binding may take it. |
+| [`AI_BINDING`](#ai_binding) | constant | The `AI` binding a plugin with `[ai].calls` receives; its name is fixed, so no other binding may take it. |
 | [`DEFAULT_KV_BINDING`](#default_kv_binding) | constant | Default `binding` for `[[kv_namespaces]]`. |
 | [`DEFAULT_EVENTS_BINDING`](#default_events_binding) | constant | Default `binding` for `[[events.producers]]`. |
 | [`CONFIG_BINDING`](#config_binding) | constant | Binding name the host uses for operator config (`[vars]`). |
@@ -391,6 +393,38 @@ One `[[notifications.types]]` row.
   each notification.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### AiManifest
+
+```rust
+pub struct AiManifest {
+    pub serves: Vec<AiTask>,
+    pub calls: Vec<AiTask>,
+}
+```
+
+`[ai]`: the model tasks a plugin serves on its `ai` entrypoint and the
+tasks it calls through its `AI` binding.
+
+**Fields**
+
+- `serves`: Tasks the plugin's models perform (`serves = ["textEmbeddings"]`).
+  Required, and never empty, for a plugin with the `ai` entrypoint;
+  forbidden without it. The plugin may list only models of these
+  tasks.
+- `calls`: Tasks the plugin runs through `AI` (`calls = ["textEmbeddings"]`).
+  The operator approves them like any capability; a plugin that
+  lists none has no `AI` binding.
+
+#### AiManifest::is_default
+
+```rust
+pub fn is_default(&self) -> bool
+```
+
+Whether neither list names a task (the table is then omitted).
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
 ### TcpCapability
 
@@ -1014,6 +1048,7 @@ pub struct PluginManifest {
     pub notifier: Option<NotifierManifest>,
     pub notifications: NotificationsManifest,
     pub ingress: Option<IngressManifest>,
+    pub ai: AiManifest,
     pub capabilities: CapabilitiesManifest,
     pub cli: Option<CliSchema>,
     pub oidc: OidcManifest,
@@ -1107,6 +1142,8 @@ rejected.
 - `ingress`: How the plugin serves the library publicly (`[ingress]`): required
   for plugins that export the `ingress` entrypoint and forbidden for
   every other plugin; see [`IngressManifest`](#ingressmanifest).
+- `ai`: Model tasks the plugin serves and calls (`[ai]`); see
+  [`AiManifest`](#aimanifest).
 - `capabilities`: Declared network capability (consent has no Wrangler analogue).
 - `cli`: Optional CLI schema advertised to `bookclerk plugins <id>` (from
   `bookclerk-plugin-abi::CliSchema`). Requires the `Cli` entrypoint.
@@ -1463,6 +1500,23 @@ even though the parser accepts its absence.
 
 Returns [`Error::Message`](error.md#error) when `version` is missing or not semver.
 
+#### PluginManifest::calls_ai_task
+
+```rust
+pub fn calls_ai_task(&self, task: AiTask) -> bool
+```
+
+Whether the plugin may run models of `task` through its `AI`
+binding (`[ai].calls`).
+
+##### Arguments
+
+* `task` - The task of the model a run names.
+
+##### Returns
+
+True when the manifest declares the task.
+
 #### PluginManifest::notification_hosts_requested
 
 ```rust
@@ -1611,8 +1665,8 @@ are lowercase (`source`, `integration`, `output`, `database`, `ingress`).
 
 - `Source`: Storefront / library source (`Storefront` entrypoint).
 - `Integration`: Event consumer, job runner, remote library, CLI, OIDC bridge,
-  metadata provider, cover fetcher, metadata file dialects, or
-  notifier.
+  metadata provider, cover fetcher, metadata file dialects,
+  notifier, or model plugin.
 - `Output`: Destination / output backend (`Storage` entrypoint).
 - `Database`: Library database backend (`DatabaseAdapter` entrypoint).
 - `Ingress`: Public address provider (`Ingress` entrypoint): a relay or a
@@ -1912,7 +1966,7 @@ True when `name` starts with a [`RESERVED_QUEUE_PREFIXES`](#reserved_queue_prefi
 ### ALL_ENTRYPOINTS
 
 ```rust
-pub const ALL_ENTRYPOINTS: [Entrypoint; 11] = _;
+pub const ALL_ENTRYPOINTS: [Entrypoint; 12] = _;
 ```
 
 Every entrypoint in declaration order (mirrors the Cap'n Proto enum).
@@ -2094,6 +2148,15 @@ pub const NOTIFY_BINDING: &str = "NOTIFY";
 
 The `NOTIFY` binding a plugin with `[[notifications.types]]` receives;
 its name is fixed, so no other binding may take it.
+
+### AI_BINDING
+
+```rust
+pub const AI_BINDING: &str = "AI";
+```
+
+The `AI` binding a plugin with `[ai].calls` receives; its name is
+fixed, so no other binding may take it.
 
 ### DEFAULT_KV_BINDING
 

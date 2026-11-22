@@ -1781,7 +1781,6 @@ pub struct Paths {
     pub cache_dir: PathBuf,
     pub log_dir: PathBuf,
     pub search_index_dir: PathBuf,
-    pub models_dir: PathBuf,
 }
 ```
 
@@ -1796,7 +1795,6 @@ Resolved filesystem locations for Bookclerk data.
 - `log_dir`: Reserved path (legacy). Logging goes to stderr + journald; Bookclerk does
   not write or rotate files here.
 - `search_index_dir`: The node's Tantivy works search index (`search_index_works/`).
-- `models_dir`: Downloaded ONNX embedding models (`discovery.embeddings_enabled`).
 
 #### Paths::from_files_dir
 
@@ -2828,9 +2826,6 @@ Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, 
 
 ```rust
 pub struct DiscoveryConfig {
-    pub embeddings_enabled: bool,
-    pub embedding_model: String,
-    pub embed_intra_threads: usize,
     pub worldcat_enabled: bool,
     pub storefront_candidates: bool,
     pub storefront_seed_limit: usize,
@@ -2845,15 +2840,6 @@ Discovery / recommendations / embeddings settings.
 
 **Fields**
 
-- `embeddings_enabled`: Load the ONNX MiniLM model to score storefront candidates.
-  
-  Off by default: the shelves rank with the built-in local-hash
-  embedder. The ONNX path stays for opt-in experiments until
-  AI-assisted recommendations are designed, and needs a host built with
-  the `onnx-embeddings` feature; without it, this warns and uses
-  local-hash.
-- `embedding_model`: Model id (`all-minilm-l6-v2-q` preferred; runtime may fall back to `local-hash-v1`).
-- `embed_intra_threads`: ONNX intra-op threads (keep at 1 on small VPSes).
 - `worldcat_enabled`: Reserved for a future WorldCat provider (requires API key).
 - `storefront_candidates`: Expand recommendations from storefront catalogs (unowned titles).
 - `storefront_seed_limit`: Max local taste seeds used for storefront expansion.

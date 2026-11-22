@@ -224,7 +224,7 @@ Reads the structured `details` first and falls back to the message
 text, so an error relayed by a hop that dropped `details` still
 names its limit.
 
-Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Display`, `Eq`, `Error`, `From<NotificationError>`, `From<QualityOffersError>`, `From<ScanPageError>`, `PartialEq`, `Serialize`
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Display`, `Eq`, `Error`, `From<AiError>`, `From<NotificationError>`, `From<QualityOffersError>`, `From<ScanPageError>`, `PartialEq`, `Serialize`
 
 ### LimitExceeded
 

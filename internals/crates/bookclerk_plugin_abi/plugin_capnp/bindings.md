@@ -193,6 +193,18 @@ pub fn get_origin(self) -> Result<Client>
 pub fn has_origin(&self) -> bool
 ```
 
+#### Reader::get_ai
+
+```rust
+pub fn get_ai(self) -> Result<Client>
+```
+
+#### Reader::has_ai
+
+```rust
+pub fn has_ai(&self) -> bool
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -503,6 +515,24 @@ pub fn set_origin(&mut self, value: Client)
 pub fn has_origin(&self) -> bool
 ```
 
+#### Builder::get_ai
+
+```rust
+pub fn get_ai(self) -> Result<Client>
+```
+
+#### Builder::set_ai
+
+```rust
+pub fn set_ai(&mut self, value: Client)
+```
+
+#### Builder::has_ai
+
+```rust
+pub fn has_ai(&self) -> bool
+```
+
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
 
 ### Pipeline
@@ -571,6 +601,12 @@ pub fn get_network(&self) -> Pipeline
 
 ```rust
 pub fn get_origin(&self) -> Client
+```
+
+#### Pipeline::get_ai
+
+```rust
+pub fn get_ai(&self) -> Client
 ```
 
 Implements: `FromTypelessPipeline`

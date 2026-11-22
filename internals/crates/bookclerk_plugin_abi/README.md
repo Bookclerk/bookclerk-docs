@@ -7,7 +7,7 @@ transferred byte streams). The guest root is [`PluginWorker`]:
 `describe()` advertises typed [`PluginCapabilities`](generated.md#plugincapabilities), then
 `open(invocation, bindings)` returns the exported [`Entrypoints`](#entrypoints)
 (`storefront`, `storage`, `databaseAdapter`, `remoteLibrary`, `cli`,
-`oidc`, `metadata`, `covers`, `metadataFiles`, `notifier`, plus the `eventConsumer` / `jobRunner` triggers). Host-granted
+`oidc`, `metadata`, `covers`, `metadataFiles`, `notifier`, `ai`, plus the `eventConsumer` / `jobRunner` triggers). Host-granted
 [`Bindings`](#bindings) carry `CONFIG` / `SECRETS`, the `EVENTS` publisher, and named
 `[[databases]]` sessions — the Workers `env` idiom.
 
@@ -48,6 +48,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 
 | Module | Contents |
 | --- | --- |
+| [`ai`](ai.md) | Checks on model listings, model runs and their replies |
 | [`metadata_files`](metadata_files.md) | Checks on `metadataFiles` requests and the records dialects return |
 | [`methods`](methods/README.md) | Capability / consent method name constants (`login`, `event`, …) |
 | [`notifications`](notifications.md) | Checks on notification messages, addresses, raises and notifier replies |
@@ -66,6 +67,8 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`AdapterTransaction`](#adaptertransaction) | trait | Host-only interactive transaction on an adapter connection (SeaORM proxy). |
 | [`HostAdapterDatabaseSession`](#hostadapterdatabasesession) | trait | Host-only view of an open adapter session (`begin` for interactive txn). |
 | [`AdapterDatabaseSession`](#adapterdatabasesession) | trait | Host ↔ database adapter session (`capabilities` + typed `execute`). |
+| [`AiModels`](#aimodels) | trait | `ai` entrypoint: serves models to the host and, through the `AI` binding, to every plugin with the grant. |
+| [`AiRunner`](#airunner) | trait | `AI` binding: runs a model served by a deployed model plugin (`Bindings::ai`). |
 | [`Cancellation`](#cancellation) | trait | Transport cancellation. SDKs project this into a locally created `AbortSignal` (AbortSignal is not a serializable Workers RPC value). |
 | [`ContentSource`](#contentsource) | trait | Storefront content source (not byte `Source`). |
 | [`CoverFetcher`](#coverfetcher) | trait | `covers` entrypoint: downloads cover images on the host's behalf. |
@@ -121,6 +124,8 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`OriginReply`](#originreply) | struct | The library's answer to one `Origin::fetch`: its response head and streamed body. |
 | [`ReadResult`](#readresult) | struct | Streamed read result. `body` ownership is transferred to the caller. |
 | [`AdapterSessionHandle`](#adaptersessionhandle) | struct | Public adapter session plus host-private interactive transaction client. |
+| [`AiModelsClient`](#aimodelsclient) | struct | Cap'n Proto client for `AiModels`. |
+| [`AiRunnerClient`](#airunnerclient) | struct | Guest-side client for the host `AI` binding (`AiRunner`). Runs are checked before they leave, so a plugin learns of a malformed run without a round trip; the host checks again. |
 | [`ContentSourceClient`](#contentsourceclient) | struct | Cap'n Proto client for `ContentSource`. |
 | [`CoverFetcherClient`](#coverfetcherclient) | struct | Cap'n Proto client for `CoverFetcher`. |
 | [`DatabaseClient`](#databaseclient) | struct | Cap'n Proto client for `Database`. |
@@ -274,6 +279,12 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`FEATURE_STORAGE_TRANSLATE_KEYS`](#feature_storage_translate_keys) | constant | Guest implements `super::Destination::translate_keys`. |
 | [`FEATURE_STREAMS`](#feature_streams) | constant | Media moves through transferred `crate::roles::ByteRange` / `ByteSource` streams. |
 | [`STORAGE_OPERATION_FEATURES`](#storage_operation_features) | constant | Every optional storage operation a host offers a storage guest, beside `FEATURE_STORAGE_COPY`. Each one the guest accepts replaces the host's fallback for that operation. |
+| [`MAX_AI_EMBED_DIMENSIONS`](#max_ai_embed_dimensions) | constant | Most numbers in one embedding vector. |
+| [`MAX_AI_EMBED_TEXTS`](#max_ai_embed_texts) | constant | Most texts in one text-embedding run. |
+| [`MAX_AI_EMBED_TEXT_BYTES`](#max_ai_embed_text_bytes) | constant | Longest text in a text-embedding run, in UTF-8 bytes. |
+| [`MAX_AI_LANGUAGES`](#max_ai_languages) | constant | Most language tags on one listed model. |
+| [`MAX_AI_MODELS`](#max_ai_models) | constant | Most models one plugin lists on its `ai` entrypoint. |
+| [`MAX_AI_MODEL_NAME_BYTES`](#max_ai_model_name_bytes) | constant | Longest model name on the `AI` binding (`@<plugin id>/<model id>`), in UTF-8 bytes. |
 | [`MAX_COVER_BYTES`](#max_cover_bytes) | constant | Largest image body one `CoverFetcher.fetchCovers` URL may return. |
 | [`MAX_COVER_HEADER_BYTES`](#max_cover_header_bytes) | constant | Longest cache header value one `CoverFetcher.fetchCovers` call carries in either direction, in bytes. |
 | [`MAX_COVER_URLS`](#max_cover_urls) | constant | Most URLs in one `CoverFetcher.fetchCovers` call. |
@@ -540,6 +551,8 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`generated::NotificationAudience`](generated.md#notificationaudience)
 - [`generated::NotificationAlertAction`](generated.md#notificationalertaction)
 - [`generated::NotifyDestinationKind`](generated.md#notifydestinationkind)
+- [`generated::AiTask`](generated.md#aitask)
+- [`generated::AiTextRole`](generated.md#aitextrole)
 - [`generated::EventConsumerSpec`](generated.md#eventconsumerspec)
 - [`generated::PluginCapabilities`](generated.md#plugincapabilities)
 - [`generated::CatalogCapabilities`](generated.md#catalogcapabilities)
@@ -641,6 +654,15 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`generated::NotifyValidated`](generated.md#notifyvalidated)
 - [`generated::NotifyRaiseParams`](generated.md#notifyraiseparams)
 - [`generated::NotifyRaised`](generated.md#notifyraised)
+- [`generated::AiModel`](generated.md#aimodel)
+- [`generated::AiModelList`](generated.md#aimodellist)
+- [`generated::AiEmbedText`](generated.md#aiembedtext)
+- [`generated::AiTextEmbeddingsInput`](generated.md#aitextembeddingsinput)
+- [`generated::AiTextEmbeddingsOutput`](generated.md#aitextembeddingsoutput)
+- [`generated::AiInput`](generated.md#aiinput)
+- [`generated::AiOutput`](generated.md#aioutput)
+- [`generated::AiRunParams`](generated.md#airunparams)
+- [`generated::AiRunOk`](generated.md#airunok)
 - [`generated::SocketFrame`](generated.md#socketframe)
 - [`generated::SocketHeader`](generated.md#socketheader)
 - [`generated::SocketAutoResponse`](generated.md#socketautoresponse)
@@ -918,6 +940,28 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`generated::read_notify_raised`](generated.md#read_notify_raised)
 - [`generated::write_notify_raise_reply`](generated.md#write_notify_raise_reply)
 - [`generated::read_notify_raise_reply`](generated.md#read_notify_raise_reply)
+- [`generated::write_ai_model`](generated.md#write_ai_model)
+- [`generated::read_ai_model`](generated.md#read_ai_model)
+- [`generated::write_ai_model_list`](generated.md#write_ai_model_list)
+- [`generated::read_ai_model_list`](generated.md#read_ai_model_list)
+- [`generated::write_ai_models_reply`](generated.md#write_ai_models_reply)
+- [`generated::read_ai_models_reply`](generated.md#read_ai_models_reply)
+- [`generated::write_ai_embed_text`](generated.md#write_ai_embed_text)
+- [`generated::read_ai_embed_text`](generated.md#read_ai_embed_text)
+- [`generated::write_ai_text_embeddings_input`](generated.md#write_ai_text_embeddings_input)
+- [`generated::read_ai_text_embeddings_input`](generated.md#read_ai_text_embeddings_input)
+- [`generated::write_ai_text_embeddings_output`](generated.md#write_ai_text_embeddings_output)
+- [`generated::read_ai_text_embeddings_output`](generated.md#read_ai_text_embeddings_output)
+- [`generated::write_ai_input`](generated.md#write_ai_input)
+- [`generated::read_ai_input`](generated.md#read_ai_input)
+- [`generated::write_ai_output`](generated.md#write_ai_output)
+- [`generated::read_ai_output`](generated.md#read_ai_output)
+- [`generated::write_ai_run_params`](generated.md#write_ai_run_params)
+- [`generated::read_ai_run_params`](generated.md#read_ai_run_params)
+- [`generated::write_ai_run_ok`](generated.md#write_ai_run_ok)
+- [`generated::read_ai_run_ok`](generated.md#read_ai_run_ok)
+- [`generated::write_ai_run_reply`](generated.md#write_ai_run_reply)
+- [`generated::read_ai_run_reply`](generated.md#read_ai_run_reply)
 - [`generated::write_socket_frame`](generated.md#write_socket_frame)
 - [`generated::read_socket_frame`](generated.md#read_socket_frame)
 - [`generated::write_socket_header`](generated.md#write_socket_header)
@@ -964,6 +1008,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 
 ## Modules
 
+- [`ai`](ai.md): The checks the host runs on model listings, model runs and their replies.
 - [`backup_ops`](backup_ops.md): Host-facing backup/restore primitives (Send + Sync).
 - [`db`](db.md): Database-adapter binding payloads (host connect params + public adapter config).
 - [`db_execute`](db_execute.md): Typed Cap'n database data-plane (`ExecuteRequest` / `ExecuteReply`) and control-plane (`DbCapabilities`) mirrors of `plugin.capnp`.
@@ -1474,6 +1519,129 @@ where
 ```
 
 Fail closed when the restore transaction still has FK violations.
+
+### AiModels
+
+```rust
+pub trait AiModels {
+    fn health<'life0, 'async_trait>(
+        &'life0 self,
+    ) -> Pin<Box<dyn Future<Output = Result<HealthOk>> + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
+    fn models<'life0, 'async_trait>(
+        &'life0 self,
+    ) -> Pin<Box<dyn Future<Output = Result<AiModelList>> + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
+    fn run<'life0, 'async_trait>(
+        &'life0 self,
+        _params: AiRunParams,
+    ) -> Pin<Box<dyn Future<Output = Result<AiRunOk>> + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
+}
+```
+
+`ai` entrypoint: serves models to the host and, through the `AI`
+binding, to every plugin with the grant.
+
+The host checks the listing ([`crate::ai::check_models`](ai.md#check_models)), each run
+before it reaches the plugin
+([`crate::ai::check_entrypoint_run_params`](ai.md#check_entrypoint_run_params)) and each reply
+([`crate::ai::check_run_output`](ai.md#check_run_output)). Outputs are comparable only while
+the model's revision stays the same, so a plugin changes the revision
+whenever weights, tokenizer or loaded language packs change.
+
+#### AiModels::health
+
+```rust
+fn health<'life0, 'async_trait>(
+    &'life0 self,
+) -> Pin<Box<dyn Future<Output = Result<HealthOk>> + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Liveness / readiness probe: model files present and loadable.
+
+#### AiModels::models
+
+```rust
+fn models<'life0, 'async_trait>(
+    &'life0 self,
+) -> Pin<Box<dyn Future<Output = Result<AiModelList>> + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Lists the models this plugin serves now. Cheap: it must not load a
+model.
+
+#### AiModels::run
+
+```rust
+fn run<'life0, 'async_trait>(
+    &'life0 self,
+    _params: AiRunParams,
+) -> Pin<Box<dyn Future<Output = Result<AiRunOk>> + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Runs the plugin's model `params.model` on `params.input`.
+`not_found` for a model it does not serve, `invalid_params` for an
+input of another task.
+
+Implemented by: `AiModelsClient`
+
+### AiRunner
+
+```rust
+pub trait AiRunner {
+    fn run<'life0, 'async_trait>(
+        &'life0 self,
+        params: AiRunParams,
+    ) -> Pin<Box<dyn Future<Output = Result<AiRunOk>> + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
+}
+```
+
+`AI` binding: runs a model served by a deployed model plugin
+([`Bindings::ai`](#bindings)).
+
+The host routes the run to the plugin that serves the named model, or
+to the model the library chose when the name is a task alias
+(`@library/text-embeddings`). The caller must hold a grant for the
+model's task. Each run has a deadline and counts against the calling
+plugin's budget; work over many items belongs in a job.
+
+#### AiRunner::run
+
+```rust
+fn run<'life0, 'async_trait>(
+    &'life0 self,
+    params: AiRunParams,
+) -> Pin<Box<dyn Future<Output = Result<AiRunOk>> + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Runs `params.model` on `params.input`. `not_found` when nothing
+deployed serves the model, `forbidden` without the grant for its
+task, `rate_limited` over budget, `unavailable` when the model
+plugin cannot answer in time.
+
+Implemented by: `AiRunnerClient`
 
 ### Cancellation
 
@@ -4500,6 +4668,7 @@ pub struct Bindings {
     pub network: NetworkGrant,
     pub notify: Option<Box<dyn NotificationRaiser>>,
     pub origin: Option<Box<dyn Origin>>,
+    pub ai: Option<Box<dyn AiRunner>>,
 }
 ```
 
@@ -4530,6 +4699,8 @@ declare (or the operator did not grant) the binding.
   manifest declares `[[notifications.types]]`.
 - `origin`: `ORIGIN`: the library, for the active relay `ingress` plugin; `None`
   for every other plugin.
+- `ai`: `AI`: runs models served by model plugins; `None` unless the
+  manifest declares `[ai] calls` and the operator approved it.
 
 #### Bindings::from_values
 
@@ -4610,6 +4781,7 @@ pub struct Entrypoints {
     pub metadata_files: Option<Box<dyn MetadataFiles>>,
     pub notifier: Option<Box<dyn Notifier>>,
     pub ingress: Option<Box<dyn Ingress>>,
+    pub ai: Option<Box<dyn AiModels>>,
 }
 ```
 
@@ -4637,6 +4809,7 @@ allow, so a guest cannot widen its surface here.
 - `metadata_files`: `metadataFiles` entrypoint.
 - `notifier`: `notifier` entrypoint.
 - `ingress`: `ingress` entrypoint.
+- `ai`: `ai` entrypoint.
 
 Implements: `Default`
 
@@ -4762,6 +4935,72 @@ Public adapter session plus host-private interactive transaction client.
 
 - `session`: Typed `capabilities` / `execute` / `close`.
 - `host`: Host-only `begin` (capability cast on the same session object).
+
+### AiModelsClient
+
+```rust
+pub struct AiModelsClient {
+    /* private fields */
+}
+```
+
+Cap'n Proto client for [`AiModels`](#aimodels).
+
+The client checks each listing before the caller sees it
+([`crate::ai::check_models`](ai.md#check_models)) and each run before it leaves
+([`crate::ai::check_entrypoint_run_params`](ai.md#check_entrypoint_run_params)): a malformed listing is an
+`internal` error. A run's reply comes back as the plugin said it; the
+caller, which knows the model's listing, checks it with
+[`crate::ai::check_run_output`](ai.md#check_run_output).
+
+#### AiModelsClient::new
+
+```rust
+pub fn new(client: Client) -> Self
+```
+
+Wraps an `AiModels` capability client (any transport that yields
+one, including the bookclerk-workerd `/invoke` hook).
+
+##### Arguments
+
+* `client` - The guest's `AiModels` capability.
+
+##### Returns
+
+The typed client.
+
+Implements: `AiModels`, `Clone`
+
+### AiRunnerClient
+
+```rust
+pub struct AiRunnerClient {
+    /* private fields */
+}
+```
+
+Guest-side client for the host `AI` binding ([`AiRunner`](#airunner)). Runs are
+checked before they leave, so a plugin learns of a malformed run
+without a round trip; the host checks again.
+
+#### AiRunnerClient::new
+
+```rust
+pub fn new(client: Client) -> Self
+```
+
+Wraps an `AiRunner` capability client.
+
+##### Arguments
+
+* `client` - The host's `AiRunner` capability.
+
+##### Returns
+
+The typed client.
+
+Implements: `AiRunner`, `Clone`
 
 ### ContentSourceClient
 
@@ -4973,6 +5212,7 @@ pub struct HostBindings {
     pub sockets: Option<Arc<dyn Sockets>>,
     pub notify: Option<Arc<dyn NotificationRaiser>>,
     pub origin: Option<Arc<dyn Origin>>,
+    pub ai: Option<Arc<dyn AiRunner>>,
 }
 ```
 
@@ -4993,6 +5233,8 @@ guest receives on `open`.
   `[[notifications.types]]`.
 - `origin`: `ORIGIN`: the library; `None` unless the plugin is the active relay
   ingress.
+- `ai`: `AI` model runner; `None` unless the manifest declares `[ai] calls`
+  and the operator approved it.
 
 #### HostBindings::from_values
 
@@ -5305,6 +5547,7 @@ pub struct OpenedEntrypoints {
     pub metadata_files: Option<MetadataFilesClient>,
     pub notifier: Option<NotifierClient>,
     pub ingress: Option<IngressClient>,
+    pub ai: Option<AiModelsClient>,
 }
 ```
 
@@ -5329,6 +5572,7 @@ means the guest did not export that entrypoint.
 - `metadata_files`: `metadataFiles` entrypoint.
 - `notifier`: `notifier` entrypoint.
 - `ingress`: `ingress` entrypoint.
+- `ai`: `ai` entrypoint.
 
 Implements: `Default`
 
@@ -8063,6 +8307,55 @@ Every optional storage operation a host offers a storage guest, beside
 [`FEATURE_STORAGE_COPY`](#feature_storage_copy). Each one the guest accepts replaces the host's
 fallback for that operation.
 
+### MAX_AI_EMBED_DIMENSIONS
+
+```rust
+pub const MAX_AI_EMBED_DIMENSIONS: u32 = crate::plugin_capnp::MAX_AI_EMBED_DIMENSIONS;
+```
+
+Most numbers in one embedding vector.
+
+### MAX_AI_EMBED_TEXTS
+
+```rust
+pub const MAX_AI_EMBED_TEXTS: u32 = crate::plugin_capnp::MAX_AI_EMBED_TEXTS;
+```
+
+Most texts in one text-embedding run.
+
+### MAX_AI_EMBED_TEXT_BYTES
+
+```rust
+pub const MAX_AI_EMBED_TEXT_BYTES: u32 = crate::plugin_capnp::MAX_AI_EMBED_TEXT_BYTES;
+```
+
+Longest text in a text-embedding run, in UTF-8 bytes.
+
+### MAX_AI_LANGUAGES
+
+```rust
+pub const MAX_AI_LANGUAGES: u32 = crate::plugin_capnp::MAX_AI_LANGUAGES;
+```
+
+Most language tags on one listed model.
+
+### MAX_AI_MODELS
+
+```rust
+pub const MAX_AI_MODELS: u32 = crate::plugin_capnp::MAX_AI_MODELS;
+```
+
+Most models one plugin lists on its `ai` entrypoint.
+
+### MAX_AI_MODEL_NAME_BYTES
+
+```rust
+pub const MAX_AI_MODEL_NAME_BYTES: u32 = crate::plugin_capnp::MAX_AI_MODEL_NAME_BYTES;
+```
+
+Longest model name on the `AI` binding (`@<plugin id>/<model id>`), in
+UTF-8 bytes.
+
 ### MAX_COVER_BYTES
 
 ```rust
@@ -8487,7 +8780,7 @@ file-system paths usually at 4096).
 ### PLUGIN_TOML_SCHEMA_JSON
 
 ```rust
-pub const PLUGIN_TOML_SCHEMA_JSON: &str = "{\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n  \"$id\": \"https://bookclerk.dev/schemas/plugin-toml.json\",\n  \"title\": \"BookclerkPluginToml\",\n  \"description\": \"Install descriptor for a Bookclerk plugin (plugin.toml), api_version = 3. Keys use TOML/snake_case. There is no plugin `kind`; handler family is derived from entrypoints and triggers. The `id` is a display/CLI alias, not a globally unique security identity. Durable identity is the host-computed provenance-qualified PluginKey. capabilities.network.domains is workerd-only (hostname allowlist for isolate fetch()). Native guests omit domains and declare capabilities.network.tcp for mediated connect(); ambient AF_INET is denied.\",\n  \"type\": \"object\",\n  \"additionalProperties\": false,\n  \"required\": [\"api_version\", \"id\", \"capabilities\"],\n  \"properties\": {\n    \"api_version\": { \"type\": \"integer\", \"enum\": [3] },\n    \"id\": {\n      \"type\": \"string\",\n      \"minLength\": 2,\n      \"maxLength\": 32,\n      \"pattern\": \"^[a-z0-9]+(?:_[a-z0-9]+)*$\",\n      \"description\": \"Display / CLI alias. Not globally unique and not a privilege. Lowercase letters, digits, and single underscores only (2\u{2013}32 chars); no leading/trailing or doubled `_`. When two installs share an alias, address them with a provenance-qualified PluginKey.\"\n    },\n    \"name\": { \"type\": \"string\" },\n    \"version\": { \"type\": \"string\" },\n    \"logo\": {\n      \"type\": \"string\",\n      \"description\": \"Optional Settings/UI logo: https:// or http:// URL (browser loads directly), or a relative image path under the plugin install root (host serves via GET /api/plugins/{id}/logo when the alias is unambiguous). Embedded paths must not contain \'..\' and must end with .png/.jpg/.jpeg/.gif/.webp/.svg/.ico.\"\n    },\n    \"runtime\": {\n      \"type\": \"string\",\n      \"enum\": [\"native\", \"workerd\"],\n      \"default\": \"native\"\n    },\n    \"command\": { \"type\": \"string\", \"minLength\": 1 },\n    \"args\": {\n      \"type\": \"array\",\n      \"items\": { \"type\": \"string\" }\n    },\n    \"entrypoints\": {\n      \"type\": \"array\",\n      \"description\": \"Named capabilities this plugin exports from PluginWorker.open.\",\n      \"items\": {\n        \"type\": \"string\",\n        \"enum\": [\"storefront\", \"storage\", \"databaseAdapter\", \"remoteLibrary\", \"cli\", \"oidc\", \"metadata\", \"covers\", \"metadataFiles\", \"notifier\", \"ingress\"]\n      }\n    },\n    \"media\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"description\": \"Work kinds and edition carriers the plugin works with. Required, with non-empty works and lists, for a plugin exporting the storefront or metadata entrypoint; forbidden for every other plugin. describe() must declare the same kinds.\",\n      \"properties\": {\n        \"works\": {\n          \"type\": \"array\",\n          \"description\": \"Work kinds the plugin reports.\",\n          \"items\": { \"type\": \"string\", \"enum\": [\"book\", \"podcast\"] }\n        },\n        \"lists\": {\n          \"type\": \"array\",\n          \"description\": \"Edition carriers the plugin reports in scans, catalog search and metadata records.\",\n          \"items\": { \"type\": \"string\", \"enum\": [\"audio\", \"ebook\", \"print\"] }\n        },\n        \"fetches\": {\n          \"type\": \"array\",\n          \"description\": \"Edition carriers fetchTitle can deliver; a subset of lists. Storefronts only.\",\n          \"items\": { \"type\": \"string\", \"enum\": [\"audio\", \"ebook\", \"print\"] }\n        }\n      }\n    },\n    \"metadata_files\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"dialects\"],\n      \"description\": \"Metadata file dialects (sidecars such as metadata.json, OPF, NFO, CUE) the plugin reads and writes. Required, with at least one dialect, for a plugin exporting the metadataFiles entrypoint; forbidden for every other plugin.\",\n      \"properties\": {\n        \"dialects\": {\n          \"type\": \"array\",\n          \"minItems\": 1,\n          \"items\": { \"$ref\": \"#/$defs/MetadataFileDialect\" }\n        }\n      }\n    },\n    \"notifier\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"destinations\"],\n      \"description\": \"What a notifier sends to and in which formats. Required for a plugin exporting the notifier entrypoint; forbidden for every other plugin.\",\n      \"properties\": {\n        \"destinations\": {\n          \"type\": \"array\",\n          \"minItems\": 1,\n          \"uniqueItems\": true,\n          \"description\": \"Destination kinds: channel (one shared target the operator sets up) and personal (a patron\'s own address).\",\n          \"items\": { \"type\": \"string\", \"enum\": [\"channel\", \"personal\"] }\n        },\n        \"account_mail\": {\n          \"type\": \"boolean\",\n          \"description\": \"Whether the plugin can carry account mail (invites, password resets, recovery). Needs a required, non-secret email address field. Defaults to false.\"\n        },\n        \"formats\": {\n          \"type\": \"array\",\n          \"minItems\": 1,\n          \"uniqueItems\": true,\n          \"contains\": { \"const\": \"text\" },\n          \"description\": \"Body formats the service shows; must include text. Defaults to [\\\"text\\\"].\",\n          \"items\": { \"type\": \"string\", \"enum\": [\"text\", \"markdown\", \"html\"] }\n        },\n        \"address_fields\": {\n          \"type\": \"array\",\n          \"maxItems\": 16,\n          \"description\": \"Fields of a personal address; required exactly when destinations names personal, with at least one required field.\",\n          \"items\": { \"$ref\": \"#/$defs/NotifierAddressField\" }\n        }\n      }\n    },\n    \"notifications\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"description\": \"Notification types the plugin raises through env.NOTIFY. Declaring any grants the NOTIFY binding.\",\n      \"properties\": {\n        \"types\": {\n          \"type\": \"array\",\n          \"maxItems\": 64,\n          \"items\": { \"$ref\": \"#/$defs/NotificationType\" }\n        }\n      }\n    },\n    \"ingress\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"kind\"],\n      \"description\": \"How an ingress plugin serves the library publicly. Required for a plugin exporting the ingress entrypoint; forbidden for every other plugin.\",\n      \"properties\": {\n        \"kind\": {\n          \"type\": \"string\",\n          \"enum\": [\"relay\", \"direct\"],\n          \"description\": \"relay: the provider relays each request to the plugin, which hands it to the library through ORIGIN. direct: the public address points at the daemon; the plugin only keeps it current.\"\n        }\n      }\n    },\n    \"workerd\": { \"$ref\": \"#/$defs/WorkerdRuntime\" },\n    \"modules\": {\n      \"type\": \"array\",\n      \"items\": { \"$ref\": \"#/$defs/ModuleSpec\" }\n    },\n    \"triggers\": { \"$ref\": \"#/$defs/Triggers\" },\n    \"events\": { \"$ref\": \"#/$defs/Events\" },\n    \"databases\": {\n      \"type\": \"array\",\n      \"description\": \"Named plugin-owned database bindings (Workers-style).\",\n      \"maxItems\": 8,\n      \"items\": { \"$ref\": \"#/$defs/DatabaseBinding\" }\n    },\n    \"vars\": {\n      \"type\": \"object\",\n      \"description\": \"Operator config binding (`CONFIG`). Declares that the guest receives CONFIG; values come from [[settings]] defaults and the plugin instance document. An empty table is the usual form.\"\n    },\n    \"settings\": {\n      \"type\": \"array\",\n      \"description\": \"Operator settings schema ([[settings]]): keys an instance document may set, their types, enum values, and defaults. The host validates documents against it and renders it in Settings. Non-secret entries require [vars]; type = \\\"secret\\\" entries require [secrets].\",\n      \"maxItems\": 32,\n      \"items\": { \"$ref\": \"#/$defs/SettingSpec\" }\n    },\n    \"secrets\": { \"$ref\": \"#/$defs/NamedBinding\" },\n    \"kv_namespaces\": {\n      \"type\": \"array\",\n      \"description\": \"Durable KV bindings (default name KV) served from the library database: Workers KVNamespace-shaped get/put/delete/list with expiration and metadata, scoped to the plugin and the row\'s namespace. Distinct from [[databases]].\",\n      \"items\": { \"$ref\": \"#/$defs/KvNamespace\" }\n    },\n    \"queues\": { \"$ref\": \"#/$defs/Queues\" },\n    \"work_fs\": { \"$ref\": \"#/$defs/NamedBinding\" },\n    \"oauth\": { \"$ref\": \"#/$defs/NamedBinding\" },\n    \"capabilities\": { \"$ref\": \"#/$defs/Capabilities\" },\n    \"cli\": { \"$ref\": \"#/$defs/CliSchema\" },\n    \"oidc\": { \"$ref\": \"#/$defs/OidcManifest\" }\n  },\n  \"allOf\": [\n    {\n      \"if\": {\n        \"properties\": { \"runtime\": { \"const\": \"workerd\" } },\n        \"required\": [\"runtime\"]\n      },\n      \"then\": { \"required\": [\"workerd\"] }\n    },\n    {\n      \"if\": {\n        \"anyOf\": [\n          { \"properties\": { \"runtime\": { \"const\": \"native\" } } },\n          { \"not\": { \"required\": [\"runtime\"] } }\n        ]\n      },\n      \"then\": {\n        \"required\": [\"command\"],\n        \"properties\": {\n          \"capabilities\": {\n            \"properties\": {\n              \"network\": {\n                \"properties\": {\n                  \"domains\": false\n                }\n              }\n            }\n          }\n        }\n      }\n    },\n    {\n      \"if\": {\n        \"properties\": {\n          \"runtime\": { \"const\": \"workerd\" },\n          \"capabilities\": {\n            \"properties\": {\n              \"network\": {\n                \"properties\": { \"mode\": { \"const\": \"outbound\" } },\n                \"required\": [\"mode\"]\n              }\n            },\n            \"required\": [\"network\"]\n          }\n        },\n        \"required\": [\"runtime\", \"capabilities\"]\n      },\n      \"then\": {\n        \"properties\": {\n          \"capabilities\": {\n            \"properties\": {\n              \"network\": {\n                \"required\": [\"domains\"],\n                \"properties\": {\n                  \"domains\": {\n                    \"type\": \"array\",\n                    \"minItems\": 1,\n                    \"items\": { \"type\": \"string\", \"minLength\": 1 }\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    },\n    {\n      \"if\": {\n        \"properties\": {\n          \"entrypoints\": {\n            \"anyOf\": [{ \"contains\": { \"const\": \"storefront\" } }, { \"contains\": { \"const\": \"metadata\" } }]\n          }\n        },\n        \"required\": [\"entrypoints\"]\n      },\n      \"then\": {\n        \"required\": [\"media\"],\n        \"properties\": {\n          \"media\": {\n            \"required\": [\"works\", \"lists\"],\n            \"properties\": { \"works\": { \"minItems\": 1 }, \"lists\": { \"minItems\": 1 } }\n          }\n        }\n      },\n      \"else\": { \"properties\": { \"media\": false } }\n    },\n    {\n      \"if\": {\n        \"properties\": { \"entrypoints\": { \"contains\": { \"const\": \"metadataFiles\" } } },\n        \"required\": [\"entrypoints\"]\n      },\n      \"then\": { \"required\": [\"metadata_files\"] },\n      \"else\": { \"properties\": { \"metadata_files\": false } }\n    },\n    {\n      \"if\": {\n        \"properties\": { \"entrypoints\": { \"contains\": { \"const\": \"notifier\" } } },\n        \"required\": [\"entrypoints\"]\n      },\n      \"then\": { \"required\": [\"notifier\"] },\n      \"else\": { \"properties\": { \"notifier\": false } }\n    },\n    {\n      \"if\": {\n        \"properties\": { \"entrypoints\": { \"contains\": { \"const\": \"ingress\" } } },\n        \"required\": [\"entrypoints\"]\n      },\n      \"then\": { \"required\": [\"ingress\"] },\n      \"else\": { \"properties\": { \"ingress\": false } }\n    }\n  ],\n  \"$defs\": {\n    \"NotifierAddressField\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"key\", \"label\"],\n      \"description\": \"One field of a patron\'s personal address, such as an email address or a chat id.\",\n      \"properties\": {\n        \"key\": {\n          \"type\": \"string\",\n          \"pattern\": \"^[a-z][a-z0-9_]{0,63}$\",\n          \"description\": \"Key in the address document; unique within the plugin.\"\n        },\n        \"label\": { \"type\": \"string\", \"minLength\": 1, \"description\": \"Label shown to the patron.\" },\n        \"required\": { \"type\": \"boolean\", \"description\": \"Whether the patron must fill it in. Defaults to false.\" },\n        \"secret\": {\n          \"type\": \"boolean\",\n          \"description\": \"Whether the value is a secret (a personal token): sealed at rest and never shown again. Defaults to false.\"\n        }\n      }\n    },\n    \"NotificationType\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"id\", \"audience\", \"severity\", \"title\"],\n      \"description\": \"One notification type the plugin raises; the host names it <plugin>:<id>.\",\n      \"properties\": {\n        \"id\": {\n          \"type\": \"string\",\n          \"pattern\": \"^[a-z][a-z0-9_]{0,63}$\",\n          \"description\": \"Type id, unique within the plugin.\"\n        },\n        \"audience\": {\n          \"type\": \"string\",\n          \"enum\": [\"operational\", \"patron\"],\n          \"description\": \"operational goes to administrators\' channels; patron goes to the one patron a raise names. account is reserved to Bookclerk.\"\n        },\n        \"severity\": { \"type\": \"string\", \"enum\": [\"info\", \"warning\", \"critical\"] },\n        \"title\": {\n          \"type\": \"string\",\n          \"minLength\": 1,\n          \"maxLength\": 256,\n          \"description\": \"One-line name shown in notification settings.\"\n        }\n      }\n    },\n    \"MetadataFileDialect\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"id\", \"name\", \"fields\"],\n      \"anyOf\": [\n        { \"required\": [\"file_names\"], \"properties\": { \"file_names\": { \"minItems\": 1 } } },\n        { \"required\": [\"suffixes\"], \"properties\": { \"suffixes\": { \"minItems\": 1 } } }\n      ],\n      \"if\": { \"required\": [\"fields\"], \"properties\": { \"fields\": { \"contains\": { \"const\": \"credits\" } } } },\n      \"then\": { \"required\": [\"credit_roles\"], \"properties\": { \"credit_roles\": { \"minItems\": 1 } } },\n      \"else\": { \"properties\": { \"credit_roles\": { \"maxItems\": 0 } } },\n      \"description\": \"One metadata file format. The host routes a file by exact name first, then by the longest matching suffix, both compared without ASCII case.\",\n      \"properties\": {\n        \"id\": {\n          \"type\": \"string\",\n          \"pattern\": \"^[a-z][a-z0-9_]{0,63}$\",\n          \"description\": \"Dialect id, unique within the plugin; passed back in parse and render.\"\n        },\n        \"name\": { \"type\": \"string\", \"minLength\": 1, \"description\": \"Name shown in settings and on a book\'s files list.\" },\n        \"file_names\": {\n          \"type\": \"array\",\n          \"description\": \"Exact file names the dialect reads (metadata.json).\",\n          \"items\": { \"type\": \"string\", \"minLength\": 1 }\n        },\n        \"suffixes\": {\n          \"type\": \"array\",\n          \"description\": \"File name endings the dialect reads (.opf, .metadata.json); each starts with a dot.\",\n          \"items\": { \"type\": \"string\", \"pattern\": \"^\\\\..+\" }\n        },\n        \"fields\": {\n          \"type\": \"array\",\n          \"minItems\": 1,\n          \"description\": \"Fields the format carries.\",\n          \"items\": { \"type\": \"string\", \"enum\": [\"title\", \"subtitle\", \"description\", \"publisher\", \"publishedAt\", \"language\", \"genres\", \"tags\", \"abridgement\", \"expressionKind\", \"identifiers\", \"credits\", \"series\", \"chapters\", \"duration\"] }\n        },\n        \"credit_roles\": {\n          \"type\": \"array\",\n          \"description\": \"Credit roles the format carries; required exactly when fields names credits.\",\n          \"items\": { \"type\": \"string\", \"enum\": [\"author\", \"narrator\", \"translator\", \"editor\", \"illustrator\", \"publisher\", \"host\", \"cast\", \"adaptor\"] }\n        },\n        \"writes\": { \"type\": \"boolean\", \"description\": \"Whether the dialect also writes files (render). Defaults to false.\" }\n      }\n    },\n    \"Capabilities\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"network\"],\n      \"properties\": {\n        \"network\": { \"$ref\": \"#/$defs/NetworkCapabilities\" }\n      }\n    },\n    \"NetworkCapabilities\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"mode\"],\n      \"properties\": {\n        \"mode\": { \"type\": \"string\", \"enum\": [\"deny\", \"outbound\"] },\n        \"domains\": {\n          \"type\": \"array\",\n          \"description\": \"Workerd-only: initial-request host allowlist for isolate egress. Forbidden on runtime=native. The operator may add destinations beyond this list; the guest cannot.\",\n          \"items\": { \"type\": \"string\", \"minLength\": 1 }\n        },\n        \"tcp\": {\n          \"type\": \"array\",\n          \"description\": \"Raw TCP connect grants (host + ports). Fetch domain grants do not imply TCP.\",\n          \"items\": { \"$ref\": \"#/$defs/TcpCapability\" }\n        },\n        \"allow_undeclared_public_redirects\": {\n          \"type\": \"boolean\",\n          \"description\": \"When true, fetch redirects may target undeclared public hosts. Address-space policy still applies.\"\n        },\n        \"address_cidrs\": {\n          \"type\": \"array\",\n          \"description\": \"Explicit CIDR grants beyond the public Internet. No blanket private=true.\",\n          \"items\": { \"type\": \"string\", \"minLength\": 1 }\n        },\n        \"own_user_agent\": { \"$ref\": \"#/$defs/OwnUserAgent\" }\n      },\n      \"if\": { \"properties\": { \"mode\": { \"const\": \"deny\" } } },\n      \"then\": { \"not\": { \"required\": [\"own_user_agent\"] } }\n    },\n    \"OwnUserAgent\": {\n      \"type\": \"object\",\n      \"description\": \"Hosts that receive the plugin\'s own User-Agent instead of the host\'s bookclerk/<version> agent. Shown on the consent form; the operator may refuse.\",\n      \"additionalProperties\": false,\n      \"required\": [\"hosts\", \"reason\"],\n      \"properties\": {\n        \"hosts\": {\n          \"type\": \"array\",\n          \"description\": \"Exact hosts or *. wildcards (never *).\",\n          \"minItems\": 1,\n          \"maxItems\": 32,\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1,\n            \"pattern\": \"^(\\\\*\\\\.)?[^*\\\\s,/:%@?#\\\\\\\\]+$\"\n          }\n        },\n        \"reason\": {\n          \"type\": \"string\",\n          \"description\": \"One line for the operator on why these hosts need the plugin\'s own agent, such as the app API contract it follows.\",\n          \"minLength\": 1,\n          \"maxLength\": 300,\n          \"pattern\": \"^[^\\\\r\\\\n]+$\"\n        }\n      }\n    },\n    \"TcpCapability\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"host\", \"ports\"],\n      \"properties\": {\n        \"host\": { \"type\": \"string\", \"minLength\": 1 },\n        \"ports\": {\n          \"type\": \"array\",\n          \"items\": { \"type\": \"integer\", \"minimum\": 1, \"maximum\": 65535 },\n          \"minItems\": 1\n        }\n      }\n    },\n    \"Triggers\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"crons\": {\n          \"type\": \"array\",\n          \"description\": \"Five-field UTC cron schedules (minute hour day-of-month month day-of-week) for the default entrypoint\'s scheduled(controller) handler, as in Workers. Values, ranges, lists, */step and JAN-DEC / SUN-SAT names; no L, W, # or @macros. At most 8, no duplicates.\",\n          \"maxItems\": 8,\n          \"uniqueItems\": true,\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 9,\n            \"maxLength\": 128,\n            \"pattern\": \"^\\\\s*\\\\S+(\\\\s+\\\\S+){4}\\\\s*$\"\n          }\n        },\n        \"jobs\": {\n          \"type\": \"array\",\n          \"items\": { \"type\": \"string\", \"minLength\": 1 }\n        }\n      }\n    },\n    \"Events\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"consumers\": {\n          \"type\": \"array\",\n          \"items\": { \"$ref\": \"#/$defs/EventConsumer\" }\n        },\n        \"producers\": {\n          \"type\": \"array\",\n          \"items\": { \"$ref\": \"#/$defs/EventProducer\" }\n        }\n      }\n    },\n    \"EventConsumer\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"type\"],\n      \"properties\": {\n        \"type\": {\n          \"type\": \"string\",\n          \"minLength\": 1,\n          \"pattern\": \"^[a-z][a-z0-9_]*$\"\n        },\n        \"schema_versions\": {\n          \"type\": \"array\",\n          \"items\": { \"type\": \"integer\", \"minimum\": 1 },\n          \"minItems\": 1\n        },\n        \"supports_suspend\": { \"type\": \"boolean\", \"default\": false },\n        \"resource_class\": { \"type\": \"string\", \"enum\": [\"network\"], \"default\": \"network\" },\n        \"filter\": { \"type\": \"object\" },\n        \"max_retries\": { \"type\": \"integer\", \"minimum\": 0 },\n        \"message_retention_period\": { \"type\": \"integer\", \"minimum\": 60, \"maximum\": 1209600 }\n      }\n    },\n    \"EventProducer\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"type\"],\n      \"properties\": {\n        \"type\": {\n          \"type\": \"string\",\n          \"minLength\": 1,\n          \"pattern\": \"^[a-z][a-z0-9_]*$\"\n        },\n        \"binding\": { \"type\": \"string\", \"minLength\": 1 }\n      }\n    },\n    \"Queues\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"description\": \"Workers Queues: producers are `env` send bindings, consumers are `queue(batch)` triggers. Queue names are `[a-z0-9][a-z0-9._-]*` (at most 63 chars); the `core.` and `host.` prefixes are reserved for the host.\",\n      \"properties\": {\n        \"producers\": { \"type\": \"array\", \"items\": { \"$ref\": \"#/$defs/QueueProducer\" } },\n        \"consumers\": { \"type\": \"array\", \"items\": { \"$ref\": \"#/$defs/QueueConsumer\" } }\n      }\n    },\n    \"QueueProducer\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"queue\", \"binding\"],\n      \"properties\": {\n        \"queue\": {\n          \"type\": \"string\",\n          \"minLength\": 1,\n          \"maxLength\": 63,\n          \"pattern\": \"^[a-z0-9][a-z0-9._-]*$\"\n        },\n        \"binding\": { \"type\": \"string\", \"minLength\": 1, \"pattern\": \"^[A-Z][A-Z0-9_]*$\" }\n      }\n    },\n    \"QueueConsumer\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"queue\"],\n      \"properties\": {\n        \"queue\": {\n          \"type\": \"string\",\n          \"minLength\": 1,\n          \"maxLength\": 63,\n          \"pattern\": \"^[a-z0-9][a-z0-9._-]*$\"\n        },\n        \"max_batch_size\": { \"type\": \"integer\", \"minimum\": 1, \"maximum\": 100, \"default\": 10 },\n        \"max_batch_timeout\": { \"type\": \"integer\", \"minimum\": 0, \"maximum\": 60, \"default\": 5 },\n        \"max_retries\": { \"type\": \"integer\", \"minimum\": 0, \"maximum\": 100, \"default\": 3 },\n        \"dead_letter_queue\": {\n          \"type\": \"string\",\n          \"minLength\": 1,\n          \"maxLength\": 63,\n          \"pattern\": \"^[a-z0-9][a-z0-9._-]*$\"\n        },\n        \"retry_delay\": { \"type\": \"integer\", \"minimum\": 0, \"maximum\": 43200, \"default\": 0 },\n        \"max_concurrency\": { \"type\": \"integer\", \"minimum\": 1 },\n        \"message_retention_period\": { \"type\": \"integer\", \"minimum\": 60, \"maximum\": 1209600 }\n      }\n    },\n    \"SettingSpec\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"key\", \"type\"],\n      \"properties\": {\n        \"key\": {\n          \"type\": \"string\",\n          \"pattern\": \"^[a-z][a-z0-9_]{0,63}$\",\n          \"description\": \"Setting key, unique within the plugin; the CONFIG / SECRETS property name.\"\n        },\n        \"label\": { \"type\": \"string\", \"description\": \"Operator-facing label; defaults to the key.\" },\n        \"type\": {\n          \"type\": \"string\",\n          \"enum\": [\"string\", \"bool\", \"integer\", \"enum\", \"secret\"],\n          \"description\": \"Value type. `secret` values are sealed by the host and delivered in SECRETS, never stored in the instance document.\"\n        },\n        \"values\": {\n          \"type\": \"array\",\n          \"maxItems\": 64,\n          \"description\": \"Allowed values for type = \\\"enum\\\"; forbidden otherwise.\",\n          \"items\": {\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"required\": [\"id\"],\n            \"properties\": {\n              \"id\": { \"type\": \"string\", \"minLength\": 1, \"maxLength\": 1024 },\n              \"label\": { \"type\": \"string\" }\n            }\n          }\n        },\n        \"default\": {\n          \"type\": [\"string\", \"boolean\", \"integer\"],\n          \"description\": \"Default applied when the instance document omits the key. Not allowed for secrets.\"\n        },\n        \"required\": { \"type\": \"boolean\", \"default\": false },\n        \"description\": { \"type\": \"string\" }\n      }\n    },\n    \"DatabaseBinding\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"binding\"],\n      \"properties\": {\n        \"binding\": {\n          \"type\": \"string\",\n          \"pattern\": \"^[A-Z][A-Z0-9_]*$\",\n          \"maxLength\": 32\n        }\n      }\n    },\n    \"NamedBinding\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"binding\": { \"type\": \"string\", \"minLength\": 1 }\n      }\n    },\n    \"KvNamespace\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"binding\": { \"type\": \"string\", \"minLength\": 1 },\n        \"namespace\": {\n          \"type\": \"string\",\n          \"minLength\": 1,\n          \"maxLength\": 63,\n          \"pattern\": \"^[a-z0-9][a-z0-9._-]*$\"\n        },\n        \"max_value_bytes\": { \"type\": \"integer\", \"minimum\": 1, \"maximum\": 1048576, \"default\": 65536 },\n        \"max_keys\": { \"type\": \"integer\", \"minimum\": 1, \"maximum\": 1000000, \"default\": 10000 }\n      }\n    },\n    \"WorkerdRuntime\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"compatibility_date\", \"main_module\"],\n      \"properties\": {\n        \"compatibility_date\": {\n          \"type\": \"string\",\n          \"minLength\": 10,\n          \"maxLength\": 10,\n          \"pattern\": \"^[0-9]{4}-[0-9]{2}-[0-9]{2}$\",\n          \"description\": \"Calendar YYYY-MM-DD. A date newer than the pinned workerd compatibility date 2026-11-13 warns and falls back to that pin when the isolate loads. The pattern checks shape only; checkers reject impossible days such as 2026-02-31.\"\n        },\n        \"compatibility_flags\": {\n          \"type\": \"array\",\n          \"description\": \"Exact allowlist: python_workers and disable_python_external_sdk. Both are required together when the guest is Python and forbidden otherwise. The host does not append missing flags.\",\n          \"items\": {\n            \"type\": \"string\",\n            \"enum\": [\"python_workers\", \"disable_python_external_sdk\"]\n          }\n        },\n        \"main_module\": { \"type\": \"string\", \"minLength\": 1 },\n        \"modules_dir\": { \"type\": \"string\", \"default\": \"modules\" },\n        \"entrypoint\": { \"type\": \"string\", \"default\": \"default\" },\n        \"limits\": { \"$ref\": \"#/$defs/WorkerdLimits\" }\n      }\n    },\n    \"WorkerdLimits\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"cpu_ms\": { \"type\": \"integer\", \"minimum\": 0 },\n        \"subrequests\": { \"type\": \"integer\", \"minimum\": 0 }\n      }\n    },\n    \"ModuleSpec\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"name\"],\n      \"properties\": {\n        \"name\": { \"type\": \"string\" },\n        \"path\": {\n          \"type\": \"string\",\n          \"description\": \"Source file relative to the plugin root. When path is omitted or empty, name is the modules-directory source.\"\n        },\n        \"type\": { \"type\": \"string\", \"default\": \"js\" }\n      }\n    },\n    \"CliSchema\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"commands\": {\n          \"type\": \"array\",\n          \"items\": { \"$ref\": \"#/$defs/CliCommandSpec\" }\n        }\n      }\n    },\n    \"CliCommandSpec\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"name\"],\n      \"properties\": {\n        \"name\": { \"type\": \"string\" },\n        \"about\": { \"type\": \"string\" },\n        \"args\": {\n          \"type\": \"array\",\n          \"items\": { \"$ref\": \"#/$defs/CliArgSpec\" }\n        }\n      }\n    },\n    \"CliArgSpec\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"name\"],\n      \"properties\": {\n        \"name\": { \"type\": \"string\" },\n        \"long\": { \"type\": \"string\" },\n        \"short\": { \"type\": \"string\", \"maxLength\": 1 },\n        \"kind\": {\n          \"type\": \"string\",\n          \"enum\": [\"string\", \"bool\", \"int\", \"path\"],\n          \"default\": \"string\"\n        },\n        \"required\": { \"type\": \"boolean\" },\n        \"default\": { \"type\": \"string\" },\n        \"about\": { \"type\": \"string\" },\n        \"positional\": { \"type\": \"boolean\" }\n      }\n    },\n    \"OidcManifest\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"clients\": {\n          \"type\": \"array\",\n          \"items\": { \"$ref\": \"#/$defs/OidcClient\" }\n        }\n      }\n    },\n    \"OidcClient\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"client_id\", \"callback_path\", \"origin_config_key\"],\n      \"properties\": {\n        \"client_id\": { \"type\": \"string\", \"minLength\": 1 },\n        \"display_name\": { \"type\": \"string\" },\n        \"callback_path\": { \"type\": \"string\", \"pattern\": \"^/\" },\n        \"public_client\": { \"type\": \"boolean\", \"default\": true },\n        \"default_scopes\": {\n          \"type\": \"array\",\n          \"items\": { \"type\": \"string\" }\n        },\n        \"issue_refresh_token\": { \"type\": \"boolean\", \"default\": true },\n        \"origin_config_key\": { \"type\": \"string\", \"minLength\": 1 }\n      }\n    }\n  }\n}\n";
+pub const PLUGIN_TOML_SCHEMA_JSON: &str = "{\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n  \"$id\": \"https://bookclerk.dev/schemas/plugin-toml.json\",\n  \"title\": \"BookclerkPluginToml\",\n  \"description\": \"Install descriptor for a Bookclerk plugin (plugin.toml), api_version = 3. Keys use TOML/snake_case. There is no plugin `kind`; handler family is derived from entrypoints and triggers. The `id` is a display/CLI alias, not a globally unique security identity. Durable identity is the host-computed provenance-qualified PluginKey. capabilities.network.domains is workerd-only (hostname allowlist for isolate fetch()). Native guests omit domains and declare capabilities.network.tcp for mediated connect(); ambient AF_INET is denied.\",\n  \"type\": \"object\",\n  \"additionalProperties\": false,\n  \"required\": [\"api_version\", \"id\", \"capabilities\"],\n  \"properties\": {\n    \"api_version\": { \"type\": \"integer\", \"enum\": [3] },\n    \"id\": {\n      \"type\": \"string\",\n      \"minLength\": 2,\n      \"maxLength\": 32,\n      \"pattern\": \"^[a-z0-9]+(?:_[a-z0-9]+)*$\",\n      \"description\": \"Display / CLI alias. Not globally unique and not a privilege. Lowercase letters, digits, and single underscores only (2\u{2013}32 chars); no leading/trailing or doubled `_`. When two installs share an alias, address them with a provenance-qualified PluginKey.\"\n    },\n    \"name\": { \"type\": \"string\" },\n    \"version\": { \"type\": \"string\" },\n    \"logo\": {\n      \"type\": \"string\",\n      \"description\": \"Optional Settings/UI logo: https:// or http:// URL (browser loads directly), or a relative image path under the plugin install root (host serves via GET /api/plugins/{id}/logo when the alias is unambiguous). Embedded paths must not contain \'..\' and must end with .png/.jpg/.jpeg/.gif/.webp/.svg/.ico.\"\n    },\n    \"runtime\": {\n      \"type\": \"string\",\n      \"enum\": [\"native\", \"workerd\"],\n      \"default\": \"native\"\n    },\n    \"command\": { \"type\": \"string\", \"minLength\": 1 },\n    \"args\": {\n      \"type\": \"array\",\n      \"items\": { \"type\": \"string\" }\n    },\n    \"entrypoints\": {\n      \"type\": \"array\",\n      \"description\": \"Named capabilities this plugin exports from PluginWorker.open.\",\n      \"items\": {\n        \"type\": \"string\",\n        \"enum\": [\"storefront\", \"storage\", \"databaseAdapter\", \"remoteLibrary\", \"cli\", \"oidc\", \"metadata\", \"covers\", \"metadataFiles\", \"notifier\", \"ingress\", \"ai\"]\n      }\n    },\n    \"media\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"description\": \"Work kinds and edition carriers the plugin works with. Required, with non-empty works and lists, for a plugin exporting the storefront or metadata entrypoint; forbidden for every other plugin. describe() must declare the same kinds.\",\n      \"properties\": {\n        \"works\": {\n          \"type\": \"array\",\n          \"description\": \"Work kinds the plugin reports.\",\n          \"items\": { \"type\": \"string\", \"enum\": [\"book\", \"podcast\"] }\n        },\n        \"lists\": {\n          \"type\": \"array\",\n          \"description\": \"Edition carriers the plugin reports in scans, catalog search and metadata records.\",\n          \"items\": { \"type\": \"string\", \"enum\": [\"audio\", \"ebook\", \"print\"] }\n        },\n        \"fetches\": {\n          \"type\": \"array\",\n          \"description\": \"Edition carriers fetchTitle can deliver; a subset of lists. Storefronts only.\",\n          \"items\": { \"type\": \"string\", \"enum\": [\"audio\", \"ebook\", \"print\"] }\n        }\n      }\n    },\n    \"metadata_files\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"dialects\"],\n      \"description\": \"Metadata file dialects (sidecars such as metadata.json, OPF, NFO, CUE) the plugin reads and writes. Required, with at least one dialect, for a plugin exporting the metadataFiles entrypoint; forbidden for every other plugin.\",\n      \"properties\": {\n        \"dialects\": {\n          \"type\": \"array\",\n          \"minItems\": 1,\n          \"items\": { \"$ref\": \"#/$defs/MetadataFileDialect\" }\n        }\n      }\n    },\n    \"notifier\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"destinations\"],\n      \"description\": \"What a notifier sends to and in which formats. Required for a plugin exporting the notifier entrypoint; forbidden for every other plugin.\",\n      \"properties\": {\n        \"destinations\": {\n          \"type\": \"array\",\n          \"minItems\": 1,\n          \"uniqueItems\": true,\n          \"description\": \"Destination kinds: channel (one shared target the operator sets up) and personal (a patron\'s own address).\",\n          \"items\": { \"type\": \"string\", \"enum\": [\"channel\", \"personal\"] }\n        },\n        \"account_mail\": {\n          \"type\": \"boolean\",\n          \"description\": \"Whether the plugin can carry account mail (invites, password resets, recovery). Needs a required, non-secret email address field. Defaults to false.\"\n        },\n        \"formats\": {\n          \"type\": \"array\",\n          \"minItems\": 1,\n          \"uniqueItems\": true,\n          \"contains\": { \"const\": \"text\" },\n          \"description\": \"Body formats the service shows; must include text. Defaults to [\\\"text\\\"].\",\n          \"items\": { \"type\": \"string\", \"enum\": [\"text\", \"markdown\", \"html\"] }\n        },\n        \"address_fields\": {\n          \"type\": \"array\",\n          \"maxItems\": 16,\n          \"description\": \"Fields of a personal address; required exactly when destinations names personal, with at least one required field.\",\n          \"items\": { \"$ref\": \"#/$defs/NotifierAddressField\" }\n        }\n      }\n    },\n    \"notifications\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"description\": \"Notification types the plugin raises through env.NOTIFY. Declaring any grants the NOTIFY binding.\",\n      \"properties\": {\n        \"types\": {\n          \"type\": \"array\",\n          \"maxItems\": 64,\n          \"items\": { \"$ref\": \"#/$defs/NotificationType\" }\n        }\n      }\n    },\n    \"ingress\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"kind\"],\n      \"description\": \"How an ingress plugin serves the library publicly. Required for a plugin exporting the ingress entrypoint; forbidden for every other plugin.\",\n      \"properties\": {\n        \"kind\": {\n          \"type\": \"string\",\n          \"enum\": [\"relay\", \"direct\"],\n          \"description\": \"relay: the provider relays each request to the plugin, which hands it to the library through ORIGIN. direct: the public address points at the daemon; the plugin only keeps it current.\"\n        }\n      }\n    },\n    \"ai\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"description\": \"Model tasks the plugin serves on its ai entrypoint and the tasks it calls through env.AI.\",\n      \"properties\": {\n        \"serves\": {\n          \"type\": \"array\",\n          \"uniqueItems\": true,\n          \"description\": \"Tasks the plugin\'s models perform. Required, with at least one task, for a plugin exporting the ai entrypoint; forbidden for every other plugin.\",\n          \"items\": { \"$ref\": \"#/$defs/AiTask\" }\n        },\n        \"calls\": {\n          \"type\": \"array\",\n          \"uniqueItems\": true,\n          \"description\": \"Tasks the plugin runs through env.AI. Declaring any asks the operator for the AI binding.\",\n          \"items\": { \"$ref\": \"#/$defs/AiTask\" }\n        }\n      }\n    },\n    \"workerd\": { \"$ref\": \"#/$defs/WorkerdRuntime\" },\n    \"modules\": {\n      \"type\": \"array\",\n      \"items\": { \"$ref\": \"#/$defs/ModuleSpec\" }\n    },\n    \"triggers\": { \"$ref\": \"#/$defs/Triggers\" },\n    \"events\": { \"$ref\": \"#/$defs/Events\" },\n    \"databases\": {\n      \"type\": \"array\",\n      \"description\": \"Named plugin-owned database bindings (Workers-style).\",\n      \"maxItems\": 8,\n      \"items\": { \"$ref\": \"#/$defs/DatabaseBinding\" }\n    },\n    \"vars\": {\n      \"type\": \"object\",\n      \"description\": \"Operator config binding (`CONFIG`). Declares that the guest receives CONFIG; values come from [[settings]] defaults and the plugin instance document. An empty table is the usual form.\"\n    },\n    \"settings\": {\n      \"type\": \"array\",\n      \"description\": \"Operator settings schema ([[settings]]): keys an instance document may set, their types, enum values, and defaults. The host validates documents against it and renders it in Settings. Non-secret entries require [vars]; type = \\\"secret\\\" entries require [secrets].\",\n      \"maxItems\": 32,\n      \"items\": { \"$ref\": \"#/$defs/SettingSpec\" }\n    },\n    \"secrets\": { \"$ref\": \"#/$defs/NamedBinding\" },\n    \"kv_namespaces\": {\n      \"type\": \"array\",\n      \"description\": \"Durable KV bindings (default name KV) served from the library database: Workers KVNamespace-shaped get/put/delete/list with expiration and metadata, scoped to the plugin and the row\'s namespace. Distinct from [[databases]].\",\n      \"items\": { \"$ref\": \"#/$defs/KvNamespace\" }\n    },\n    \"queues\": { \"$ref\": \"#/$defs/Queues\" },\n    \"work_fs\": { \"$ref\": \"#/$defs/NamedBinding\" },\n    \"oauth\": { \"$ref\": \"#/$defs/NamedBinding\" },\n    \"capabilities\": { \"$ref\": \"#/$defs/Capabilities\" },\n    \"cli\": { \"$ref\": \"#/$defs/CliSchema\" },\n    \"oidc\": { \"$ref\": \"#/$defs/OidcManifest\" }\n  },\n  \"allOf\": [\n    {\n      \"if\": {\n        \"properties\": { \"runtime\": { \"const\": \"workerd\" } },\n        \"required\": [\"runtime\"]\n      },\n      \"then\": { \"required\": [\"workerd\"] }\n    },\n    {\n      \"if\": {\n        \"anyOf\": [\n          { \"properties\": { \"runtime\": { \"const\": \"native\" } } },\n          { \"not\": { \"required\": [\"runtime\"] } }\n        ]\n      },\n      \"then\": {\n        \"required\": [\"command\"],\n        \"properties\": {\n          \"capabilities\": {\n            \"properties\": {\n              \"network\": {\n                \"properties\": {\n                  \"domains\": false\n                }\n              }\n            }\n          }\n        }\n      }\n    },\n    {\n      \"if\": {\n        \"properties\": {\n          \"runtime\": { \"const\": \"workerd\" },\n          \"capabilities\": {\n            \"properties\": {\n              \"network\": {\n                \"properties\": { \"mode\": { \"const\": \"outbound\" } },\n                \"required\": [\"mode\"]\n              }\n            },\n            \"required\": [\"network\"]\n          }\n        },\n        \"required\": [\"runtime\", \"capabilities\"]\n      },\n      \"then\": {\n        \"properties\": {\n          \"capabilities\": {\n            \"properties\": {\n              \"network\": {\n                \"required\": [\"domains\"],\n                \"properties\": {\n                  \"domains\": {\n                    \"type\": \"array\",\n                    \"minItems\": 1,\n                    \"items\": { \"type\": \"string\", \"minLength\": 1 }\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    },\n    {\n      \"if\": {\n        \"properties\": {\n          \"entrypoints\": {\n            \"anyOf\": [{ \"contains\": { \"const\": \"storefront\" } }, { \"contains\": { \"const\": \"metadata\" } }]\n          }\n        },\n        \"required\": [\"entrypoints\"]\n      },\n      \"then\": {\n        \"required\": [\"media\"],\n        \"properties\": {\n          \"media\": {\n            \"required\": [\"works\", \"lists\"],\n            \"properties\": { \"works\": { \"minItems\": 1 }, \"lists\": { \"minItems\": 1 } }\n          }\n        }\n      },\n      \"else\": { \"properties\": { \"media\": false } }\n    },\n    {\n      \"if\": {\n        \"properties\": { \"entrypoints\": { \"contains\": { \"const\": \"metadataFiles\" } } },\n        \"required\": [\"entrypoints\"]\n      },\n      \"then\": { \"required\": [\"metadata_files\"] },\n      \"else\": { \"properties\": { \"metadata_files\": false } }\n    },\n    {\n      \"if\": {\n        \"properties\": { \"entrypoints\": { \"contains\": { \"const\": \"notifier\" } } },\n        \"required\": [\"entrypoints\"]\n      },\n      \"then\": { \"required\": [\"notifier\"] },\n      \"else\": { \"properties\": { \"notifier\": false } }\n    },\n    {\n      \"if\": {\n        \"properties\": { \"entrypoints\": { \"contains\": { \"const\": \"ingress\" } } },\n        \"required\": [\"entrypoints\"]\n      },\n      \"then\": { \"required\": [\"ingress\"] },\n      \"else\": { \"properties\": { \"ingress\": false } }\n    },\n    {\n      \"if\": {\n        \"properties\": { \"entrypoints\": { \"contains\": { \"const\": \"ai\" } } },\n        \"required\": [\"entrypoints\"]\n      },\n      \"then\": {\n        \"required\": [\"ai\"],\n        \"properties\": { \"ai\": { \"required\": [\"serves\"], \"properties\": { \"serves\": { \"minItems\": 1 } } } }\n      },\n      \"else\": { \"properties\": { \"ai\": { \"properties\": { \"serves\": { \"maxItems\": 0 } } } } }\n    }\n  ],\n  \"$defs\": {\n    \"AiTask\": {\n      \"type\": \"string\",\n      \"enum\": [\"textEmbeddings\"],\n      \"description\": \"What a model does: textEmbeddings turns each text into one vector.\"\n    },\n    \"NotifierAddressField\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"key\", \"label\"],\n      \"description\": \"One field of a patron\'s personal address, such as an email address or a chat id.\",\n      \"properties\": {\n        \"key\": {\n          \"type\": \"string\",\n          \"pattern\": \"^[a-z][a-z0-9_]{0,63}$\",\n          \"description\": \"Key in the address document; unique within the plugin.\"\n        },\n        \"label\": { \"type\": \"string\", \"minLength\": 1, \"description\": \"Label shown to the patron.\" },\n        \"required\": { \"type\": \"boolean\", \"description\": \"Whether the patron must fill it in. Defaults to false.\" },\n        \"secret\": {\n          \"type\": \"boolean\",\n          \"description\": \"Whether the value is a secret (a personal token): sealed at rest and never shown again. Defaults to false.\"\n        }\n      }\n    },\n    \"NotificationType\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"id\", \"audience\", \"severity\", \"title\"],\n      \"description\": \"One notification type the plugin raises; the host names it <plugin>:<id>.\",\n      \"properties\": {\n        \"id\": {\n          \"type\": \"string\",\n          \"pattern\": \"^[a-z][a-z0-9_]{0,63}$\",\n          \"description\": \"Type id, unique within the plugin.\"\n        },\n        \"audience\": {\n          \"type\": \"string\",\n          \"enum\": [\"operational\", \"patron\"],\n          \"description\": \"operational goes to administrators\' channels; patron goes to the one patron a raise names. account is reserved to Bookclerk.\"\n        },\n        \"severity\": { \"type\": \"string\", \"enum\": [\"info\", \"warning\", \"critical\"] },\n        \"title\": {\n          \"type\": \"string\",\n          \"minLength\": 1,\n          \"maxLength\": 256,\n          \"description\": \"One-line name shown in notification settings.\"\n        }\n      }\n    },\n    \"MetadataFileDialect\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"id\", \"name\", \"fields\"],\n      \"anyOf\": [\n        { \"required\": [\"file_names\"], \"properties\": { \"file_names\": { \"minItems\": 1 } } },\n        { \"required\": [\"suffixes\"], \"properties\": { \"suffixes\": { \"minItems\": 1 } } }\n      ],\n      \"if\": { \"required\": [\"fields\"], \"properties\": { \"fields\": { \"contains\": { \"const\": \"credits\" } } } },\n      \"then\": { \"required\": [\"credit_roles\"], \"properties\": { \"credit_roles\": { \"minItems\": 1 } } },\n      \"else\": { \"properties\": { \"credit_roles\": { \"maxItems\": 0 } } },\n      \"description\": \"One metadata file format. The host routes a file by exact name first, then by the longest matching suffix, both compared without ASCII case.\",\n      \"properties\": {\n        \"id\": {\n          \"type\": \"string\",\n          \"pattern\": \"^[a-z][a-z0-9_]{0,63}$\",\n          \"description\": \"Dialect id, unique within the plugin; passed back in parse and render.\"\n        },\n        \"name\": { \"type\": \"string\", \"minLength\": 1, \"description\": \"Name shown in settings and on a book\'s files list.\" },\n        \"file_names\": {\n          \"type\": \"array\",\n          \"description\": \"Exact file names the dialect reads (metadata.json).\",\n          \"items\": { \"type\": \"string\", \"minLength\": 1 }\n        },\n        \"suffixes\": {\n          \"type\": \"array\",\n          \"description\": \"File name endings the dialect reads (.opf, .metadata.json); each starts with a dot.\",\n          \"items\": { \"type\": \"string\", \"pattern\": \"^\\\\..+\" }\n        },\n        \"fields\": {\n          \"type\": \"array\",\n          \"minItems\": 1,\n          \"description\": \"Fields the format carries.\",\n          \"items\": { \"type\": \"string\", \"enum\": [\"title\", \"subtitle\", \"description\", \"publisher\", \"publishedAt\", \"language\", \"genres\", \"tags\", \"abridgement\", \"expressionKind\", \"identifiers\", \"credits\", \"series\", \"chapters\", \"duration\"] }\n        },\n        \"credit_roles\": {\n          \"type\": \"array\",\n          \"description\": \"Credit roles the format carries; required exactly when fields names credits.\",\n          \"items\": { \"type\": \"string\", \"enum\": [\"author\", \"narrator\", \"translator\", \"editor\", \"illustrator\", \"publisher\", \"host\", \"cast\", \"adaptor\"] }\n        },\n        \"writes\": { \"type\": \"boolean\", \"description\": \"Whether the dialect also writes files (render). Defaults to false.\" }\n      }\n    },\n    \"Capabilities\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"network\"],\n      \"properties\": {\n        \"network\": { \"$ref\": \"#/$defs/NetworkCapabilities\" }\n      }\n    },\n    \"NetworkCapabilities\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"mode\"],\n      \"properties\": {\n        \"mode\": { \"type\": \"string\", \"enum\": [\"deny\", \"outbound\"] },\n        \"domains\": {\n          \"type\": \"array\",\n          \"description\": \"Workerd-only: initial-request host allowlist for isolate egress. Forbidden on runtime=native. The operator may add destinations beyond this list; the guest cannot.\",\n          \"items\": { \"type\": \"string\", \"minLength\": 1 }\n        },\n        \"tcp\": {\n          \"type\": \"array\",\n          \"description\": \"Raw TCP connect grants (host + ports). Fetch domain grants do not imply TCP.\",\n          \"items\": { \"$ref\": \"#/$defs/TcpCapability\" }\n        },\n        \"allow_undeclared_public_redirects\": {\n          \"type\": \"boolean\",\n          \"description\": \"When true, fetch redirects may target undeclared public hosts. Address-space policy still applies.\"\n        },\n        \"address_cidrs\": {\n          \"type\": \"array\",\n          \"description\": \"Explicit CIDR grants beyond the public Internet. No blanket private=true.\",\n          \"items\": { \"type\": \"string\", \"minLength\": 1 }\n        },\n        \"own_user_agent\": { \"$ref\": \"#/$defs/OwnUserAgent\" }\n      },\n      \"if\": { \"properties\": { \"mode\": { \"const\": \"deny\" } } },\n      \"then\": { \"not\": { \"required\": [\"own_user_agent\"] } }\n    },\n    \"OwnUserAgent\": {\n      \"type\": \"object\",\n      \"description\": \"Hosts that receive the plugin\'s own User-Agent instead of the host\'s bookclerk/<version> agent. Shown on the consent form; the operator may refuse.\",\n      \"additionalProperties\": false,\n      \"required\": [\"hosts\", \"reason\"],\n      \"properties\": {\n        \"hosts\": {\n          \"type\": \"array\",\n          \"description\": \"Exact hosts or *. wildcards (never *).\",\n          \"minItems\": 1,\n          \"maxItems\": 32,\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1,\n            \"pattern\": \"^(\\\\*\\\\.)?[^*\\\\s,/:%@?#\\\\\\\\]+$\"\n          }\n        },\n        \"reason\": {\n          \"type\": \"string\",\n          \"description\": \"One line for the operator on why these hosts need the plugin\'s own agent, such as the app API contract it follows.\",\n          \"minLength\": 1,\n          \"maxLength\": 300,\n          \"pattern\": \"^[^\\\\r\\\\n]+$\"\n        }\n      }\n    },\n    \"TcpCapability\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"host\", \"ports\"],\n      \"properties\": {\n        \"host\": { \"type\": \"string\", \"minLength\": 1 },\n        \"ports\": {\n          \"type\": \"array\",\n          \"items\": { \"type\": \"integer\", \"minimum\": 1, \"maximum\": 65535 },\n          \"minItems\": 1\n        }\n      }\n    },\n    \"Triggers\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"crons\": {\n          \"type\": \"array\",\n          \"description\": \"Five-field UTC cron schedules (minute hour day-of-month month day-of-week) for the default entrypoint\'s scheduled(controller) handler, as in Workers. Values, ranges, lists, */step and JAN-DEC / SUN-SAT names; no L, W, # or @macros. At most 8, no duplicates.\",\n          \"maxItems\": 8,\n          \"uniqueItems\": true,\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 9,\n            \"maxLength\": 128,\n            \"pattern\": \"^\\\\s*\\\\S+(\\\\s+\\\\S+){4}\\\\s*$\"\n          }\n        },\n        \"jobs\": {\n          \"type\": \"array\",\n          \"items\": { \"type\": \"string\", \"minLength\": 1 }\n        }\n      }\n    },\n    \"Events\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"consumers\": {\n          \"type\": \"array\",\n          \"items\": { \"$ref\": \"#/$defs/EventConsumer\" }\n        },\n        \"producers\": {\n          \"type\": \"array\",\n          \"items\": { \"$ref\": \"#/$defs/EventProducer\" }\n        }\n      }\n    },\n    \"EventConsumer\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"type\"],\n      \"properties\": {\n        \"type\": {\n          \"type\": \"string\",\n          \"minLength\": 1,\n          \"pattern\": \"^[a-z][a-z0-9_]*$\"\n        },\n        \"schema_versions\": {\n          \"type\": \"array\",\n          \"items\": { \"type\": \"integer\", \"minimum\": 1 },\n          \"minItems\": 1\n        },\n        \"supports_suspend\": { \"type\": \"boolean\", \"default\": false },\n        \"resource_class\": { \"type\": \"string\", \"enum\": [\"network\"], \"default\": \"network\" },\n        \"filter\": { \"type\": \"object\" },\n        \"max_retries\": { \"type\": \"integer\", \"minimum\": 0 },\n        \"message_retention_period\": { \"type\": \"integer\", \"minimum\": 60, \"maximum\": 1209600 }\n      }\n    },\n    \"EventProducer\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"type\"],\n      \"properties\": {\n        \"type\": {\n          \"type\": \"string\",\n          \"minLength\": 1,\n          \"pattern\": \"^[a-z][a-z0-9_]*$\"\n        },\n        \"binding\": { \"type\": \"string\", \"minLength\": 1 }\n      }\n    },\n    \"Queues\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"description\": \"Workers Queues: producers are `env` send bindings, consumers are `queue(batch)` triggers. Queue names are `[a-z0-9][a-z0-9._-]*` (at most 63 chars); the `core.` and `host.` prefixes are reserved for the host.\",\n      \"properties\": {\n        \"producers\": { \"type\": \"array\", \"items\": { \"$ref\": \"#/$defs/QueueProducer\" } },\n        \"consumers\": { \"type\": \"array\", \"items\": { \"$ref\": \"#/$defs/QueueConsumer\" } }\n      }\n    },\n    \"QueueProducer\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"queue\", \"binding\"],\n      \"properties\": {\n        \"queue\": {\n          \"type\": \"string\",\n          \"minLength\": 1,\n          \"maxLength\": 63,\n          \"pattern\": \"^[a-z0-9][a-z0-9._-]*$\"\n        },\n        \"binding\": { \"type\": \"string\", \"minLength\": 1, \"pattern\": \"^[A-Z][A-Z0-9_]*$\" }\n      }\n    },\n    \"QueueConsumer\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"queue\"],\n      \"properties\": {\n        \"queue\": {\n          \"type\": \"string\",\n          \"minLength\": 1,\n          \"maxLength\": 63,\n          \"pattern\": \"^[a-z0-9][a-z0-9._-]*$\"\n        },\n        \"max_batch_size\": { \"type\": \"integer\", \"minimum\": 1, \"maximum\": 100, \"default\": 10 },\n        \"max_batch_timeout\": { \"type\": \"integer\", \"minimum\": 0, \"maximum\": 60, \"default\": 5 },\n        \"max_retries\": { \"type\": \"integer\", \"minimum\": 0, \"maximum\": 100, \"default\": 3 },\n        \"dead_letter_queue\": {\n          \"type\": \"string\",\n          \"minLength\": 1,\n          \"maxLength\": 63,\n          \"pattern\": \"^[a-z0-9][a-z0-9._-]*$\"\n        },\n        \"retry_delay\": { \"type\": \"integer\", \"minimum\": 0, \"maximum\": 43200, \"default\": 0 },\n        \"max_concurrency\": { \"type\": \"integer\", \"minimum\": 1 },\n        \"message_retention_period\": { \"type\": \"integer\", \"minimum\": 60, \"maximum\": 1209600 }\n      }\n    },\n    \"SettingSpec\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"key\", \"type\"],\n      \"properties\": {\n        \"key\": {\n          \"type\": \"string\",\n          \"pattern\": \"^[a-z][a-z0-9_]{0,63}$\",\n          \"description\": \"Setting key, unique within the plugin; the CONFIG / SECRETS property name.\"\n        },\n        \"label\": { \"type\": \"string\", \"description\": \"Operator-facing label; defaults to the key.\" },\n        \"type\": {\n          \"type\": \"string\",\n          \"enum\": [\"string\", \"bool\", \"integer\", \"enum\", \"secret\"],\n          \"description\": \"Value type. `secret` values are sealed by the host and delivered in SECRETS, never stored in the instance document.\"\n        },\n        \"values\": {\n          \"type\": \"array\",\n          \"maxItems\": 64,\n          \"description\": \"Allowed values for type = \\\"enum\\\"; forbidden otherwise.\",\n          \"items\": {\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"required\": [\"id\"],\n            \"properties\": {\n              \"id\": { \"type\": \"string\", \"minLength\": 1, \"maxLength\": 1024 },\n              \"label\": { \"type\": \"string\" }\n            }\n          }\n        },\n        \"default\": {\n          \"type\": [\"string\", \"boolean\", \"integer\"],\n          \"description\": \"Default applied when the instance document omits the key. Not allowed for secrets.\"\n        },\n        \"required\": { \"type\": \"boolean\", \"default\": false },\n        \"description\": { \"type\": \"string\" }\n      }\n    },\n    \"DatabaseBinding\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"binding\"],\n      \"properties\": {\n        \"binding\": {\n          \"type\": \"string\",\n          \"pattern\": \"^[A-Z][A-Z0-9_]*$\",\n          \"maxLength\": 32\n        }\n      }\n    },\n    \"NamedBinding\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"binding\": { \"type\": \"string\", \"minLength\": 1 }\n      }\n    },\n    \"KvNamespace\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"binding\": { \"type\": \"string\", \"minLength\": 1 },\n        \"namespace\": {\n          \"type\": \"string\",\n          \"minLength\": 1,\n          \"maxLength\": 63,\n          \"pattern\": \"^[a-z0-9][a-z0-9._-]*$\"\n        },\n        \"max_value_bytes\": { \"type\": \"integer\", \"minimum\": 1, \"maximum\": 1048576, \"default\": 65536 },\n        \"max_keys\": { \"type\": \"integer\", \"minimum\": 1, \"maximum\": 1000000, \"default\": 10000 }\n      }\n    },\n    \"WorkerdRuntime\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"compatibility_date\", \"main_module\"],\n      \"properties\": {\n        \"compatibility_date\": {\n          \"type\": \"string\",\n          \"minLength\": 10,\n          \"maxLength\": 10,\n          \"pattern\": \"^[0-9]{4}-[0-9]{2}-[0-9]{2}$\",\n          \"description\": \"Calendar YYYY-MM-DD. A date newer than the pinned workerd compatibility date 2026-11-13 warns and falls back to that pin when the isolate loads. The pattern checks shape only; checkers reject impossible days such as 2026-02-31.\"\n        },\n        \"compatibility_flags\": {\n          \"type\": \"array\",\n          \"description\": \"Exact allowlist: python_workers and disable_python_external_sdk. Both are required together when the guest is Python and forbidden otherwise. The host does not append missing flags.\",\n          \"items\": {\n            \"type\": \"string\",\n            \"enum\": [\"python_workers\", \"disable_python_external_sdk\"]\n          }\n        },\n        \"main_module\": { \"type\": \"string\", \"minLength\": 1 },\n        \"modules_dir\": { \"type\": \"string\", \"default\": \"modules\" },\n        \"entrypoint\": { \"type\": \"string\", \"default\": \"default\" },\n        \"limits\": { \"$ref\": \"#/$defs/WorkerdLimits\" }\n      }\n    },\n    \"WorkerdLimits\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"cpu_ms\": { \"type\": \"integer\", \"minimum\": 0 },\n        \"subrequests\": { \"type\": \"integer\", \"minimum\": 0 }\n      }\n    },\n    \"ModuleSpec\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"name\"],\n      \"properties\": {\n        \"name\": { \"type\": \"string\" },\n        \"path\": {\n          \"type\": \"string\",\n          \"description\": \"Source file relative to the plugin root. When path is omitted or empty, name is the modules-directory source.\"\n        },\n        \"type\": { \"type\": \"string\", \"default\": \"js\" }\n      }\n    },\n    \"CliSchema\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"commands\": {\n          \"type\": \"array\",\n          \"items\": { \"$ref\": \"#/$defs/CliCommandSpec\" }\n        }\n      }\n    },\n    \"CliCommandSpec\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"name\"],\n      \"properties\": {\n        \"name\": { \"type\": \"string\" },\n        \"about\": { \"type\": \"string\" },\n        \"args\": {\n          \"type\": \"array\",\n          \"items\": { \"$ref\": \"#/$defs/CliArgSpec\" }\n        }\n      }\n    },\n    \"CliArgSpec\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"name\"],\n      \"properties\": {\n        \"name\": { \"type\": \"string\" },\n        \"long\": { \"type\": \"string\" },\n        \"short\": { \"type\": \"string\", \"maxLength\": 1 },\n        \"kind\": {\n          \"type\": \"string\",\n          \"enum\": [\"string\", \"bool\", \"int\", \"path\"],\n          \"default\": \"string\"\n        },\n        \"required\": { \"type\": \"boolean\" },\n        \"default\": { \"type\": \"string\" },\n        \"about\": { \"type\": \"string\" },\n        \"positional\": { \"type\": \"boolean\" }\n      }\n    },\n    \"OidcManifest\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"clients\": {\n          \"type\": \"array\",\n          \"items\": { \"$ref\": \"#/$defs/OidcClient\" }\n        }\n      }\n    },\n    \"OidcClient\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"client_id\", \"callback_path\", \"origin_config_key\"],\n      \"properties\": {\n        \"client_id\": { \"type\": \"string\", \"minLength\": 1 },\n        \"display_name\": { \"type\": \"string\" },\n        \"callback_path\": { \"type\": \"string\", \"pattern\": \"^/\" },\n        \"public_client\": { \"type\": \"boolean\", \"default\": true },\n        \"default_scopes\": {\n          \"type\": \"array\",\n          \"items\": { \"type\": \"string\" }\n        },\n        \"issue_refresh_token\": { \"type\": \"boolean\", \"default\": true },\n        \"origin_config_key\": { \"type\": \"string\", \"minLength\": 1 }\n      }\n    }\n  }\n}\n";
 ```
 
 Embedded JSON Schema for install `plugin.toml` files (shared with language

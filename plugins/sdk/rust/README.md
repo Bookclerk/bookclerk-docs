@@ -29,7 +29,7 @@ A native guest implements `PluginWorker` (`describe`, and
 stdin and stdout Cap'n Proto runner. The entrypoints it returns are the
 same named entrypoints the other SDKs export as classes: storefront,
 storage, remote library, database adapter, CLI, OIDC, metadata, covers,
-metadata files and notifier. The
+metadata files, notifier and model plugin (`ai`). The
 crate root re-exports the DTOs and helpers a guest needs; prefer
 `use bookclerk_plugin_sdk::…` over reaching into submodules.
 
@@ -331,6 +331,7 @@ submodules unless you need module-level docs.
 - [`sockets::SocketInfo`](../../../internals/crates/bookclerk_plugin_abi/generated.md#socketinfo)
 - [`sockets::SocketMessage`](../../../internals/crates/bookclerk_plugin_abi/generated.md#socketmessage)
 - [`sockets::Sockets`](../../../internals/crates/bookclerk_plugin_abi/README.md#sockets)
+- [`bookclerk_plugin_abi::ai`](../../../internals/crates/bookclerk_plugin_abi/ai.md)
 - [`bookclerk_plugin_abi::byte_source_from_async_read`](../../../internals/crates/bookclerk_plugin_abi/README.md#byte_source_from_async_read)
 - [`bookclerk_plugin_abi::canonical_execute_request_hash`](../../../internals/crates/bookclerk_plugin_abi/README.md#canonical_execute_request_hash)
 - [`bookclerk_plugin_abi::connect_plugin`](../../../internals/crates/bookclerk_plugin_abi/README.md#connect_plugin)
@@ -552,6 +553,27 @@ submodules unless you need module-level docs.
 - [`bookclerk_plugin_abi::PRODUCT_API_VERSION`](../../../internals/crates/bookclerk_plugin_abi/README.md#product_api_version)
 - [`bookclerk_plugin_abi::SQL_CONTRACT_VERSION`](../../../internals/crates/bookclerk_plugin_abi/db_execute.md#sql_contract_version)
 - [`bookclerk_plugin_abi::STORAGE_OPERATION_FEATURES`](../../../internals/crates/bookclerk_plugin_abi/README.md#storage_operation_features)
+- [`bookclerk_plugin_abi::AiEmbedText`](../../../internals/crates/bookclerk_plugin_abi/generated.md#aiembedtext)
+- [`bookclerk_plugin_abi::AiInput`](../../../internals/crates/bookclerk_plugin_abi/generated.md#aiinput)
+- [`bookclerk_plugin_abi::AiModel`](../../../internals/crates/bookclerk_plugin_abi/generated.md#aimodel)
+- [`bookclerk_plugin_abi::AiModelList`](../../../internals/crates/bookclerk_plugin_abi/generated.md#aimodellist)
+- [`bookclerk_plugin_abi::AiModels`](../../../internals/crates/bookclerk_plugin_abi/README.md#aimodels)
+- [`bookclerk_plugin_abi::AiModelsClient`](../../../internals/crates/bookclerk_plugin_abi/README.md#aimodelsclient)
+- [`bookclerk_plugin_abi::AiOutput`](../../../internals/crates/bookclerk_plugin_abi/generated.md#aioutput)
+- [`bookclerk_plugin_abi::AiRunOk`](../../../internals/crates/bookclerk_plugin_abi/generated.md#airunok)
+- [`bookclerk_plugin_abi::AiRunParams`](../../../internals/crates/bookclerk_plugin_abi/generated.md#airunparams)
+- [`bookclerk_plugin_abi::AiRunner`](../../../internals/crates/bookclerk_plugin_abi/README.md#airunner)
+- [`bookclerk_plugin_abi::AiRunnerClient`](../../../internals/crates/bookclerk_plugin_abi/README.md#airunnerclient)
+- [`bookclerk_plugin_abi::AiTask`](../../../internals/crates/bookclerk_plugin_abi/generated.md#aitask)
+- [`bookclerk_plugin_abi::AiTextEmbeddingsInput`](../../../internals/crates/bookclerk_plugin_abi/generated.md#aitextembeddingsinput)
+- [`bookclerk_plugin_abi::AiTextEmbeddingsOutput`](../../../internals/crates/bookclerk_plugin_abi/generated.md#aitextembeddingsoutput)
+- [`bookclerk_plugin_abi::AiTextRole`](../../../internals/crates/bookclerk_plugin_abi/generated.md#aitextrole)
+- [`bookclerk_plugin_abi::MAX_AI_EMBED_DIMENSIONS`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_ai_embed_dimensions)
+- [`bookclerk_plugin_abi::MAX_AI_EMBED_TEXTS`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_ai_embed_texts)
+- [`bookclerk_plugin_abi::MAX_AI_EMBED_TEXT_BYTES`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_ai_embed_text_bytes)
+- [`bookclerk_plugin_abi::MAX_AI_LANGUAGES`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_ai_languages)
+- [`bookclerk_plugin_abi::MAX_AI_MODELS`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_ai_models)
+- [`bookclerk_plugin_abi::MAX_AI_MODEL_NAME_BYTES`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_ai_model_name_bytes)
 
 ## Modules
 

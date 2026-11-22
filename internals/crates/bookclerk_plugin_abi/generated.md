@@ -110,6 +110,15 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`NotifyValidated`](#notifyvalidated) | struct | Success payload of `Notifier.validateDestination`. |
 | [`NotifyRaiseParams`](#notifyraiseparams) | struct | Params of `NotificationRaiser.raise`. |
 | [`NotifyRaised`](#notifyraised) | struct | Success payload of `NotificationRaiser.raise`. |
+| [`AiModel`](#aimodel) | struct | One model an `ai` plugin serves. |
+| [`AiModelList`](#aimodellist) | struct | Success payload of `AiModels.models`. |
+| [`AiEmbedText`](#aiembedtext) | struct | One text to embed. |
+| [`AiTextEmbeddingsInput`](#aitextembeddingsinput) | struct | Input of the `textEmbeddings` task. |
+| [`AiTextEmbeddingsOutput`](#aitextembeddingsoutput) | struct | Output of the `textEmbeddings` task. |
+| [`AiInput`](#aiinput) | struct | Input to one model run: one field per `AiTask`, and exactly one is set (the others are null). A new task appends a field. |
+| [`AiOutput`](#aioutput) | struct | Output of one model run: one field per `AiTask`, and exactly one is set (the others are null). A new task appends a field. |
+| [`AiRunParams`](#airunparams) | struct | Params of `AiModels.run` and `AiRunner.run`. |
+| [`AiRunOk`](#airunok) | struct | Success payload of a model run. |
 | [`SocketHeader`](#socketheader) | struct | One request header on `Sockets.connect`. |
 | [`SocketAutoResponse`](#socketautoresponse) | struct | A heartbeat the broker answers itself: when `request` arrives byte for byte, it sends `response` and does not wake the guest. |
 | [`SocketConnectRequest`](#socketconnectrequest) | struct | Arguments of `Sockets.connect`. |
@@ -145,6 +154,8 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`NotificationAudience`](#notificationaudience) | enum | Who a notification type is for. The account audience is reserved to the host; a plugin may declare only operational and patron types. |
 | [`NotificationAlertAction`](#notificationalertaction) | enum | Lifecycle step of an alert, for services such as PagerDuty that open and close incidents. |
 | [`NotifyDestinationKind`](#notifydestinationkind) | enum | Kind of destination a `Notifier` sends to. |
+| [`AiTask`](#aitask) | enum | What a model does. A model has exactly one task, and the task fixes the shape of `AiRunParams.input` and of the reply. |
+| [`AiTextRole`](#aitextrole) | enum | What a text is to an embedding model. Some models embed a search query differently from the documents it is matched against. |
 | [`QueueResult`](#queueresult) | enum | Per-message outcome inside a `QueueConsumer.queue` batch reply. |
 | [`SocketFrame`](#socketframe) | enum | One WebSocket message. |
 | [`RoundTripFailure`](#roundtripfailure) | enum | Why `roundtrip_any_message` could not show `read(write(v)) == v`. |
@@ -412,6 +423,28 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`read_notify_raised`](#read_notify_raised) | function | Decode a `NotifyRaised` from a Cap'n Proto reader. |
 | [`write_notify_raise_reply`](#write_notify_raise_reply) | function | Encode a `NotifyRaiseReply` union from a typed result. |
 | [`read_notify_raise_reply`](#read_notify_raise_reply) | function | Decode a `NotifyRaiseReply` union into a typed result. |
+| [`write_ai_model`](#write_ai_model) | function | Encode a `AiModel` onto a Cap'n Proto builder. |
+| [`read_ai_model`](#read_ai_model) | function | Decode a `AiModel` from a Cap'n Proto reader. |
+| [`write_ai_model_list`](#write_ai_model_list) | function | Encode a `AiModelList` onto a Cap'n Proto builder. |
+| [`read_ai_model_list`](#read_ai_model_list) | function | Decode a `AiModelList` from a Cap'n Proto reader. |
+| [`write_ai_models_reply`](#write_ai_models_reply) | function | Encode a `AiModelsReply` union from a typed result. |
+| [`read_ai_models_reply`](#read_ai_models_reply) | function | Decode a `AiModelsReply` union into a typed result. |
+| [`write_ai_embed_text`](#write_ai_embed_text) | function | Encode a `AiEmbedText` onto a Cap'n Proto builder. |
+| [`read_ai_embed_text`](#read_ai_embed_text) | function | Decode a `AiEmbedText` from a Cap'n Proto reader. |
+| [`write_ai_text_embeddings_input`](#write_ai_text_embeddings_input) | function | Encode a `AiTextEmbeddingsInput` onto a Cap'n Proto builder. |
+| [`read_ai_text_embeddings_input`](#read_ai_text_embeddings_input) | function | Decode a `AiTextEmbeddingsInput` from a Cap'n Proto reader. |
+| [`write_ai_text_embeddings_output`](#write_ai_text_embeddings_output) | function | Encode a `AiTextEmbeddingsOutput` onto a Cap'n Proto builder. |
+| [`read_ai_text_embeddings_output`](#read_ai_text_embeddings_output) | function | Decode a `AiTextEmbeddingsOutput` from a Cap'n Proto reader. |
+| [`write_ai_input`](#write_ai_input) | function | Encode a `AiInput` onto a Cap'n Proto builder. |
+| [`read_ai_input`](#read_ai_input) | function | Decode a `AiInput` from a Cap'n Proto reader. |
+| [`write_ai_output`](#write_ai_output) | function | Encode a `AiOutput` onto a Cap'n Proto builder. |
+| [`read_ai_output`](#read_ai_output) | function | Decode a `AiOutput` from a Cap'n Proto reader. |
+| [`write_ai_run_params`](#write_ai_run_params) | function | Encode a `AiRunParams` onto a Cap'n Proto builder. |
+| [`read_ai_run_params`](#read_ai_run_params) | function | Decode a `AiRunParams` from a Cap'n Proto reader. |
+| [`write_ai_run_ok`](#write_ai_run_ok) | function | Encode a `AiRunOk` onto a Cap'n Proto builder. |
+| [`read_ai_run_ok`](#read_ai_run_ok) | function | Decode a `AiRunOk` from a Cap'n Proto reader. |
+| [`write_ai_run_reply`](#write_ai_run_reply) | function | Encode a `AiRunReply` union from a typed result. |
+| [`read_ai_run_reply`](#read_ai_run_reply) | function | Decode a `AiRunReply` union into a typed result. |
 | [`write_socket_frame`](#write_socket_frame) | function | Encode a `SocketFrame` union. |
 | [`read_socket_frame`](#read_socket_frame) | function | Decode a `SocketFrame` union. |
 | [`write_socket_header`](#write_socket_header) | function | Encode a `SocketHeader` onto a Cap'n Proto builder. |
@@ -3060,6 +3093,189 @@ Success payload of `NotificationRaiser.raise`.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
+### AiModel
+
+```rust
+pub struct AiModel {
+    pub model_id: String,
+    pub task: AiTask,
+    pub revision: String,
+    pub dimensions: Option<u32>,
+    pub max_tokens: Option<u32>,
+    pub languages: Vec<String>,
+}
+```
+
+One model an `ai` plugin serves.
+
+**Fields**
+
+- `model_id`: Model id within the plugin (`bekko-a8m`): lowercase letters, digits,
+  `.`, `_` and `-`. Callers name it `@<plugin id>/<model id>`; the whole
+  name is at most `maxAiModelNameBytes`.
+- `task`: The model's one task.
+- `revision`: Digest of everything that decides the output: weights, tokenizer and
+  the language packs loaded. Outputs are comparable only when it matches.
+- `dimensions`: Text embeddings: numbers per vector, at most `maxAiEmbedDimensions`.
+  `None` when absent (wire zero value).
+- `max_tokens`: Text embeddings: tokens read from one text; the rest is cut off.
+  `None` when absent (wire zero value).
+- `languages`: BCP 47 tags of the languages the model is loaded for, at most
+  `maxAiLanguages`; empty when it has no language packs.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### AiModelList
+
+```rust
+pub struct AiModelList {
+    pub models: Vec<AiModel>,
+}
+```
+
+Success payload of `AiModels.models`.
+
+**Fields**
+
+- `models`: Served models, at most `maxAiModels`, each `modelId` once.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### AiEmbedText
+
+```rust
+pub struct AiEmbedText {
+    pub text: String,
+    pub role: AiTextRole,
+}
+```
+
+One text to embed.
+
+**Fields**
+
+- `text`: The text, at most `maxAiEmbedTextBytes`; never empty.
+- `role`: Document or query.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### AiTextEmbeddingsInput
+
+```rust
+pub struct AiTextEmbeddingsInput {
+    pub texts: Vec<AiEmbedText>,
+}
+```
+
+Input of the `textEmbeddings` task.
+
+**Fields**
+
+- `texts`: Texts to embed, 1 to `maxAiEmbedTexts`.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### AiTextEmbeddingsOutput
+
+```rust
+pub struct AiTextEmbeddingsOutput {
+    pub dimensions: u32,
+    pub vectors: Vec<u8>,
+    pub revision: String,
+    pub fallbacks: Vec<u32>,
+}
+```
+
+Output of the `textEmbeddings` task.
+
+**Fields**
+
+- `dimensions`: Numbers per vector; equals the model's `AiModel.dimensions`.
+- `vectors`: One vector per input text, in input order: `dimensions` little-endian
+  IEEE 754 32-bit floats each, concatenated. Every number is finite.
+- `revision`: `AiModel.revision` of the model that made the vectors.
+- `fallbacks`: Indexes (into the input texts, ascending, each once) of the texts
+  where the tokenizer met text outside the loaded language packs and
+  fell back to smaller pieces; such a vector should be recomputed after
+  the missing pack is added.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### AiInput
+
+```rust
+pub struct AiInput {
+    pub text_embeddings: AiTextEmbeddingsInput,
+}
+```
+
+Input to one model run: one field per `AiTask`, and exactly one is set
+(the others are null). A new task appends a field.
+
+**Fields**
+
+- `text_embeddings`: `textEmbeddings` task.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### AiOutput
+
+```rust
+pub struct AiOutput {
+    pub text_embeddings: AiTextEmbeddingsOutput,
+}
+```
+
+Output of one model run: one field per `AiTask`, and exactly one is set
+(the others are null). A new task appends a field.
+
+**Fields**
+
+- `text_embeddings`: `textEmbeddings` task.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### AiRunParams
+
+```rust
+pub struct AiRunParams {
+    pub model: String,
+    pub input: AiInput,
+}
+```
+
+Params of `AiModels.run` and `AiRunner.run`.
+
+**Fields**
+
+- `model`: On `AiModels.run`, the plugin's own `AiModel.modelId`. On
+  `AiRunner.run`, `@<plugin id>/<model id>` or a task alias
+  (`@library/text-embeddings`: the model the library chose for the task).
+- `input`: The input; the field set must match the model's task.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### AiRunOk
+
+```rust
+pub struct AiRunOk {
+    pub output: AiOutput,
+    pub model: Option<String>,
+}
+```
+
+Success payload of a model run.
+
+**Fields**
+
+- `output`: The output; the field set matches the model's task.
+- `model`: Full name of the model that ran (`@<plugin id>/<model id>`), so a
+  caller that used a task alias knows what answered. Set by the host on
+  `AiRunner.run`; empty on `AiModels.run`.
+  `None` when absent (wire zero value).
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
 ### SocketHeader
 
 ```rust
@@ -3325,6 +3541,7 @@ pub enum Entrypoint {
     MetadataFiles,
     Notifier,
     Ingress,
+    Ai,
 }
 ```
 
@@ -3347,6 +3564,7 @@ the default entrypoint (`event`, `job`) are declared separately.
 - `MetadataFiles`: Metadata file dialects: `parse` and `render` (`MetadataFiles`).
 - `Notifier`: Notification delivery: `send` and `validateDestination` (`Notifier`).
 - `Ingress`: Public address provider: `start`, `health` and `stop` (`Ingress`).
+- `Ai`: Model serving: `models` and `run` (`AiModels`).
 
 #### Entrypoint::wire_name
 
@@ -4267,6 +4485,74 @@ pub fn from_wire_name(name: &str) -> Option<Self>
 Parse a wire name; `None` for unknown strings.
 
 Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<NotifyDestinationKind>`, `Hash`, `PartialEq`, `Serialize`
+
+### AiTask
+
+```rust
+pub enum AiTask {
+    TextEmbeddings,
+}
+```
+
+What a model does. A model has exactly one task, and the task fixes the
+shape of `AiRunParams.input` and of the reply.
+
+**Variants**
+
+- `TextEmbeddings`: Turns each text into one vector; similar texts get nearby vectors.
+
+#### AiTask::wire_name
+
+```rust
+pub fn wire_name(self) -> &'static str
+```
+
+Wire name of this enumerant (matches the TypeScript / Python SDK literal).
+
+#### AiTask::from_wire_name
+
+```rust
+pub fn from_wire_name(name: &str) -> Option<Self>
+```
+
+Parse a wire name; `None` for unknown strings.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<AiTask>`, `Hash`, `PartialEq`, `Serialize`
+
+### AiTextRole
+
+```rust
+pub enum AiTextRole {
+    Document,
+    Query,
+}
+```
+
+What a text is to an embedding model. Some models embed a search query
+differently from the documents it is matched against.
+
+**Variants**
+
+- `Document`: Stored content: a description, a passage.
+- `Query`: A search query matched against documents.
+
+#### AiTextRole::wire_name
+
+```rust
+pub fn wire_name(self) -> &'static str
+```
+
+Wire name of this enumerant (matches the TypeScript / Python SDK literal).
+
+#### AiTextRole::from_wire_name
+
+```rust
+pub fn from_wire_name(name: &str) -> Option<Self>
+```
+
+Parse a wire name; `None` for unknown strings.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<AiTextRole>`, `Hash`, `PartialEq`, `Serialize`
 
 ### QueueResult
 
@@ -7638,6 +7924,279 @@ Decode a `NotifyRaiseReply` union into a typed result.
 
 Returns a Cap'n Proto error when the union is unset or a field is malformed.
 
+### write_ai_model
+
+```rust
+pub fn write_ai_model(b: Builder<'_>, v: &AiModel) -> Result<()>
+```
+
+Encode a [`AiModel`](#aimodel) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_ai_model
+
+```rust
+pub fn read_ai_model(r: Reader<'_>) -> Result<AiModel>
+```
+
+Decode a [`AiModel`](#aimodel) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_ai_model_list
+
+```rust
+pub fn write_ai_model_list(b: Builder<'_>, v: &AiModelList) -> Result<()>
+```
+
+Encode a [`AiModelList`](#aimodellist) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_ai_model_list
+
+```rust
+pub fn read_ai_model_list(r: Reader<'_>) -> Result<AiModelList>
+```
+
+Decode a [`AiModelList`](#aimodellist) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_ai_models_reply
+
+```rust
+pub fn write_ai_models_reply(
+    b: Builder<'_>,
+    v: &Result<AiModelList, PluginError>,
+) -> Result<()>
+```
+
+Encode a `AiModelsReply` union from a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when a nested field cannot be encoded.
+
+### read_ai_models_reply
+
+```rust
+pub fn read_ai_models_reply(r: Reader<'_>) -> Result<Result<AiModelList, PluginError>>
+```
+
+Decode a `AiModelsReply` union into a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when the union is unset or a field is malformed.
+
+### write_ai_embed_text
+
+```rust
+pub fn write_ai_embed_text(b: Builder<'_>, v: &AiEmbedText) -> Result<()>
+```
+
+Encode a [`AiEmbedText`](#aiembedtext) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_ai_embed_text
+
+```rust
+pub fn read_ai_embed_text(r: Reader<'_>) -> Result<AiEmbedText>
+```
+
+Decode a [`AiEmbedText`](#aiembedtext) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_ai_text_embeddings_input
+
+```rust
+pub fn write_ai_text_embeddings_input(
+    b: Builder<'_>,
+    v: &AiTextEmbeddingsInput,
+) -> Result<()>
+```
+
+Encode a [`AiTextEmbeddingsInput`](#aitextembeddingsinput) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_ai_text_embeddings_input
+
+```rust
+pub fn read_ai_text_embeddings_input(r: Reader<'_>) -> Result<AiTextEmbeddingsInput>
+```
+
+Decode a [`AiTextEmbeddingsInput`](#aitextembeddingsinput) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_ai_text_embeddings_output
+
+```rust
+pub fn write_ai_text_embeddings_output(
+    b: Builder<'_>,
+    v: &AiTextEmbeddingsOutput,
+) -> Result<()>
+```
+
+Encode a [`AiTextEmbeddingsOutput`](#aitextembeddingsoutput) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_ai_text_embeddings_output
+
+```rust
+pub fn read_ai_text_embeddings_output(r: Reader<'_>) -> Result<AiTextEmbeddingsOutput>
+```
+
+Decode a [`AiTextEmbeddingsOutput`](#aitextembeddingsoutput) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_ai_input
+
+```rust
+pub fn write_ai_input(b: Builder<'_>, v: &AiInput) -> Result<()>
+```
+
+Encode a [`AiInput`](#aiinput) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_ai_input
+
+```rust
+pub fn read_ai_input(r: Reader<'_>) -> Result<AiInput>
+```
+
+Decode a [`AiInput`](#aiinput) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_ai_output
+
+```rust
+pub fn write_ai_output(b: Builder<'_>, v: &AiOutput) -> Result<()>
+```
+
+Encode a [`AiOutput`](#aioutput) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_ai_output
+
+```rust
+pub fn read_ai_output(r: Reader<'_>) -> Result<AiOutput>
+```
+
+Decode a [`AiOutput`](#aioutput) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_ai_run_params
+
+```rust
+pub fn write_ai_run_params(b: Builder<'_>, v: &AiRunParams) -> Result<()>
+```
+
+Encode a [`AiRunParams`](#airunparams) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_ai_run_params
+
+```rust
+pub fn read_ai_run_params(r: Reader<'_>) -> Result<AiRunParams>
+```
+
+Decode a [`AiRunParams`](#airunparams) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_ai_run_ok
+
+```rust
+pub fn write_ai_run_ok(b: Builder<'_>, v: &AiRunOk) -> Result<()>
+```
+
+Encode a [`AiRunOk`](#airunok) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_ai_run_ok
+
+```rust
+pub fn read_ai_run_ok(r: Reader<'_>) -> Result<AiRunOk>
+```
+
+Decode a [`AiRunOk`](#airunok) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_ai_run_reply
+
+```rust
+pub fn write_ai_run_reply(b: Builder<'_>, v: &Result<AiRunOk, PluginError>) -> Result<()>
+```
+
+Encode a `AiRunReply` union from a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when a nested field cannot be encoded.
+
+### read_ai_run_reply
+
+```rust
+pub fn read_ai_run_reply(r: Reader<'_>) -> Result<Result<AiRunOk, PluginError>>
+```
+
+Decode a `AiRunReply` union into a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when the union is unset or a field is malformed.
+
 ### write_socket_frame
 
 ```rust
@@ -8146,7 +8705,7 @@ when the decoded value does not survive `write_*` then `read_*` intact.
 ### READ_ANY_COUNT
 
 ```rust
-pub const READ_ANY_COUNT: u8 = 150;
+pub const READ_ANY_COUNT: u8 = 161;
 ```
 
 Number of root structs [`read_any_message`](#read_any_message) can decode; selectors are

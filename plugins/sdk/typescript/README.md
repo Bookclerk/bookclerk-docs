@@ -50,6 +50,7 @@ extending its base:
 | `entrypoints = ["metadataFiles"]` | `MetadataFiles` | `MetadataFilesEntrypoint` |
 | `entrypoints = ["notifier"]` | `Notifier` | `NotifierEntrypoint` |
 | `entrypoints = ["ingress"]` | `Ingress` | `IngressEntrypoint` |
+| `entrypoints = ["ai"]` | `Ai` | `AiEntrypoint` |
 
 ```ts
 import {
@@ -1660,6 +1661,120 @@ Re-exports [AdapterSessionReply](generated.md#adaptersessionreply)
 ### AdapterStatement
 
 Re-exports [AdapterStatement](generated.md#adapterstatement)
+
+***
+
+### AiBinding
+
+Re-exports [AiBinding](env.md#aibinding)
+
+***
+
+### AiEmbedText
+
+Re-exports [AiEmbedText](generated.md#aiembedtext)
+
+***
+
+### AiEntrypoint
+
+Re-exports [AiEntrypoint](plugin.md#aientrypoint)
+
+***
+
+### AiInput
+
+Re-exports [AiInput](generated.md#aiinput)
+
+***
+
+### AiModel
+
+Re-exports [AiModel](generated.md#aimodel)
+
+***
+
+### AiModelList
+
+Re-exports [AiModelList](generated.md#aimodellist)
+
+***
+
+### AiModels
+
+Re-exports [AiModels](generated.md#aimodels)
+
+***
+
+### AiModelsReply
+
+Re-exports [AiModelsReply](generated.md#aimodelsreply)
+
+***
+
+### AiOutput
+
+Re-exports [AiOutput](generated.md#aioutput)
+
+***
+
+### AiRunner
+
+Re-exports [AiRunner](generated.md#airunner)
+
+***
+
+### AiRunOk
+
+Re-exports [AiRunOk](generated.md#airunok)
+
+***
+
+### AiRunParams
+
+Re-exports [AiRunParams](generated.md#airunparams)
+
+***
+
+### AiRunReply
+
+Re-exports [AiRunReply](generated.md#airunreply)
+
+***
+
+### AiTask
+
+Re-exports [AiTask](abi.md#aitask)
+
+***
+
+### AiTextEmbeddingsInput
+
+Re-exports [AiTextEmbeddingsInput](generated.md#aitextembeddingsinput)
+
+***
+
+### AiTextEmbeddingsOutput
+
+Re-exports [AiTextEmbeddingsOutput](generated.md#aitextembeddingsoutput)
+
+***
+
+### AiTextEmbeddingsRequest
+
+Re-exports [AiTextEmbeddingsRequest](env.md#aitextembeddingsrequest)
+
+***
+
+### AiTextEmbeddingsResponse
+
+Re-exports [AiTextEmbeddingsResponse](env.md#aitextembeddingsresponse)
+
+***
+
+### AiTextRole
+
+Re-exports [AiTextRole](abi.md#aitextrole)
 
 ***
 
@@ -3595,6 +3710,12 @@ Re-exports [OriginResponse](generated.md#originresponse)
 
 ***
 
+### packEmbeddingVectors
+
+Re-exports [packEmbeddingVectors](plugin.md#packembeddingvectors)
+
+***
+
 ### parseDbValue
 
 Re-exports [parseDbValue](db-value.md#parsedbvalue)
@@ -4324,6 +4445,12 @@ Re-exports [TranslateKeysResult](generated.md#translatekeysresult)
 ### TypedDbStatement
 
 Re-exports [TypedDbStatement](db-execute.md#typeddbstatement)
+
+***
+
+### unpackEmbeddingVectors
+
+Re-exports [unpackEmbeddingVectors](plugin.md#unpackembeddingvectors)
 
 ***
 

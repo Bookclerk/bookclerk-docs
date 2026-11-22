@@ -47,6 +47,7 @@ See `docs/plugins/README.md` for manifest fields and runtime requirements.
 | [`LOGO_EXTENSIONS`](#logo_extensions) | constant | Allowed file extensions for embedded `plugin.toml` logo paths. |
 | [`MAX_OWN_USER_AGENT_HOSTS`](#max_own_user_agent_hosts) | constant | Most hosts one `[capabilities.network.own_user_agent]` table may list. |
 | [`MAX_OWN_USER_AGENT_REASON_CHARS`](#max_own_user_agent_reason_chars) | constant | Longest `own_user_agent.reason`, in characters. |
+| [`AI_TASK_NAMES`](#ai_task_names) | constant | Model tasks `[ai].serves` and `[ai].calls` may name. |
 | [`ENTRYPOINT_NAMES`](#entrypoint_names) | constant | Entrypoint wire names accepted in `entrypoints`. |
 | [`ENTRYPOINT_EXPORT_CLASSES`](#entrypoint_export_classes) | constant | Exported class name the launcher binds for each `entrypoints` wire name. |
 | [`TYPES_OUTPUT_FILE`](#types_output_file) | constant | Default `types` output filename next to `plugin.toml`. |
@@ -646,6 +647,14 @@ MAX_OWN_USER_AGENT_REASON_CHARS = 300
 ```
 
 Longest `own_user_agent.reason`, in characters.
+
+### AI_TASK_NAMES
+
+```python
+AI_TASK_NAMES = ('textEmbeddings',)
+```
+
+Model tasks `[ai].serves` and `[ai].calls` may name.
 
 ### ENTRYPOINT_NAMES
 

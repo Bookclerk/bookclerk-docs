@@ -216,6 +216,208 @@ Resolves when the engine is ready for the restore.
 
 ***
 
+### AiEntrypoint
+
+`ai` entrypoint (`AiModels`): serves models to the host and, through the
+`AI` binding, to every plugin with the grant. `[ai].serves` in
+`plugin.toml` declares the tasks. The host checks every listing and every
+reply, so a wrong vector count or length fails the run. Export it as
+`export class Ai extends AiEntrypoint`.
+
+#### Extends
+
+- [`NamedEntrypoint`](#namedentrypoint)\<`Env`\>
+
+#### Type Parameters
+
+| Type Parameter | Default type |
+| ------ | ------ |
+| <a id="type-parameter-env"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
+
+#### Constructors
+
+##### Constructor
+
+```ts
+new AiEntrypoint<Env>(ctx, env): AiEntrypoint<Env>;
+```
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `ctx` | `ExecutionContext` |
+| `env` | `Env` |
+
+###### Returns
+
+[`AiEntrypoint`](#aientrypoint)\<`Env`\>
+
+###### Inherited from
+
+[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-13)
+
+#### Properties
+
+##### ctx
+
+```ts
+readonly ctx: ExecutionContext;
+```
+
+###### Inherited from
+
+[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-8)
+
+##### env
+
+```ts
+readonly env: Env;
+```
+
+###### Inherited from
+
+[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-8)
+
+##### invocation
+
+```ts
+invocation: Invocation;
+```
+
+Invocation identity of the current call (set by `bookclerkInvoke`).
+
+###### Inherited from
+
+[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-9)
+
+##### bookclerkMethods
+
+```ts
+static bookclerkMethods: readonly string[];
+```
+
+Methods the adapter may dispatch on this entrypoint.
+
+###### Overrides
+
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-7)
+
+#### Methods
+
+##### bookclerkInvoke()
+
+```ts
+bookclerkInvoke(
+   context, 
+   method, 
+   ...args
+): Promise<unknown>;
+```
+
+**`Internal`**
+
+Adapter dispatch: install granted bindings, then call `method`.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `context` | [`GrantedContext`](#grantedcontext) | Granted bindings for this invocation. |
+| `method` | `string` | Method name from the static allowlist. |
+| ...`args` | `unknown`[] | Method arguments. |
+
+###### Returns
+
+`Promise`\<`unknown`\>
+
+Method result.
+
+###### Inherited from
+
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-7)
+
+##### fetch()
+
+```ts
+fetch(_request?): Promise<Response>;
+```
+
+Rejects HTTP fetch — workerd guests are Workers-RPC only.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `_request?` | `Request` | Incoming HTTP request when the entrypoint is fetch-facing. |
+
+###### Returns
+
+`Promise`\<`Response`\>
+
+Always a 404 empty response.
+
+###### Inherited from
+
+[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-8)
+
+##### health()
+
+```ts
+health(): Promise<HealthOk>;
+```
+
+Reports whether the models can be loaded with the current settings.
+
+###### Returns
+
+`Promise`\<[`HealthOk`](generated.md#healthok)\>
+
+Health flag plus detail.
+
+##### models()
+
+```ts
+models(): Promise<AiModelList>;
+```
+
+Lists the models served now. Must be cheap: do not load a model here.
+Change a model's `revision` whenever its weights, tokenizer or loaded
+language packs change, because outputs are comparable only within one
+revision.
+
+###### Returns
+
+`Promise`\<[`AiModelList`](generated.md#aimodellist)\>
+
+The served models, each `modelId` once.
+
+##### run()
+
+```ts
+run(_params): Promise<AiRunOk>;
+```
+
+Runs one model on one input. Throw `not_found` for a model this plugin
+does not serve and `invalid_params` for an input of another task. For
+text embeddings return one vector per text, in input order
+([packEmbeddingVectors](#packembeddingvectors)), with the model's listed `dimensions` and
+`revision`.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `_params` | [`AiRunParams`](generated.md#airunparams) | The plugin's own model id and the input. |
+
+###### Returns
+
+`Promise`\<[`AiRunOk`](generated.md#airunok)\>
+
+The output; leave `model` unset.
+
+***
+
 ### BookclerkEntrypoint
 
 Default-export base. Optional trigger methods: [BookclerkEntrypoint.event](#event)
@@ -250,7 +452,7 @@ export default class MyPlugin extends BookclerkEntrypoint<Env> {
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| <a id="type-parameter-env"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
+| <a id="type-parameter-env-1"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
 
 #### Constructors
 
@@ -725,7 +927,7 @@ polls now instead of at its next scheduled poll.
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| <a id="type-parameter-env-1"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
+| <a id="type-parameter-env-2"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
 
 #### Constructors
 
@@ -748,7 +950,7 @@ new CliEntrypoint<Env>(ctx, env): CliEntrypoint<Env>;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-12)
+[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-13)
 
 #### Properties
 
@@ -760,7 +962,7 @@ readonly ctx: ExecutionContext;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-7)
+[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-8)
 
 ##### env
 
@@ -770,7 +972,7 @@ readonly env: Env;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-7)
+[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-8)
 
 ##### invocation
 
@@ -782,7 +984,7 @@ Invocation identity of the current call (set by `bookclerkInvoke`).
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-8)
+[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-9)
 
 ##### bookclerkMethods
 
@@ -794,7 +996,7 @@ Methods the adapter may dispatch on this entrypoint.
 
 ###### Overrides
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-6)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-7)
 
 #### Methods
 
@@ -828,7 +1030,7 @@ Method result.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-6)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-7)
 
 ##### describe()
 
@@ -866,7 +1068,7 @@ Always a 404 empty response.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-7)
+[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-8)
 
 ##### invoke()
 
@@ -906,7 +1108,7 @@ bytes stay untrusted. Export it as `export class Covers extends CoverEntrypoint`
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| <a id="type-parameter-env-2"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
+| <a id="type-parameter-env-3"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
 
 #### Constructors
 
@@ -929,7 +1131,7 @@ new CoverEntrypoint<Env>(ctx, env): CoverEntrypoint<Env>;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-12)
+[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-13)
 
 #### Properties
 
@@ -941,7 +1143,7 @@ readonly ctx: ExecutionContext;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-7)
+[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-8)
 
 ##### env
 
@@ -951,7 +1153,7 @@ readonly env: Env;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-7)
+[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-8)
 
 ##### invocation
 
@@ -963,7 +1165,7 @@ Invocation identity of the current call (set by `bookclerkInvoke`).
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-8)
+[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-9)
 
 ##### bookclerkMethods
 
@@ -975,7 +1177,7 @@ Methods the adapter may dispatch on this entrypoint.
 
 ###### Overrides
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-6)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-7)
 
 #### Methods
 
@@ -1009,7 +1211,7 @@ Method result.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-6)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-7)
 
 ##### fetch()
 
@@ -1033,7 +1235,7 @@ Always a 404 empty response.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-7)
+[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-8)
 
 ##### fetchCovers()
 
@@ -1078,7 +1280,7 @@ Health flag plus detail.
 library. Export it as `export class DatabaseAdapter extends DatabaseAdapterEntrypoint`.
 
 The adapter isolate drives sessions through two dispatch verbs on
-[DatabaseAdapterEntrypoint.bookclerkInvoke](#bookclerkinvoke-2): `openSession` returns a
+[DatabaseAdapterEntrypoint.bookclerkInvoke](#bookclerkinvoke-3): `openSession` returns a
 fresh session id, and `session(id, method, ...params)` calls `method` on
 the retained [AdapterDatabaseSession](#adapterdatabasesession); `close` releases the entry.
 
@@ -1090,7 +1292,7 @@ the retained [AdapterDatabaseSession](#adapterdatabasesession); `close` releases
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| <a id="type-parameter-env-3"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
+| <a id="type-parameter-env-4"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
 
 #### Constructors
 
@@ -1113,7 +1315,7 @@ new DatabaseAdapterEntrypoint<Env>(ctx, env): DatabaseAdapterEntrypoint<Env>;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-12)
+[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-13)
 
 #### Properties
 
@@ -1125,7 +1327,7 @@ readonly ctx: ExecutionContext;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-7)
+[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-8)
 
 ##### env
 
@@ -1135,7 +1337,7 @@ readonly env: Env;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-7)
+[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-8)
 
 ##### invocation
 
@@ -1147,7 +1349,7 @@ Invocation identity of the current call (set by `bookclerkInvoke`).
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-8)
+[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-9)
 
 ##### bookclerkMethods
 
@@ -1159,7 +1361,7 @@ Methods the adapter may dispatch on this entrypoint.
 
 ###### Overrides
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-6)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-7)
 
 #### Methods
 
@@ -1194,7 +1396,7 @@ Session id for `openSession`, else the session method result.
 
 ###### Overrides
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-6)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-7)
 
 ##### dropUnit()
 
@@ -1238,7 +1440,7 @@ Always a 404 empty response.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-7)
+[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-8)
 
 ##### openSession()
 
@@ -1972,7 +2174,7 @@ most one ingress instance at a time. Export it as
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| <a id="type-parameter-env-4"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
+| <a id="type-parameter-env-5"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
 
 #### Constructors
 
@@ -1995,7 +2197,7 @@ new IngressEntrypoint<Env>(ctx, env): IngressEntrypoint<Env>;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-12)
+[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-13)
 
 #### Properties
 
@@ -2007,7 +2209,7 @@ readonly ctx: ExecutionContext;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-7)
+[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-8)
 
 ##### env
 
@@ -2017,7 +2219,7 @@ readonly env: Env;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-7)
+[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-8)
 
 ##### invocation
 
@@ -2029,7 +2231,7 @@ Invocation identity of the current call (set by `bookclerkInvoke`).
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-8)
+[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-9)
 
 ##### bookclerkMethods
 
@@ -2041,7 +2243,7 @@ Methods the adapter may dispatch on this entrypoint.
 
 ###### Overrides
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-6)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-7)
 
 #### Methods
 
@@ -2075,7 +2277,7 @@ Method result.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-6)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-7)
 
 ##### fetch()
 
@@ -2099,7 +2301,7 @@ Always a 404 empty response.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-7)
+[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-8)
 
 ##### health()
 
@@ -2429,7 +2631,7 @@ Export it as `export class Metadata extends MetadataEntrypoint`.
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| <a id="type-parameter-env-5"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
+| <a id="type-parameter-env-6"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
 
 #### Constructors
 
@@ -2452,7 +2654,7 @@ new MetadataEntrypoint<Env>(ctx, env): MetadataEntrypoint<Env>;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-12)
+[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-13)
 
 #### Properties
 
@@ -2464,7 +2666,7 @@ readonly ctx: ExecutionContext;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-7)
+[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-8)
 
 ##### env
 
@@ -2474,7 +2676,7 @@ readonly env: Env;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-7)
+[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-8)
 
 ##### invocation
 
@@ -2486,7 +2688,7 @@ Invocation identity of the current call (set by `bookclerkInvoke`).
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-8)
+[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-9)
 
 ##### bookclerkMethods
 
@@ -2498,7 +2700,7 @@ Methods the adapter may dispatch on this entrypoint.
 
 ###### Overrides
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-6)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-7)
 
 #### Methods
 
@@ -2532,7 +2734,7 @@ Method result.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-6)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-7)
 
 ##### chapters()
 
@@ -2576,7 +2778,7 @@ Always a 404 empty response.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-7)
+[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-8)
 
 ##### health()
 
@@ -2651,7 +2853,7 @@ the row. Export it as `export class MetadataFiles extends MetadataFilesEntrypoin
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| <a id="type-parameter-env-6"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
+| <a id="type-parameter-env-7"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
 
 #### Constructors
 
@@ -2674,7 +2876,7 @@ new MetadataFilesEntrypoint<Env>(ctx, env): MetadataFilesEntrypoint<Env>;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-12)
+[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-13)
 
 #### Properties
 
@@ -2686,7 +2888,7 @@ readonly ctx: ExecutionContext;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-7)
+[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-8)
 
 ##### env
 
@@ -2696,7 +2898,7 @@ readonly env: Env;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-7)
+[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-8)
 
 ##### invocation
 
@@ -2708,7 +2910,7 @@ Invocation identity of the current call (set by `bookclerkInvoke`).
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-8)
+[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-9)
 
 ##### bookclerkMethods
 
@@ -2720,7 +2922,7 @@ Methods the adapter may dispatch on this entrypoint.
 
 ###### Overrides
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-6)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-7)
 
 #### Methods
 
@@ -2754,7 +2956,7 @@ Method result.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-6)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-7)
 
 ##### fetch()
 
@@ -2778,7 +2980,7 @@ Always a 404 empty response.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-7)
+[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-8)
 
 ##### health()
 
@@ -2862,6 +3064,7 @@ which installs the granted bindings on `env` before dispatching.
 - [`MetadataEntrypoint`](#metadataentrypoint)
 - [`CoverEntrypoint`](#coverentrypoint)
 - [`MetadataFilesEntrypoint`](#metadatafilesentrypoint)
+- [`AiEntrypoint`](#aientrypoint)
 - [`NotifierEntrypoint`](#notifierentrypoint)
 - [`IngressEntrypoint`](#ingressentrypoint)
 
@@ -2869,7 +3072,7 @@ which installs the granted bindings on `env` before dispatching.
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| <a id="type-parameter-env-7"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
+| <a id="type-parameter-env-8"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
 
 #### Constructors
 
@@ -3001,7 +3204,7 @@ formats and personal address fields. Export it as
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| <a id="type-parameter-env-8"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
+| <a id="type-parameter-env-9"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
 
 #### Constructors
 
@@ -3024,7 +3227,7 @@ new NotifierEntrypoint<Env>(ctx, env): NotifierEntrypoint<Env>;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-12)
+[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-13)
 
 #### Properties
 
@@ -3036,7 +3239,7 @@ readonly ctx: ExecutionContext;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-7)
+[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-8)
 
 ##### env
 
@@ -3046,7 +3249,7 @@ readonly env: Env;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-7)
+[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-8)
 
 ##### invocation
 
@@ -3058,7 +3261,7 @@ Invocation identity of the current call (set by `bookclerkInvoke`).
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-8)
+[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-9)
 
 ##### bookclerkMethods
 
@@ -3070,7 +3273,7 @@ Methods the adapter may dispatch on this entrypoint.
 
 ###### Overrides
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-6)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-7)
 
 #### Methods
 
@@ -3104,7 +3307,7 @@ Method result.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-6)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-7)
 
 ##### fetch()
 
@@ -3128,7 +3331,7 @@ Always a 404 empty response.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-7)
+[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-8)
 
 ##### health()
 
@@ -3204,7 +3407,7 @@ verification. Export it as `export class Oidc extends OidcEntrypoint`.
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| <a id="type-parameter-env-9"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
+| <a id="type-parameter-env-10"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
 
 #### Constructors
 
@@ -3227,7 +3430,7 @@ new OidcEntrypoint<Env>(ctx, env): OidcEntrypoint<Env>;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-12)
+[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-13)
 
 #### Properties
 
@@ -3239,7 +3442,7 @@ readonly ctx: ExecutionContext;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-7)
+[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-8)
 
 ##### env
 
@@ -3249,7 +3452,7 @@ readonly env: Env;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-7)
+[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-8)
 
 ##### invocation
 
@@ -3261,7 +3464,7 @@ Invocation identity of the current call (set by `bookclerkInvoke`).
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-8)
+[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-9)
 
 ##### bookclerkMethods
 
@@ -3273,7 +3476,7 @@ Methods the adapter may dispatch on this entrypoint.
 
 ###### Overrides
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-6)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-7)
 
 #### Methods
 
@@ -3327,7 +3530,7 @@ Method result.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-6)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-7)
 
 ##### clients()
 
@@ -3366,7 +3569,7 @@ Always a 404 empty response.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-7)
+[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-8)
 
 ***
 
@@ -3692,7 +3895,7 @@ polling for a remote library server. Export it as
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| <a id="type-parameter-env-10"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
+| <a id="type-parameter-env-11"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
 
 #### Constructors
 
@@ -3715,7 +3918,7 @@ new RemoteLibraryEntrypoint<Env>(ctx, env): RemoteLibraryEntrypoint<Env>;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-12)
+[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-13)
 
 #### Properties
 
@@ -3727,7 +3930,7 @@ readonly ctx: ExecutionContext;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-7)
+[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-8)
 
 ##### env
 
@@ -3737,7 +3940,7 @@ readonly env: Env;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-7)
+[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-8)
 
 ##### invocation
 
@@ -3749,7 +3952,7 @@ Invocation identity of the current call (set by `bookclerkInvoke`).
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-8)
+[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-9)
 
 ##### bookclerkMethods
 
@@ -3761,7 +3964,7 @@ Methods the adapter may dispatch on this entrypoint.
 
 ###### Overrides
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-6)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-7)
 
 #### Methods
 
@@ -3795,7 +3998,7 @@ Method result.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-6)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-7)
 
 ##### diagnose()
 
@@ -3833,7 +4036,7 @@ Always a 404 empty response.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-7)
+[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-8)
 
 ##### health()
 
@@ -3989,7 +4192,7 @@ writes acquired media into. Export it as
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| <a id="type-parameter-env-11"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
+| <a id="type-parameter-env-12"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
 
 #### Constructors
 
@@ -4012,7 +4215,7 @@ new StorageEntrypoint<Env>(ctx, env): StorageEntrypoint<Env>;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-12)
+[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-13)
 
 #### Properties
 
@@ -4024,7 +4227,7 @@ readonly ctx: ExecutionContext;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-7)
+[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-8)
 
 ##### env
 
@@ -4034,7 +4237,7 @@ readonly env: Env;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-7)
+[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-8)
 
 ##### invocation
 
@@ -4046,7 +4249,7 @@ Invocation identity of the current call (set by `bookclerkInvoke`).
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-8)
+[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-9)
 
 ##### bookclerkMethods
 
@@ -4058,7 +4261,7 @@ Methods the adapter may dispatch on this entrypoint.
 
 ###### Overrides
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-6)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-7)
 
 #### Methods
 
@@ -4113,7 +4316,7 @@ Method result.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-6)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-7)
 
 ##### changes()
 
@@ -4239,7 +4442,7 @@ Always a 404 empty response.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-7)
+[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-8)
 
 ##### get()
 
@@ -4437,7 +4640,7 @@ and returns the typed ABI structs generated from `schema/plugin.capnp`.
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| <a id="type-parameter-env-12"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
+| <a id="type-parameter-env-13"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
 
 #### Constructors
 
@@ -4460,7 +4663,7 @@ new StorefrontEntrypoint<Env>(ctx, env): StorefrontEntrypoint<Env>;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-12)
+[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-13)
 
 #### Properties
 
@@ -4472,7 +4675,7 @@ readonly ctx: ExecutionContext;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-7)
+[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-8)
 
 ##### env
 
@@ -4482,7 +4685,7 @@ readonly env: Env;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-7)
+[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-8)
 
 ##### invocation
 
@@ -4494,7 +4697,7 @@ Invocation identity of the current call (set by `bookclerkInvoke`).
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-8)
+[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-9)
 
 ##### bookclerkMethods
 
@@ -4506,7 +4709,7 @@ Methods the adapter may dispatch on this entrypoint.
 
 ###### Overrides
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-6)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-7)
 
 #### Methods
 
@@ -4540,7 +4743,7 @@ Method result.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-6)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-7)
 
 ##### catalogDetail()
 
@@ -4618,7 +4821,7 @@ Always a 404 empty response.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-7)
+[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-8)
 
 ##### fetchTitle()
 
@@ -5003,6 +5206,26 @@ plus the grant tokens the adapter exchanges for the author's `EVENTS` and
 
 #### Properties
 
+##### ai?
+
+```ts
+ai?: AiBinding;
+```
+
+`AI` binding, when `[ai].calls` is declared and granted.
+
+###### Inherited from
+
+[`GrantedContext`](#grantedcontext).[`ai`](#ai-1)
+
+##### aiToken?
+
+```ts
+aiToken?: string;
+```
+
+Granted-channel bearer for `env.AI.run`; stripped before dispatch.
+
 ##### config?
 
 ```ts
@@ -5053,7 +5276,7 @@ Invocation identity (`Invocation` struct).
 
 ###### Inherited from
 
-[`GrantedContext`](#grantedcontext).[`invocation`](#invocation-16)
+[`GrantedContext`](#grantedcontext).[`invocation`](#invocation-17)
 
 ##### kv?
 
@@ -5346,6 +5569,14 @@ author's `env` before dispatching; authors never receive it directly.
 - [`JobRunnerContext`](#jobrunnercontext)
 
 #### Properties
+
+##### ai?
+
+```ts
+ai?: AiBinding;
+```
+
+`AI` binding, when `[ai].calls` is declared and granted.
 
 ##### config?
 
@@ -5765,6 +5996,18 @@ Job-runner bridge context: the durable job id plus [GrantedContext](#grantedcont
 
 #### Properties
 
+##### ai?
+
+```ts
+ai?: AiBinding;
+```
+
+`AI` binding, when `[ai].calls` is declared and granted.
+
+###### Inherited from
+
+[`GrantedContext`](#grantedcontext).[`ai`](#ai-1)
+
 ##### config?
 
 ```ts
@@ -5811,7 +6054,7 @@ Invocation identity (`Invocation` struct).
 
 ###### Inherited from
 
-[`GrantedContext`](#grantedcontext).[`invocation`](#invocation-16)
+[`GrantedContext`](#grantedcontext).[`invocation`](#invocation-17)
 
 ##### jobId?
 
@@ -6758,7 +7001,8 @@ type EntrypointName =
   | "covers"
   | "metadataFiles"
   | "notifier"
-  | "ingress";
+  | "ingress"
+  | "ai";
 ```
 
 Wire name of each named entrypoint (`plugin.toml` `entrypoints`).
@@ -7175,6 +7419,29 @@ Wire-shaped extensible payload.
 
 ***
 
+### packEmbeddingVectors()
+
+```ts
+function packEmbeddingVectors(vectors): Uint8Array;
+```
+
+Packs embedding vectors into the wire form of
+`AiTextEmbeddingsOutput.vectors`: little-endian 32-bit floats, concatenated.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `vectors` | readonly `ArrayLike`\<`number`\>[] | One vector per input text, all of one length. |
+
+#### Returns
+
+`Uint8Array`
+
+The bytes.
+
+***
+
 ### queueBatchResults()
 
 ```ts
@@ -7272,6 +7539,33 @@ JSON-safe projection.
 
 ***
 
+### unpackEmbeddingVectors()
+
+```ts
+function unpackEmbeddingVectors(bytes, dimensions): number[][];
+```
+
+Splits the wire form of `AiTextEmbeddingsOutput.vectors` into vectors.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `bytes` | `Uint8Array` | Little-endian 32-bit floats, concatenated. |
+| `dimensions` | `number` | Numbers per vector. |
+
+#### Returns
+
+`number`[][]
+
+One vector per `dimensions` numbers.
+
+#### Throws
+
+`internal` when the bytes are not whole vectors.
+
+***
+
 ### wrapPluginFromBinding()
 
 ```ts
@@ -7311,6 +7605,72 @@ author `PLUGIN` binding.
 Adapter entrypoint class bound to [AdapterEnv](#adapterenv).
 
 ## References
+
+### AiEmbedText
+
+Re-exports [AiEmbedText](generated.md#aiembedtext)
+
+***
+
+### AiInput
+
+Re-exports [AiInput](generated.md#aiinput)
+
+***
+
+### AiModel
+
+Re-exports [AiModel](generated.md#aimodel)
+
+***
+
+### AiModelList
+
+Re-exports [AiModelList](generated.md#aimodellist)
+
+***
+
+### AiOutput
+
+Re-exports [AiOutput](generated.md#aioutput)
+
+***
+
+### AiRunOk
+
+Re-exports [AiRunOk](generated.md#airunok)
+
+***
+
+### AiRunParams
+
+Re-exports [AiRunParams](generated.md#airunparams)
+
+***
+
+### AiTask
+
+Re-exports [AiTask](abi.md#aitask)
+
+***
+
+### AiTextEmbeddingsInput
+
+Re-exports [AiTextEmbeddingsInput](generated.md#aitextembeddingsinput)
+
+***
+
+### AiTextEmbeddingsOutput
+
+Re-exports [AiTextEmbeddingsOutput](generated.md#aitextembeddingsoutput)
+
+***
+
+### AiTextRole
+
+Re-exports [AiTextRole](abi.md#aitextrole)
+
+***
 
 ### CliInvokeParams
 

@@ -9,6 +9,8 @@ First-party adapters (e.g. Audiobookshelf) live in
 | Item | Kind | Summary |
 | --- | --- | --- |
 | [`Integration`](#integration) | trait | Downstream consumer of acquired books / identity signals (e.g. Audiobookshelf). |
+| [`AiRouter`](#airouter) | struct | Routes model runs to the deployed model plugins. |
+| [`RoutedModel`](#routedmodel) | struct | One model a deployed plugin serves, as the router lists it. |
 | [`Brand`](#brand) | struct | Visual identity for a store or integration in the portal UI. |
 | [`PortalState`](#portalstate) | struct | Shared state for portal handlers. |
 | [`IntegrationRegistry`](#integrationregistry) | struct | Fan-out registry for configured integrations. |
@@ -44,6 +46,8 @@ First-party adapters (e.g. Audiobookshelf) live in
 | [`ticket_portal_url`](#ticket_portal_url) | function | Build a shareable SPA claim URL when `public_origin` is configured. |
 | [`Result`](#result) | type alias | Result alias for this crate. |
 | [`ImageSrc`](#imagesrc) | type alias | See `PortalState::image_src`. |
+| [`AI_LIST_TIMEOUT`](#ai_list_timeout) | constant | Longest a model plugin may take to list its models. Listing loads no model, so this mostly covers waking a sleeping plugin. |
+| [`AI_RUN_TIMEOUT`](#ai_run_timeout) | constant | Longest one model run may take before the router gives up on it. A full batch on the largest first-party model on one slow core fits; a caller with a shorter deadline passes its own. |
 | [`MAX_REGISTERED_INTEGRATIONS`](#max_registered_integrations) | constant | Hard ceiling on registered integrations (plugin discovery is user-influenced). |
 
 ## Re-exports
@@ -175,6 +179,20 @@ pub trait Integration: Send + Sync {
         &'life0 self,
         _params: CoverFetchParams,
     ) -> Pin<Box<dyn Future<Output = Result<Vec<FetchedCover>>> + Send + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
+    fn supports_ai(&self) -> bool;
+    fn ai_models<'life0, 'async_trait>(
+        &'life0 self,
+    ) -> Pin<Box<dyn Future<Output = Result<AiModelList, PluginError>> + Send + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
+    fn ai_run<'life0, 'async_trait>(
+        &'life0 self,
+        _params: AiRunParams,
+    ) -> Pin<Box<dyn Future<Output = Result<AiRunOk, PluginError>> + Send + 'async_trait>>
     where
         Self: 'async_trait,
         'life0: 'async_trait,;
@@ -609,6 +627,53 @@ server answered `304 Not Modified` carries `not_modified`.
 
 Default: unsupported.
 
+#### Integration::supports_ai
+
+```rust
+fn supports_ai(&self) -> bool
+```
+
+Whether this integration exports the `ai` entrypoint (serves models).
+
+Default: `false`.
+
+#### Integration::ai_models
+
+```rust
+fn ai_models<'life0, 'async_trait>(
+    &'life0 self,
+) -> Pin<Box<dyn Future<Output = Result<AiModelList, PluginError>> + Send + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+The models this integration serves now (`AiModels.models`), already
+checked and limited to the tasks its manifest declares.
+
+Errors keep the plugin's code, so the model router can tell a
+missing model from a plugin that is down.
+
+Default: unsupported.
+
+#### Integration::ai_run
+
+```rust
+fn ai_run<'life0, 'async_trait>(
+    &'life0 self,
+    _params: AiRunParams,
+) -> Pin<Box<dyn Future<Output = Result<AiRunOk, PluginError>> + Send + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Runs one of this integration's models (`AiModels.run`);
+`params.model` is the plugin's own model id. The reply is as the
+plugin sent it: the model router checks it against the listing.
+
+Default: unsupported.
+
 #### Integration::supports_notifier
 
 ```rust
@@ -719,6 +784,138 @@ Plugin-provided Bookclerk-as-IdP client templates (`oidcClients` RPC).
 Empty when the guest is not a relying party or the method is unsupported.
 
 ## Structs
+
+### AiRouter
+
+```rust
+pub struct AiRouter {
+    /* private fields */
+}
+```
+
+Routes model runs to the deployed model plugins.
+
+#### AiRouter::new
+
+```rust
+pub fn new(integrations: Arc<RwLock<IntegrationRegistry>>) -> Self
+```
+
+A router over the node's live integrations.
+
+##### Arguments
+
+* `integrations` - The registry the deployment reconciler keeps.
+
+##### Returns
+
+The router, with no model chosen for any task.
+
+#### AiRouter::choose
+
+```rust
+pub fn choose(&self, task: AiTask, model: Option<(String, String)>)
+```
+
+Sets or clears the model a task alias resolves to.
+
+##### Arguments
+
+* `task` - The task (`@library/text-embeddings` for text embeddings).
+* `model` - The chosen model as `(plugin id, model id)`, or `None`
+  to fall back to the first deployed model of the task.
+
+#### AiRouter::models
+
+```rust
+pub async fn models(&self) -> Vec<RoutedModel>
+```
+
+Every model the deployed model plugins serve. A plugin that cannot
+list is left out and logged.
+
+##### Returns
+
+The models, by plugin in registration order.
+
+#### AiRouter::model_for
+
+```rust
+pub async fn model_for(&self, task: AiTask) -> Option<RoutedModel>
+```
+
+The model a task alias names now.
+
+##### Arguments
+
+* `task` - The task.
+
+##### Returns
+
+The chosen model when it is deployed, else the first deployed model
+of the task; `None` when nothing deployed performs the task.
+
+#### AiRouter::run
+
+```rust
+pub async fn run(
+    &self,
+    caller: Option<&str>,
+    params: AiRunParams,
+    timeout: Duration,
+) -> Result<AiRunOk, PluginError>
+```
+
+Runs a model by name and returns its checked output.
+
+##### Arguments
+
+* `caller` - Id of the plugin that asks, or `None` for the host's
+  own features. A plugin cannot run its own models through the
+  router: it would wait on itself.
+* `params` - The model name (`@<plugin id>/<model id>` or a task
+  alias) and the input.
+* `timeout` - Longest the run may take; capped at
+  [`AI_RUN_TIMEOUT`](#ai_run_timeout).
+
+##### Returns
+
+The output with `model` set to the full name of the model that ran.
+
+##### Errors
+
+`invalid_params` for a malformed run or an input of another task
+than the model's, `not_found` when nothing deployed serves the
+model, `deadline_exceeded` when the plugin does not answer in time,
+`unavailable` when it fails or sends a reply that fails
+[`check_run_output`](../bookclerk_plugin_abi/ai.md#check_run_output), and the plugin's own `invalid_params`,
+`not_found`, `rate_limited` and `unavailable`.
+
+### RoutedModel
+
+```rust
+pub struct RoutedModel {
+    pub plugin: String,
+    pub model: AiModel,
+}
+```
+
+One model a deployed plugin serves, as the router lists it.
+
+**Fields**
+
+- `plugin`: Id of the plugin that serves the model (`plugin.toml` `id`).
+- `model`: The model as the plugin listed it.
+
+#### RoutedModel::name
+
+```rust
+pub fn name(&self) -> String
+```
+
+The name callers use for this model: `@<plugin id>/<model id>`.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ### Brand
 
@@ -932,6 +1129,14 @@ pub fn metadata_providers(&self) -> Vec<Arc<dyn Integration>>
 ```
 
 Integrations that export the `metadata` entrypoint, in registration order.
+
+#### IntegrationRegistry::model_plugins
+
+```rust
+pub fn model_plugins(&self) -> Vec<Arc<dyn Integration>>
+```
+
+Integrations that export the `ai` entrypoint, in registration order.
 
 #### IntegrationRegistry::cover_fetchers
 
@@ -1744,6 +1949,25 @@ pub type ImageSrc = Arc<dyn Fn(&str) -> Option<String> + Send + Sync>;
 See [`PortalState::image_src`](#portalstate).
 
 ## Constants
+
+### AI_LIST_TIMEOUT
+
+```rust
+pub const AI_LIST_TIMEOUT: Duration = _;
+```
+
+Longest a model plugin may take to list its models. Listing loads no
+model, so this mostly covers waking a sleeping plugin.
+
+### AI_RUN_TIMEOUT
+
+```rust
+pub const AI_RUN_TIMEOUT: Duration = _;
+```
+
+Longest one model run may take before the router gives up on it. A
+full batch on the largest first-party model on one slow core fits; a
+caller with a shorter deadline passes its own.
 
 ### MAX_REGISTERED_INTEGRATIONS
 

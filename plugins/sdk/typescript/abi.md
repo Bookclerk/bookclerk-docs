@@ -12,6 +12,26 @@ Union of `ABRIDGEMENTS` wire names.
 
 ***
 
+### AiTask
+
+```ts
+type AiTask = typeof AI_TASKS[number];
+```
+
+Union of `AI_TASKS` wire names.
+
+***
+
+### AiTextRole
+
+```ts
+type AiTextRole = typeof AI_TEXT_ROLES[number];
+```
+
+Union of `AI_TEXT_ROLES` wire names.
+
+***
+
 ### CatalogField
 
 ```ts
@@ -344,6 +364,32 @@ Ordinal-ordered `Abridgement` wire names (index = Cap'n Proto ordinal).
 
 ***
 
+### AI\_TASKS
+
+```ts
+const AI_TASKS: readonly ["textEmbeddings"];
+```
+
+What a model does. A model has exactly one task, and the task fixes the
+shape of `AiRunParams.input` and of the reply.
+
+Ordinal-ordered `AiTask` wire names (index = Cap'n Proto ordinal).
+
+***
+
+### AI\_TEXT\_ROLES
+
+```ts
+const AI_TEXT_ROLES: readonly ["document", "query"];
+```
+
+What a text is to an embedding model. Some models embed a search query
+differently from the documents it is matched against.
+
+Ordinal-ordered `AiTextRole` wire names (index = Cap'n Proto ordinal).
+
+***
+
 ### CATALOG\_FIELDS
 
 ```ts
@@ -457,7 +503,7 @@ Ordinal-ordered `DbType` wire names (index = Cap'n Proto ordinal).
 ### ENTRYPOINTS
 
 ```ts
-const ENTRYPOINTS: readonly ["storefront", "storage", "databaseAdapter", "remoteLibrary", "cli", "oidc", "metadata", "covers", "metadataFiles", "notifier", "ingress"];
+const ENTRYPOINTS: readonly ["storefront", "storage", "databaseAdapter", "remoteLibrary", "cli", "oidc", "metadata", "covers", "metadataFiles", "notifier", "ingress", "ai"];
 ```
 
 Named entrypoint a plugin exports (Cloudflare Workers named-entrypoint
@@ -641,6 +687,66 @@ const ISOLATION_REQS: readonly ["atomicBatch", "nestedSavepoint", "consistentSna
 Host → adapter execute. GuestDatabase stays ExecuteRequest-only.
 
 Ordinal-ordered `IsolationReq` wire names (index = Cap'n Proto ordinal).
+
+***
+
+### MAX\_AI\_EMBED\_DIMENSIONS
+
+```ts
+const MAX_AI_EMBED_DIMENSIONS: 4096;
+```
+
+Most numbers in one embedding vector.
+
+***
+
+### MAX\_AI\_EMBED\_TEXT\_BYTES
+
+```ts
+const MAX_AI_EMBED_TEXT_BYTES: 16384;
+```
+
+Longest text in an `AiTextEmbeddingsInput`, in UTF-8 bytes.
+
+***
+
+### MAX\_AI\_EMBED\_TEXTS
+
+```ts
+const MAX_AI_EMBED_TEXTS: 64;
+```
+
+Most texts in one `AiTextEmbeddingsInput`.
+
+***
+
+### MAX\_AI\_LANGUAGES
+
+```ts
+const MAX_AI_LANGUAGES: 64;
+```
+
+Most language tags on one `AiModel`.
+
+***
+
+### MAX\_AI\_MODEL\_NAME\_BYTES
+
+```ts
+const MAX_AI_MODEL_NAME_BYTES: 192;
+```
+
+Longest `AiModel.name`, in UTF-8 bytes (`@<plugin id>/<model id>`).
+
+***
+
+### MAX\_AI\_MODELS
+
+```ts
+const MAX_AI_MODELS: 64;
+```
+
+Most models one `AiModels.models` reply lists.
 
 ***
 

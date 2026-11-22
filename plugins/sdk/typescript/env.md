@@ -2,6 +2,122 @@
 
 ## Interfaces
 
+### AiBinding
+
+`AI` binding, present when `plugin.toml` lists tasks under `[ai].calls` and
+the operator approved them. The host routes each run to the deployed plugin
+that serves the model; the shape follows the `AI` binding of Cloudflare
+Workers.
+
+#### Methods
+
+##### run()
+
+```ts
+run(model, input): Promise<AiTextEmbeddingsResponse>;
+```
+
+Run one model on one input.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `model` | `string` | `@<plugin id>/<model id>`, or a task alias such as `@library/text-embeddings` for the model the library chose. |
+| `input` | [`AiTextEmbeddingsRequest`](#aitextembeddingsrequest) | The input of the model's task. |
+
+###### Returns
+
+`Promise`\<[`AiTextEmbeddingsResponse`](#aitextembeddingsresponse)\>
+
+The model's output.
+
+###### Throws
+
+PluginError `invalid_params` for a malformed run, `not_found` when
+  nothing deployed serves the model, `forbidden` for a task that is not
+  granted, `rate_limited` past the plugin's budget (work over many items
+  belongs in a job), `deadline_exceeded` or `unavailable` when the model
+  plugin cannot answer.
+
+***
+
+### AiTextEmbeddingsRequest
+
+Input of a text-embedding model on [AiBinding.run](#run).
+
+#### Properties
+
+##### role?
+
+```ts
+role?: "document" | "query";
+```
+
+What the texts are: `document` (the default) for stored content, `query`
+for a search query matched against documents. Some models embed the two
+differently.
+
+##### text
+
+```ts
+text: string | string[];
+```
+
+One text or a batch (at most `MAX_AI_EMBED_TEXTS`), none empty.
+
+***
+
+### AiTextEmbeddingsResponse
+
+Output of a text-embedding model on [AiBinding.run](#run).
+
+#### Properties
+
+##### data
+
+```ts
+data: number[][];
+```
+
+One vector per input text, in input order.
+
+##### fallbacks
+
+```ts
+fallbacks: number[];
+```
+
+Indexes of the texts the tokenizer could not cover with the loaded
+language packs; their vectors are worth recomputing once a pack is added.
+
+##### model
+
+```ts
+model: string;
+```
+
+Full name of the model that ran, also when an alias was asked for.
+
+##### revision
+
+```ts
+revision: string;
+```
+
+Revision of the model that made the vectors. Vectors are comparable only
+when their model and revision match, so store both beside each vector.
+
+##### shape
+
+```ts
+shape: [number, number];
+```
+
+`[number of texts, numbers per vector]`.
+
+***
+
 ### BookclerkEnv
 
 Guest `env` bindings for `api_version = 3` manifests. Every host-provided
@@ -21,6 +137,14 @@ Named `[[databases]]` bindings, `[[queues.producers]]` bindings, and any
 renamed `binding = "..."` entries.
 
 #### Properties
+
+##### AI?
+
+```ts
+AI?: AiBinding;
+```
+
+`[ai].calls` model runner.
 
 ##### CONFIG?
 
