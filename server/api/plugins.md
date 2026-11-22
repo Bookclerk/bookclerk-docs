@@ -3216,6 +3216,1313 @@ Schema:
 
 A `text/plain` body: a string.
 
+## `GET /api/config/plugin-instances/{id}/intake`
+
+`GET /api/config/plugin-instances/{id}/intake`: whether the storage
+instance is a drop folder, and its settings.
+
+**Access:** The operator (token or session) only.
+
+**Credentials:** `operatorToken` or `operatorSession`
+
+### Parameters
+
+- `id` (path) *string*, **required** — Plugin instance id of the storage instance.
+
+### Responses
+
+- `200` — The instance's drop folder settings, or `null` for a destination. Body: [`IntakeResponse`](schemas.md#intakeresponse) (`application/json`)
+  - `plugin_instance_id` *string*, **required** — The storage instance's plugin instance id.
+  - `revision` *integer (int64)*, **required** — Revision of the instance's `core.intake` document; `0` when none was written, so the instance is a destination.
+  - `intake` *[`IntakeSettings`](schemas.md#intakesettings) or null* — The drop folder's settings; `null` when the instance is a destination.
+- `400` — The id is not a plugin instance id. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — The caller's role does not allow this route. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `404` — No such instance. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The settings could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/plugin-instances/<id>/intake' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/plugin-instances/<id>/intake' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/config/plugin-instances/<id>/intake",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/config/plugin-instances/<id>/intake", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/config/plugin-instances/<id>/intake")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The instance's drop folder settings, or `null` for a destination.
+
+```json
+{
+  "plugin_instance_id": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b",
+  "revision": 1,
+  "intake": {
+    "settle_seconds": 60,
+    "scan_interval_seconds": 300,
+    "after_ingest": "move",
+    "attribute_to": "owner",
+    "patron": 2,
+    "ignore": [
+      "*.nzb"
+    ],
+    "prune_imported_days": 30
+  }
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "`GET`, `PUT` and `DELETE /api/config/plugin-instances/{id}/intake` body:\nwhether a storage instance is a drop folder, and its settings.",
+  "required": [
+    "plugin_instance_id",
+    "revision"
+  ],
+  "properties": {
+    "plugin_instance_id": {
+      "type": "string",
+      "description": "The storage instance's plugin instance id.",
+      "example": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"
+    },
+    "revision": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Revision of the instance's `core.intake` document; `0` when none was\nwritten, so the instance is a destination.",
+      "example": 1
+    },
+    "intake": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "The drop folder's settings; `null` when the instance is a\ndestination.",
+          "required": [
+            "settle_seconds",
+            "scan_interval_seconds",
+            "after_ingest",
+            "attribute_to",
+            "ignore"
+          ],
+          "properties": {
+            "settle_seconds": {
+              "type": "integer",
+              "format": "int32",
+              "description": "Seconds an item's files must stay unchanged before it is ingested,\n5 to 86,400 (default 60).",
+              "example": 60,
+              "maximum": 86400,
+              "minimum": 5
+            },
+            "scan_interval_seconds": {
+              "type": "integer",
+              "format": "int32",
+              "description": "Seconds between two full listings of the folder, 30 to 86,400\n(default 300). A change feed starts a listing sooner.",
+              "example": 300,
+              "maximum": 86400,
+              "minimum": 30
+            },
+            "after_ingest": {
+              "type": "string",
+              "description": "What happens to an item once it is ingested (default `move`).",
+              "enum": [
+                "move",
+                "delete",
+                "leave"
+              ]
+            },
+            "attribute_to": {
+              "type": "string",
+              "description": "Who holds the ingested books (default `owner`).",
+              "enum": [
+                "owner",
+                "subfolder"
+              ]
+            },
+            "patron": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64",
+              "description": "The user id that holds every book in `owner` mode; required there\nand refused in `subfolder` mode.",
+              "example": 2,
+              "minimum": 1
+            },
+            "ignore": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Extra file name patterns to ignore, at most 64, each 1 to 128 bytes\nwith no `/`: `*` matches any run of characters and `?` one\ncharacter, compared without ASCII case. The built-in list always\napplies too ([`BUILTIN_IGNORE_PATTERNS`]).",
+              "example": [
+                "*.nzb"
+              ],
+              "maxItems": 64
+            },
+            "prune_imported_days": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int32",
+              "description": "With `after_ingest = move`, delete `_imported` day folders older than\nthis many days, 1 to 3,650; absent keeps them.",
+              "example": 30,
+              "maximum": 3650,
+              "minimum": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}
+```
+
+Status `400`: The id is not a plugin instance id.
+
+```json
+{
+  "error": "invalid plugin instance id: expected a UUID"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: The caller's role does not allow this route.
+
+```json
+{
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `404`: No such instance.
+
+```json
+{
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `500`: The settings could not be read.
+
+```json
+{
+  "error": "invalid core.intake: intake settings: unknown field `colour`"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `PUT /api/config/plugin-instances/{id}/intake`
+
+`PUT /api/config/plugin-instances/{id}/intake`: makes the storage
+instance a drop folder with these settings, or changes a drop folder's
+settings. Turning a destination into a drop folder is refused while the
+instance is deployed on any node.
+
+Operator principal only. The route is mounted on the operator router.
+
+**Access:** The operator (token or session) only.
+
+**Credentials:** `operatorToken` or `operatorSession`
+
+### Parameters
+
+- `id` (path) *string*, **required** — Plugin instance id of the storage instance.
+
+### Request body
+
+`application/json`: [`IntakeSettingsRequest`](schemas.md#intakesettingsrequest)
+
+- `settle_seconds` *integer (int32)* — Seconds an item's files must stay unchanged before it is ingested, 5 to 86,400 (default 60). At least 5; at most 86400.
+- `scan_interval_seconds` *integer (int32)* — Seconds between two full listings of the folder, 30 to 86,400 (default 300). At least 30; at most 86400.
+- `after_ingest` *[`AfterIngest`](schemas.md#afteringest)* — What happens to an item once it is ingested (default `move`).
+- `attribute_to` *[`IntakeAttribution`](schemas.md#intakeattribution)* — Who holds the ingested books (default `owner`).
+- `patron` *integer (int64) or null* — The user id that holds every book in `owner` mode; required there and refused in `subfolder` mode. It must name an active user. At least 1.
+- `ignore` *array of string* — Extra file name patterns to ignore, at most 64, each 1 to 128 bytes with no `/` (default none). At most 64 items.
+- `prune_imported_days` *integer (int32) or null* — With `after_ingest = move`, delete `_imported` day folders older than this many days, 1 to 3,650; absent keeps them. At least 1; at most 3650.
+
+### Responses
+
+- `200` — The settings after the change. Body: [`IntakeResponse`](schemas.md#intakeresponse) (`application/json`)
+  - `plugin_instance_id` *string*, **required** — The storage instance's plugin instance id.
+  - `revision` *integer (int64)*, **required** — Revision of the instance's `core.intake` document; `0` when none was written, so the instance is a destination.
+  - `intake` *[`IntakeSettings`](schemas.md#intakesettings) or null* — The drop folder's settings; `null` when the instance is a destination.
+- `400` — The body is not JSON (text), or the patron is not an active user (JSON). As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`); string (`text/plain`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `404` — No such instance. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `409` — The instance is deployed, or the document kept changing. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `413` — The body is over 16 KiB. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `415` — The body is not sent as `application/json`. As `text/plain`, when the request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The settings are invalid: an unknown or repeated key, a value of the wrong type or out of range, or settings over 12 KiB written out. Body: string (`text/plain`)
+- `500` — The settings could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/plugin-instances/<id>/intake' \
+    -X PUT \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/plugin-instances/<id>/intake' `
+    -Method Put `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{}'
+```
+
+```python
+import requests
+
+response = requests.put(
+    "http://127.0.0.1:8787/api/config/plugin-instances/<id>/intake",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/config/plugin-instances/<id>/intake", {
+  method: "PUT",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .put("http://127.0.0.1:8787/api/config/plugin-instances/<id>/intake")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The settings after the change.
+
+```json
+{
+  "plugin_instance_id": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b",
+  "revision": 1,
+  "intake": {
+    "settle_seconds": 60,
+    "scan_interval_seconds": 300,
+    "after_ingest": "move",
+    "attribute_to": "owner",
+    "patron": 2,
+    "ignore": [
+      "*.nzb"
+    ],
+    "prune_imported_days": 30
+  }
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "`GET`, `PUT` and `DELETE /api/config/plugin-instances/{id}/intake` body:\nwhether a storage instance is a drop folder, and its settings.",
+  "required": [
+    "plugin_instance_id",
+    "revision"
+  ],
+  "properties": {
+    "plugin_instance_id": {
+      "type": "string",
+      "description": "The storage instance's plugin instance id.",
+      "example": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"
+    },
+    "revision": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Revision of the instance's `core.intake` document; `0` when none was\nwritten, so the instance is a destination.",
+      "example": 1
+    },
+    "intake": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "The drop folder's settings; `null` when the instance is a\ndestination.",
+          "required": [
+            "settle_seconds",
+            "scan_interval_seconds",
+            "after_ingest",
+            "attribute_to",
+            "ignore"
+          ],
+          "properties": {
+            "settle_seconds": {
+              "type": "integer",
+              "format": "int32",
+              "description": "Seconds an item's files must stay unchanged before it is ingested,\n5 to 86,400 (default 60).",
+              "example": 60,
+              "maximum": 86400,
+              "minimum": 5
+            },
+            "scan_interval_seconds": {
+              "type": "integer",
+              "format": "int32",
+              "description": "Seconds between two full listings of the folder, 30 to 86,400\n(default 300). A change feed starts a listing sooner.",
+              "example": 300,
+              "maximum": 86400,
+              "minimum": 30
+            },
+            "after_ingest": {
+              "type": "string",
+              "description": "What happens to an item once it is ingested (default `move`).",
+              "enum": [
+                "move",
+                "delete",
+                "leave"
+              ]
+            },
+            "attribute_to": {
+              "type": "string",
+              "description": "Who holds the ingested books (default `owner`).",
+              "enum": [
+                "owner",
+                "subfolder"
+              ]
+            },
+            "patron": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64",
+              "description": "The user id that holds every book in `owner` mode; required there\nand refused in `subfolder` mode.",
+              "example": 2,
+              "minimum": 1
+            },
+            "ignore": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Extra file name patterns to ignore, at most 64, each 1 to 128 bytes\nwith no `/`: `*` matches any run of characters and `?` one\ncharacter, compared without ASCII case. The built-in list always\napplies too ([`BUILTIN_IGNORE_PATTERNS`]).",
+              "example": [
+                "*.nzb"
+              ],
+              "maxItems": 64
+            },
+            "prune_imported_days": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int32",
+              "description": "With `after_ingest = move`, delete `_imported` day folders older than\nthis many days, 1 to 3,650; absent keeps them.",
+              "example": 30,
+              "maximum": 3650,
+              "minimum": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}
+```
+
+Status `400`: The body is not JSON (text), or the patron is not an active user (JSON). As `text/plain`, when the body is not syntactically valid JSON.
+
+```json
+{
+  "error": "intake settings: patron 4242 is not an active user"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `404`: No such instance.
+
+```json
+{
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `409`: The instance is deployed, or the document kept changing.
+
+```json
+{
+  "error": "storage instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b is deployed on node-a; undeploy it before changing whether it is a drop folder"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `413`: The body is over 16 KiB.
+
+```json
+{
+  "error": "the body is at most 16384 bytes"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `415`: The body is not sent as `application/json`. As `text/plain`, when the request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The settings are invalid: an unknown or repeated key, a value of the wrong type or out of range, or settings over 12 KiB written out.
+
+```text
+Failed to deserialize the JSON body into the target type: intake settings: attribute_to = owner needs a patron user id at line 1 column 2
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `500`: The settings could not be read or written.
+
+```json
+{
+  "error": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `DELETE /api/config/plugin-instances/{id}/intake`
+
+`DELETE /api/config/plugin-instances/{id}/intake`: makes a drop folder a
+destination again. Refused while the instance is deployed on any node.
+
+Operator principal only. The route is mounted on the operator router.
+
+**Access:** The operator (token or session) only.
+
+**Credentials:** `operatorToken` or `operatorSession`
+
+### Parameters
+
+- `id` (path) *string*, **required** — Plugin instance id of the storage instance.
+
+### Responses
+
+- `200` — The instance is a destination. Body: [`IntakeResponse`](schemas.md#intakeresponse) (`application/json`)
+  - `plugin_instance_id` *string*, **required** — The storage instance's plugin instance id.
+  - `revision` *integer (int64)*, **required** — Revision of the instance's `core.intake` document; `0` when none was written, so the instance is a destination.
+  - `intake` *[`IntakeSettings`](schemas.md#intakesettings) or null* — The drop folder's settings; `null` when the instance is a destination.
+- `400` — The id is not a plugin instance id. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `404` — No such instance. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `409` — The instance is deployed, or the document kept changing. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The document could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/plugin-instances/<id>/intake' \
+    -X DELETE \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/plugin-instances/<id>/intake' `
+    -Method Delete `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.delete(
+    "http://127.0.0.1:8787/api/config/plugin-instances/<id>/intake",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/config/plugin-instances/<id>/intake", {
+  method: "DELETE",
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .delete("http://127.0.0.1:8787/api/config/plugin-instances/<id>/intake")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The instance is a destination.
+
+```json
+{
+  "plugin_instance_id": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b",
+  "revision": 1,
+  "intake": {
+    "settle_seconds": 60,
+    "scan_interval_seconds": 300,
+    "after_ingest": "move",
+    "attribute_to": "owner",
+    "patron": 2,
+    "ignore": [
+      "*.nzb"
+    ],
+    "prune_imported_days": 30
+  }
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "`GET`, `PUT` and `DELETE /api/config/plugin-instances/{id}/intake` body:\nwhether a storage instance is a drop folder, and its settings.",
+  "required": [
+    "plugin_instance_id",
+    "revision"
+  ],
+  "properties": {
+    "plugin_instance_id": {
+      "type": "string",
+      "description": "The storage instance's plugin instance id.",
+      "example": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"
+    },
+    "revision": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Revision of the instance's `core.intake` document; `0` when none was\nwritten, so the instance is a destination.",
+      "example": 1
+    },
+    "intake": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "The drop folder's settings; `null` when the instance is a\ndestination.",
+          "required": [
+            "settle_seconds",
+            "scan_interval_seconds",
+            "after_ingest",
+            "attribute_to",
+            "ignore"
+          ],
+          "properties": {
+            "settle_seconds": {
+              "type": "integer",
+              "format": "int32",
+              "description": "Seconds an item's files must stay unchanged before it is ingested,\n5 to 86,400 (default 60).",
+              "example": 60,
+              "maximum": 86400,
+              "minimum": 5
+            },
+            "scan_interval_seconds": {
+              "type": "integer",
+              "format": "int32",
+              "description": "Seconds between two full listings of the folder, 30 to 86,400\n(default 300). A change feed starts a listing sooner.",
+              "example": 300,
+              "maximum": 86400,
+              "minimum": 30
+            },
+            "after_ingest": {
+              "type": "string",
+              "description": "What happens to an item once it is ingested (default `move`).",
+              "enum": [
+                "move",
+                "delete",
+                "leave"
+              ]
+            },
+            "attribute_to": {
+              "type": "string",
+              "description": "Who holds the ingested books (default `owner`).",
+              "enum": [
+                "owner",
+                "subfolder"
+              ]
+            },
+            "patron": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64",
+              "description": "The user id that holds every book in `owner` mode; required there\nand refused in `subfolder` mode.",
+              "example": 2,
+              "minimum": 1
+            },
+            "ignore": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Extra file name patterns to ignore, at most 64, each 1 to 128 bytes\nwith no `/`: `*` matches any run of characters and `?` one\ncharacter, compared without ASCII case. The built-in list always\napplies too ([`BUILTIN_IGNORE_PATTERNS`]).",
+              "example": [
+                "*.nzb"
+              ],
+              "maxItems": 64
+            },
+            "prune_imported_days": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int32",
+              "description": "With `after_ingest = move`, delete `_imported` day folders older than\nthis many days, 1 to 3,650; absent keeps them.",
+              "example": 30,
+              "maximum": 3650,
+              "minimum": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}
+```
+
+Status `400`: The id is not a plugin instance id.
+
+```json
+{
+  "error": "invalid plugin instance id: expected a UUID"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `404`: No such instance.
+
+```json
+{
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `409`: The instance is deployed, or the document kept changing.
+
+```json
+{
+  "error": "storage instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b is deployed on node-a; undeploy it before changing whether it is a drop folder"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `500`: The document could not be read or written.
+
+```json
+{
+  "error": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
 ## `PUT /api/config/plugin-instances/{id}/deployments/{node_id}`
 
 `PUT /api/config/plugin-instances/{id}/deployments/{node_id}`: the

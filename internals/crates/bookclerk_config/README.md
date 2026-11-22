@@ -25,6 +25,9 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`ReplacementRule`](#replacementrule) | struct | Character replacement rule (`ReplacementCharacters` in classic Settings.json). |
 | [`CheckIn`](#checkin) | struct | Body of `POST /checkin`. |
 | [`InstallId`](#installid) | struct | A random install ID: a version-4 UUID in lowercase hyphenated form. |
+| [`IntakeSettings`](#intakesettings) | struct | The settings of one drop folder (`core.intake`). |
+| [`IntakeSettingsError`](#intakesettingserror) | struct | Why `IntakeSettings` were refused. |
+| [`IntakeSettingsRequest`](#intakesettingsrequest) | struct | The drop folder settings as a request body may send them: every field may be left out and takes the default `IntakeSettings` names. Only the published API schema uses it; the body is read as `IntakeSettings`. |
 | [`JobsConcurrencyConfig`](#jobsconcurrencyconfig) | struct | Per-resource-class worker counts and library-wide job semaphores. |
 | [`JobsConfig`](#jobsconfig) | struct | `[jobs]` — durable queue admission, leases, and resource-class concurrency. |
 | [`OsLogLayer`](#osloglayer) | struct | Structured sink that writes **redacted** events to the platform log facility. |
@@ -81,6 +84,8 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`ConfigError`](#configerror) | enum | Errors produced while loading or validating configuration. |
 | [`FileTimestampMode`](#filetimestampmode) | enum | Which timestamp to apply after acquire (`CreationTime` / `LastWriteTime`). |
 | [`PathSanitizationMode`](#pathsanitizationmode) | enum | How to sanitize storage path segments when `crate::OutputConfig::replacement_characters` is empty (explicit rules always win). |
+| [`AfterIngest`](#afteringest) | enum | What happens to a drop folder item once it has been ingested. |
+| [`IntakeAttribution`](#intakeattribution) | enum | Who holds the books a drop folder ingests. |
 | [`Isolation`](#isolation) | enum | What to do when a child process cannot be confined. |
 | [`OsLogFacility`](#oslogfacility) | enum | Which OS facility was attached (if any). |
 | [`LogFormat`](#logformat) | enum | Output format for the stderr sink. |
@@ -129,6 +134,8 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`checkin_due`](#checkin_due) | function | Whether a check-in is due. |
 | [`record_checkin`](#record_checkin) | function | Records an accepted check-in. |
 | [`send_checkin`](#send_checkin) | function | Sends one check-in to the collector. |
+| [`glob_matches`](#glob_matches) | function | True when `name` matches `pattern`, where `*` matches any run of characters (empty included) and `?` exactly one, compared without ASCII case. Runs in time proportional to the product of the two lengths. |
+| [`parse_intake_settings`](#parse_intake_settings) | function | Reads and validates the settings an operator sent, or a stored `core.intake` body. |
 | [`journald_available`](#journald_available) | function | Back-compat alias. |
 | [`os_log_available`](#os_log_available) | function | Probe whether an OS log facility appears available. |
 | [`init_tracing`](#init_tracing) | function | Convenience wrapper matching the historical CLI/daemon call site. |
@@ -194,6 +201,20 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`SLOW_TARGET`](#slow_target) | constant | Target of the events that mark a slow response. |
 | [`RECONCILE_WILDCARD`](#reconcile_wildcard) | constant | Sentinel placed in reconcile path *patterns* where a sanitizable character appeared in metadata. Matches any single character in an on-disk key. |
 | [`CHECKIN_INTERVAL_MS`](#checkin_interval_ms) | constant | Time between check-ins: one week, in milliseconds. |
+| [`BUILTIN_IGNORE_PATTERNS`](#builtin_ignore_patterns) | constant | File name patterns every drop folder ignores: partial downloads, editor and sync-tool temporaries, and desktop metadata files. A name starting with `.` is always ignored as well. |
+| [`DEFAULT_SCAN_INTERVAL_SECONDS`](#default_scan_interval_seconds) | constant | Default time between two listings of a drop folder, in seconds. |
+| [`DEFAULT_SETTLE_SECONDS`](#default_settle_seconds) | constant | Default quiet time before an item is ingested, in seconds. |
+| [`FAILED_FOLDER`](#failed_folder) | constant | Folder the host moves items that failed to ingest into, at the drop folder's root. |
+| [`IMPORTED_FOLDER`](#imported_folder) | constant | Folder the host moves ingested items into, at the drop folder's root. |
+| [`MAX_IGNORE_PATTERNS`](#max_ignore_patterns) | constant | Most extra ignore patterns one drop folder may hold. |
+| [`MAX_IGNORE_PATTERN_BYTES`](#max_ignore_pattern_bytes) | constant | Longest ignore pattern, in UTF-8 bytes. |
+| [`MAX_INTAKE_CANONICAL_BYTES`](#max_intake_canonical_bytes) | constant | Largest the settings may be once written out with every default filled in, in bytes. `IntakeSettings::validate` holds them to it, so accepted settings always fit, with room for the `{"intake":…}` wrapper, both the 16 KiB stored-document cap and `MAX_INTAKE_SETTINGS_BYTES` when they are read back. Only patterns full of `"`, which JSON escapes, come near it: 64 plain 128-byte patterns take under 9 KiB. |
+| [`MAX_INTAKE_SETTINGS_BYTES`](#max_intake_settings_bytes) | constant | Largest settings body `parse_intake_settings` reads, in bytes. |
+| [`MAX_PRUNE_IMPORTED_DAYS`](#max_prune_imported_days) | constant | Longest time `_imported` folders may be kept before pruning, in days (about ten years). |
+| [`MAX_SCAN_INTERVAL_SECONDS`](#max_scan_interval_seconds) | constant | Longest time between two listings an operator may set, in seconds. |
+| [`MAX_SETTLE_SECONDS`](#max_settle_seconds) | constant | Longest quiet time an operator may set, in seconds (one day). |
+| [`MIN_SCAN_INTERVAL_SECONDS`](#min_scan_interval_seconds) | constant | Shortest time between two listings an operator may set, in seconds. |
+| [`MIN_SETTLE_SECONDS`](#min_settle_seconds) | constant | Shortest quiet time an operator may set, in seconds. |
 | [`RING_DEPENDENCY_LEVEL`](#ring_dependency_level) | constant | Level the diagnostics ring keeps for targets outside `RING_TRACE_TARGETS`. |
 | [`RING_TRACE_TARGETS`](#ring_trace_targets) | constant | Target prefixes the diagnostics ring keeps through TRACE. Every other target (dependencies such as `h2`, `hyper`, `rustls`, `reqwest`, and `log`-crate records) is kept from INFO up, so their per-frame TRACE events do not crowd Bookclerk's own events out of the ring. |
 | [`MAX_EXTRA_COPIES`](#max_extra_copies) | constant | Most copies a library may keep beside its main output. |
@@ -785,6 +806,128 @@ so the new ID checks in on the next pass.
 Returns an error when the file cannot be written.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### IntakeSettings
+
+```rust
+pub struct IntakeSettings {
+    pub settle_seconds: u32,
+    pub scan_interval_seconds: u32,
+    pub after_ingest: AfterIngest,
+    pub attribute_to: IntakeAttribution,
+    pub patron: Option<i64>,
+    pub ignore: Vec<String>,
+    pub prune_imported_days: Option<u16>,
+}
+```
+
+The settings of one drop folder (`core.intake`).
+
+Every field has a default, so `{}` is a valid body only when
+`attribute_to` is `subfolder`; `owner` needs a `patron`.
+
+**Fields**
+
+- `settle_seconds`: Seconds an item's files must stay unchanged before it is ingested,
+  5 to 86,400 (default 60).
+- `scan_interval_seconds`: Seconds between two full listings of the folder, 30 to 86,400
+  (default 300). A change feed starts a listing sooner.
+- `after_ingest`: What happens to an item once it is ingested (default `move`).
+- `attribute_to`: Who holds the ingested books (default `owner`).
+- `patron`: The user id that holds every book in `owner` mode; required there
+  and refused in `subfolder` mode.
+- `ignore`: Extra file name patterns to ignore, at most 64, each 1 to 128 bytes
+  with no `/`: `*` matches any run of characters and `?` one
+  character, compared without ASCII case. The built-in list always
+  applies too ([`BUILTIN_IGNORE_PATTERNS`](#builtin_ignore_patterns)).
+- `prune_imported_days`: With `after_ingest = move`, delete `_imported` day folders older than
+  this many days, 1 to 3,650; absent keeps them.
+
+#### IntakeSettings::for_patron
+
+```rust
+pub fn for_patron(patron: i64) -> Self
+```
+
+Settings with every default and `patron` holding every book.
+
+#### IntakeSettings::validate
+
+```rust
+pub fn validate(&self) -> Result<(), IntakeSettingsError>
+```
+
+Checks every bound and the rules between fields.
+
+##### Errors
+
+Returns an [`IntakeSettingsError`](#intakesettingserror) naming the first broken bound: a
+number out of range, a missing or unwanted `patron`, a bad ignore
+pattern, `prune_imported_days` without `after_ingest = move`, or
+settings longer than [`MAX_INTAKE_CANONICAL_BYTES`](#max_intake_canonical_bytes) written out.
+
+#### IntakeSettings::ignores
+
+```rust
+pub fn ignores(&self, name: &str, at_root: bool) -> bool
+```
+
+True when the file or folder name `name` (one path segment) is never
+part of an item: a dot name, a built-in pattern, an extra pattern,
+or one of the host's own folders at the root.
+
+##### Arguments
+
+* `name` - One path segment.
+* `at_root` - True when `name` sits directly under the folder's root,
+  where `_imported` and `_failed` live.
+
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
+
+### IntakeSettingsError
+
+```rust
+pub struct IntakeSettingsError(/* private */);
+```
+
+Why [`IntakeSettings`](#intakesettings) were refused.
+
+Implements: `Clone`, `Debug`, `Display`, `Eq`, `Error`, `PartialEq`
+
+### IntakeSettingsRequest
+
+```rust
+pub struct IntakeSettingsRequest {
+    pub settle_seconds: u32,
+    pub scan_interval_seconds: u32,
+    pub after_ingest: AfterIngest,
+    pub attribute_to: IntakeAttribution,
+    pub patron: Option<i64>,
+    pub ignore: Vec<String>,
+    pub prune_imported_days: Option<u16>,
+}
+```
+
+The drop folder settings as a request body may send them: every field
+may be left out and takes the default [`IntakeSettings`](#intakesettings) names. Only the
+published API schema uses it; the body is read as [`IntakeSettings`](#intakesettings).
+
+**Fields**
+
+- `settle_seconds`: Seconds an item's files must stay unchanged before it is ingested,
+  5 to 86,400 (default 60).
+- `scan_interval_seconds`: Seconds between two full listings of the folder, 30 to 86,400
+  (default 300).
+- `after_ingest`: What happens to an item once it is ingested (default `move`).
+- `attribute_to`: Who holds the ingested books (default `owner`).
+- `patron`: The user id that holds every book in `owner` mode; required there
+  and refused in `subfolder` mode. It must name an active user.
+- `ignore`: Extra file name patterns to ignore, at most 64, each 1 to 128 bytes
+  with no `/` (default none).
+- `prune_imported_days`: With `after_ingest = move`, delete `_imported` day folders older than
+  this many days, 1 to 3,650; absent keeps them.
+
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Eq`, `PartialEq`, `ToSchema`
 
 ### JobsConcurrencyConfig
 
@@ -3253,6 +3396,114 @@ is empty (explicit rules always win).
 
 Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
+### AfterIngest
+
+```rust
+pub enum AfterIngest {
+    Move,
+    Delete,
+    Leave,
+}
+```
+
+What happens to a drop folder item once it has been ingested.
+
+**Variants**
+
+- `Move`: Move the item to `_imported/<date>/` inside the drop folder (a failed
+  item goes to `_failed/`).
+- `Delete`: Delete the item once every destination copy is stored (a failed item
+  goes to `_failed/`).
+- `Leave`: Leave the item where it is and remember its signature so it is not
+  ingested twice.
+
+#### AfterIngest::ALL
+
+```rust
+pub const ALL: [Self; 3] = _
+```
+
+Every value, in the order the names are documented.
+
+#### AfterIngest::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+The value's name on the wire.
+
+#### AfterIngest::parse
+
+```rust
+pub fn parse(name: &str) -> Option<Self>
+```
+
+Reads a value by its wire name ([`Self::as_str`](#afteringestas_str)), exactly.
+
+#### AfterIngest::writes
+
+```rust
+pub fn writes(self) -> bool
+```
+
+True when the drop folder plugin must be able to write (move or
+delete); `leave` only reads.
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `Hash`, `PartialEq`, `Serialize`, `ToSchema`
+
+### IntakeAttribution
+
+```rust
+pub enum IntakeAttribution {
+    Owner,
+    Subfolder,
+}
+```
+
+Who holds the books a drop folder ingests.
+
+**Variants**
+
+- `Owner`: Every item is held by [`IntakeSettings::patron`](#intakesettings).
+- `Subfolder`: Each top-level folder is named after a patron's username and holds
+  that patron's items; an item one level deeper is one book.
+
+#### IntakeAttribution::ALL
+
+```rust
+pub const ALL: [Self; 2] = _
+```
+
+Every value, in the order the names are documented.
+
+#### IntakeAttribution::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+The value's name on the wire.
+
+#### IntakeAttribution::parse
+
+```rust
+pub fn parse(name: &str) -> Option<Self>
+```
+
+Reads a value by its wire name ([`Self::as_str`](#intakeattributionas_str)), exactly.
+
+#### IntakeAttribution::item_depth
+
+```rust
+pub fn item_depth(self) -> usize
+```
+
+How many leading path segments name one item: the item itself, plus
+the patron folder in `subfolder` mode.
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `Hash`, `PartialEq`, `Serialize`, `ToSchema`
+
 ### Isolation
 
 ```rust
@@ -4469,6 +4720,32 @@ Sends one check-in to the collector.
 Returns an error when no collector URL is configured, the body cannot be
 serialized, or the request fails.
 
+### glob_matches
+
+```rust
+pub fn glob_matches(pattern: &str, name: &str) -> bool
+```
+
+True when `name` matches `pattern`, where `*` matches any run of
+characters (empty included) and `?` exactly one, compared without ASCII
+case. Runs in time proportional to the product of the two lengths.
+
+### parse_intake_settings
+
+```rust
+pub fn parse_intake_settings(body: &[u8]) -> Result<IntakeSettings, IntakeSettingsError>
+```
+
+Reads and validates the settings an operator sent, or a stored
+`core.intake` body.
+
+#### Errors
+
+Returns an [`IntakeSettingsError`](#intakesettingserror) for a body over
+[`MAX_INTAKE_SETTINGS_BYTES`](#max_intake_settings_bytes), bytes that are not one JSON object, an
+unknown or repeated key, a value of the wrong type, or settings that fail
+[`IntakeSettings::validate`](#intakesettingsvalidate).
+
 ### journald_available
 
 ```rust
@@ -5320,6 +5597,127 @@ pub const CHECKIN_INTERVAL_MS: u64 = _;
 ```
 
 Time between check-ins: one week, in milliseconds.
+
+### BUILTIN_IGNORE_PATTERNS
+
+```rust
+pub const BUILTIN_IGNORE_PATTERNS: &[&str] = _;
+```
+
+File name patterns every drop folder ignores: partial downloads,
+editor and sync-tool temporaries, and desktop metadata files. A name
+starting with `.` is always ignored as well.
+
+### DEFAULT_SCAN_INTERVAL_SECONDS
+
+```rust
+pub const DEFAULT_SCAN_INTERVAL_SECONDS: u32 = 300;
+```
+
+Default time between two listings of a drop folder, in seconds.
+
+### DEFAULT_SETTLE_SECONDS
+
+```rust
+pub const DEFAULT_SETTLE_SECONDS: u32 = 60;
+```
+
+Default quiet time before an item is ingested, in seconds.
+
+### FAILED_FOLDER
+
+```rust
+pub const FAILED_FOLDER: &str = "_failed";
+```
+
+Folder the host moves items that failed to ingest into, at the drop
+folder's root.
+
+### IMPORTED_FOLDER
+
+```rust
+pub const IMPORTED_FOLDER: &str = "_imported";
+```
+
+Folder the host moves ingested items into, at the drop folder's root.
+
+### MAX_IGNORE_PATTERNS
+
+```rust
+pub const MAX_IGNORE_PATTERNS: usize = 64;
+```
+
+Most extra ignore patterns one drop folder may hold.
+
+### MAX_IGNORE_PATTERN_BYTES
+
+```rust
+pub const MAX_IGNORE_PATTERN_BYTES: usize = 128;
+```
+
+Longest ignore pattern, in UTF-8 bytes.
+
+### MAX_INTAKE_CANONICAL_BYTES
+
+```rust
+pub const MAX_INTAKE_CANONICAL_BYTES: usize = _;
+```
+
+Largest the settings may be once written out with every default filled
+in, in bytes. [`IntakeSettings::validate`](#intakesettingsvalidate) holds them to it, so accepted
+settings always fit, with room for the `{"intake":…}` wrapper, both the
+16 KiB stored-document cap and [`MAX_INTAKE_SETTINGS_BYTES`](#max_intake_settings_bytes) when they
+are read back. Only patterns full of `"`, which JSON escapes, come near
+it: 64 plain 128-byte patterns take under 9 KiB.
+
+### MAX_INTAKE_SETTINGS_BYTES
+
+```rust
+pub const MAX_INTAKE_SETTINGS_BYTES: usize = _;
+```
+
+Largest settings body [`parse_intake_settings`](#parse_intake_settings) reads, in bytes.
+
+### MAX_PRUNE_IMPORTED_DAYS
+
+```rust
+pub const MAX_PRUNE_IMPORTED_DAYS: u16 = 3_650;
+```
+
+Longest time `_imported` folders may be kept before pruning, in days
+(about ten years).
+
+### MAX_SCAN_INTERVAL_SECONDS
+
+```rust
+pub const MAX_SCAN_INTERVAL_SECONDS: u32 = 86_400;
+```
+
+Longest time between two listings an operator may set, in seconds.
+
+### MAX_SETTLE_SECONDS
+
+```rust
+pub const MAX_SETTLE_SECONDS: u32 = 86_400;
+```
+
+Longest quiet time an operator may set, in seconds (one day).
+
+### MIN_SCAN_INTERVAL_SECONDS
+
+```rust
+pub const MIN_SCAN_INTERVAL_SECONDS: u32 = 30;
+```
+
+Shortest time between two listings an operator may set, in seconds.
+
+### MIN_SETTLE_SECONDS
+
+```rust
+pub const MIN_SETTLE_SECONDS: u32 = 5;
+```
+
+Shortest quiet time an operator may set, in seconds.
 
 ### RING_DEPENDENCY_LEVEL
 

@@ -61,6 +61,7 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`ignored_titles`](ignored_titles.md): SeaORM entity for the `ignored_titles` table entity (composite primary key).
 - [`ingest_batches`](ingest_batches.md): SeaORM entity for `ingest_batches`: one batch of uploaded files or intake references, held by one patron. Written by `control_plane::ingest`.
 - [`ingest_members`](ingest_members.md): SeaORM entity for `ingest_members`: one file of an ingest batch and what became of it. Written by `control_plane::ingest`.
+- [`intake_items`](intake_items.md): SeaORM entity for `intake_items`: one item seen in a drop folder and how far its ingest has come.
 - [`job_secret_handoffs`](job_secret_handoffs.md): SeaORM entity for `job_secret_handoffs`: which store-account secrets a Host was handed with a job, per lease generation.
 - [`job_temp_paths`](job_temp_paths.md): SeaORM entity for scratch directories associated with a durable job.
 - [`jobs`](jobs.md): SeaORM entity for the durable daemon `jobs` table.

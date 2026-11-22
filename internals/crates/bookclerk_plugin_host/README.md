@@ -58,6 +58,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`OutboxEventPublisher`](#outboxeventpublisher) | struct | `EventPublisher` server for one invocation: validates a guest `PluginEvent` and appends it to the library outbox. |
 | [`DatabaseRegistry`](#databaseregistry) | struct | Long-lived external database plugin for the active `[database].plugin`. |
 | [`DeployedDestination`](#deployeddestination) | struct | One deployed destination as acquire sees it. |
+| [`DeployedIntake`](#deployedintake) | struct | One deployed drop folder as the intake runner sees it. |
 | [`DestinationRegistry`](#destinationregistry) | struct | Long-lived external output plugins loaded at host startup. |
 | [`DestinationSettings`](#destinationsettings) | struct | Key layout settings the host reads from a deployed destination's instance document: a storage plugin declares `prefix` and the naming overrides as `[[settings]]`, and acquire needs them to plan storage keys. |
 | [`ExternalDatabase`](#externaldatabase) | struct | External database backend spawned for `[database].plugin`. |
@@ -102,6 +103,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`StateScope`](#statescope) | enum | Whose library a guest works for, which keeps one library's plugin state apart from another's on the same install. |
 | [`PluginError`](#pluginerror) | enum | Failures from discovery, RPC, consent, or plugin adapters. |
 | [`DestinationSession`](#destinationsession) | enum | A deployed destination's guest, as handed to a job that calls the guest's entrypoints directly. |
+| [`StorageRole`](#storagerole) | enum | What the host does with a deployed storage instance. |
 | [`Activate`](#activate) | enum | When installing moves the active pointer. |
 | [`RemoteApprovalError`](#remoteapprovalerror) | enum | Why `approve_remote_request` refused, by cause, so a caller (the operator API) can tell "review again" from "fix the input" from "retry later". |
 | [`RemoteConsentState`](#remoteconsentstate) | enum | How this host stands on one owner plugin's request. |
@@ -211,6 +213,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`open_library_store`](#open_library_store) | function | Open `bookclerk_library::LibraryStore` via the external database guest (required). |
 | [`open_library_store_for_plugin`](#open_library_store_for_plugin) | function | Open the library for a specific `[database].plugin` id (ignoring the active config value). |
 | [`restore_plugin_backup_units`](#restore_plugin_backup_units) | function | Restores plugin binding units onto the **current** adapter. |
+| [`storage_role`](#storage_role) | function | Reads the role of the storage instance `plugin_instance_id`. |
 | [`allow_credential_login`](#allow_credential_login) | function | `allow_credential_login` from the resolved `CONFIG`; absent means allowed. |
 | [`enroll_node`](#enroll_node) | function | Bootstraps the control plane on an open library and enrolls every local plugin, without loading any guest. |
 | [`open_host_control_plane`](#open_host_control_plane) | function | Opens the library database and the control plane for `config`. |
@@ -1937,6 +1940,26 @@ One deployed destination as acquire sees it.
 
 Implements: `Clone`
 
+### DeployedIntake
+
+```rust
+pub struct DeployedIntake {
+    pub id: DestinationId,
+    pub backend: Arc<dyn StorageBackend>,
+    pub settings: DestinationSettings,
+}
+```
+
+One deployed drop folder as the intake runner sees it.
+
+**Fields**
+
+- `id`: The drop folder's plugin instance id.
+- `backend`: Storage backend over the folder's guest.
+- `settings`: Key layout from the instance document (its `prefix`).
+
+Implements: `Clone`
+
 ### DestinationRegistry
 
 ```rust
@@ -1957,7 +1980,17 @@ Every deployed destination, one per plugin instance, by id. No kind
 of storage plugin comes first: each translates the host's keys
 itself.
 
-Several instances of one plugin are separate destinations.
+Several instances of one plugin are separate destinations. Drop
+folders ([`StorageRole::Intake`](#storagerole)) are not destinations and are left
+out; see [`Self::intakes`](#destinationregistryintakes).
+
+#### DestinationRegistry::intakes
+
+```rust
+pub fn intakes(&self) -> Vec<DeployedIntake>
+```
+
+Every deployed drop folder, sorted by id.
 
 #### DestinationRegistry::plugin_session
 
@@ -5027,6 +5060,29 @@ Returns an error when an on-demand guest was retired or cannot start.
 
 Implements: `Clone`
 
+### StorageRole
+
+```rust
+pub enum StorageRole {
+    Destination,
+    Intake,
+}
+```
+
+What the host does with a deployed storage instance.
+
+The role comes from the instance's `core.intake` document, read when the
+guest starts; the library refuses to change it while the instance is
+deployed (`bookclerk_library::control_plane::set_intake`).
+
+**Variants**
+
+- `Destination`: An acquire destination: acquired books are written to it.
+- `Intake`: A drop folder: the host lists it and ingests what lands there, and
+  never writes acquired books to it.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
 ### Activate
 
 ```rust
@@ -6652,6 +6708,24 @@ Restore binds, payload, and request limits come from that session.
 
 Returns when provisioning or canonical restore fails. Partial completion is
 reported in the error message.
+
+### storage_role
+
+```rust
+pub async fn storage_role(
+    store: &LibraryStore,
+    plugin_instance_id: &str,
+) -> Result<StorageRole>
+```
+
+Reads the role of the storage instance `plugin_instance_id`.
+
+#### Errors
+
+Returns an error when the instance's `core.intake` document cannot be
+read or is invalid; the guest is then not published, rather than
+published as a destination a drop folder's settings may have meant to
+keep acquired books out of.
 
 ### allow_credential_login
 

@@ -47,6 +47,7 @@ The crates the hosts are built from. Not a stable API.
 | [`bookclerk_demo_seed`](bookclerk_demo_seed/README.md) | Fills a fresh hosted-demo library with a second member, their books, wishlist and offline branch |
 | [`bookclerk_discover`](bookclerk_discover/README.md) | Recommendations, embeddings, listening sync, and title request helpers |
 | [`bookclerk_enrich`](bookclerk_enrich/README.md) | Source-agnostic Audible metadata enrichment (catalog search, metadata providers, confidence scoring) |
+| [`bookclerk_intake`](bookclerk_intake/README.md) | Groups a drop folder's listing into items and decides when each has settled, without IO |
 | [`bookclerk_integrations`](bookclerk_integrations/README.md) | Outbound integration framework (traits, registry, portal, claim tickets) |
 | [`bookclerk_keystore`](bookclerk_keystore/README.md) | OS keychain access for the Bookclerk library key: Keychain Services, Credential Manager and Secret Service |
 | [`bookclerk_library`](bookclerk_library/README.md) | Library database schema, migrations, and book records |

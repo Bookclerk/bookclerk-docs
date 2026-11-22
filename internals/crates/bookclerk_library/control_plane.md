@@ -94,6 +94,8 @@ See `docs/adr/control-plane.md`.
 | [`ResolvedInstanceBindings`](#resolvedinstancebindings) | struct | `CONFIG` and `SECRETS` payloads for one instance. |
 | [`PluginInstance`](#plugininstance) | struct | One `plugin_instances` row. |
 | [`PluginInstanceId`](#plugininstanceid) | struct | Stable id of one plugin instance. |
+| [`IntakeRoleV1`](#intakerolev1) | struct | The body of a `core.intake` document. |
+| [`IntakeItemRecord`](#intakeitemrecord) | struct | One item's stored record. |
 | [`JobClaimFilter`](#jobclaimfilter) | struct | What a Host is willing to claim: the job kinds it runs and the plugin keys its operator consented to. Both must admit a job. |
 | [`JobClaimLimits`](#jobclaimlimits) | struct | Library-wide permit counts a routed claim enforces. |
 | [`JobClaimRequest`](#jobclaimrequest) | struct | One routed claim attempt by one worker. |
@@ -208,6 +210,8 @@ See `docs/adr/control-plane.md`.
 | [`InstanceConfigReplace`](#instanceconfigreplace) | enum | Outcome of `replace_instance_config`. |
 | [`SettingCell`](#settingcell) | enum | One cell of a table setting row: the scalar kinds only. |
 | [`SettingValue`](#settingvalue) | enum | One setting value: a scalar, or the rows of a table setting. |
+| [`IntakeFinish`](#intakefinish) | enum | How an ingest batch ended for one item. |
+| [`IntakeWrite`](#intakewrite) | enum | One change to a drop folder's records. |
 | [`KeeperUpdate`](#keeperupdate) | enum | What `apply_keeper_update` did. |
 | [`LinkImportOutcome`](#linkimportoutcome) | enum | What `import_link_title` did. |
 | [`LiveTopic`](#livetopic) | enum | A topic of the live socket. |
@@ -427,6 +431,15 @@ See `docs/adr/control-plane.md`.
 | [`list_all_plugin_instances`](#list_all_plugin_instances) | function | Every instance row, ordered by plugin key then creation time. |
 | [`list_plugin_instances_for_key`](#list_plugin_instances_for_key) | function | Every instance row for `plugin_key`, oldest first. |
 | [`load_plugin_instance`](#load_plugin_instance) | function | Loads one instance by id. |
+| [`intake_key`](#intake_key) | function | The `core.intake` address for one plugin instance. |
+| [`intake_settings`](#intake_settings) | function | The instance's drop folder settings, or `None` for a destination. |
+| [`load_intake_role`](#load_intake_role) | function | Loads one instance's role document. |
+| [`set_intake`](#set_intake) | function | Makes the instance a drop folder with `settings`, changes a drop folder's settings, or (with `None`) makes it a destination again, under compare-and-swap. |
+| [`set_intake_at`](#set_intake_at) | function | `set_intake` for a caller that changed settings it read: the write applies only while the document is still at `expected_revision` (`0` when none was written), so an edit never restores fields another writer changed meanwhile. |
+| [`apply_intake_writes`](#apply_intake_writes) | function | Applies `writes` to the drop folder `instance_id`'s records. |
+| [`finish_intake_item`](#finish_intake_item) | function | Records how the ingest batch `batch_id` ended for one item, if the item is still queued on that batch. |
+| [`intake_item_hash`](#intake_item_hash) | function | The lowercase hex SHA-256 of an item key: its row's key. |
+| [`load_intake_items`](#load_intake_items) | function | Every stored record of the drop folder `instance_id`, by item key. Read in keyset pages no larger than the plugin's `maxResultRows`. |
 | [`account_semaphore`](#account_semaphore) | function | Name of the library semaphore for one store account. |
 | [`claim_routed_job`](#claim_routed_job) | function | Claims the best ready job this node can run, under the library semaphores. |
 | [`class_semaphore`](#class_semaphore) | function | Name of the library semaphore for one resource class. |
@@ -721,6 +734,9 @@ See `docs/adr/control-plane.md`.
 | [`MAX_INSTANCE_SETTINGS`](#max_instance_settings) | constant | Maximum settings in one schema-1 document. |
 | [`MAX_INSTANCE_SETTING_BYTES`](#max_instance_setting_bytes) | constant | Maximum UTF-8 size of one string setting. |
 | [`PLUGIN_INSTANCE_CONFIG_SCHEMA_VERSION`](#plugin_instance_config_schema_version) | constant | Domain schema of `PluginInstanceConfigV1`. |
+| [`INTAKE_NAMESPACE`](#intake_namespace) | constant | Namespace of a storage instance's role document. |
+| [`INTAKE_SCHEMA_VERSION`](#intake_schema_version) | constant | Schema version of `IntakeRoleV1`. |
+| [`MAX_INTAKE_ERROR_BYTES`](#max_intake_error_bytes) | constant | Longest stored failure reason, in bytes; longer text is cut at a character boundary. |
 | [`ACCOUNT_SEMAPHORE_LIMIT`](#account_semaphore_limit) | constant | Permits an account semaphore grants: one job per store account at a time. |
 | [`ROUTED_CLAIM_CANDIDATES`](#routed_claim_candidates) | constant | Pending candidates read per page of a routed claim attempt (the claim pages on until it claims a job or the ready rows run out). |
 | [`EVENT_RETENTION_LEASE`](#event_retention_lease) | constant | Lease of the event retention duty (terminal deliveries, empty events, stale subscriber catalog rows). |
@@ -3165,6 +3181,44 @@ pub fn as_str(&self) -> &str
 Hyphenated UUID text stored in the database.
 
 Implements: `Clone`, `Debug`, `Display`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`
+
+### IntakeRoleV1
+
+```rust
+pub struct IntakeRoleV1 {
+    pub intake: Option<IntakeSettings>,
+}
+```
+
+The body of a `core.intake` document.
+
+**Fields**
+
+- `intake`: The drop folder's settings; `None` keeps the instance a destination.
+
+Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`, `Serialize`
+
+### IntakeItemRecord
+
+```rust
+pub struct IntakeItemRecord {
+    pub item_key: String,
+    pub tracked: TrackedItem,
+    pub batch_id: Option<String>,
+    pub error: Option<String>,
+}
+```
+
+One item's stored record.
+
+**Fields**
+
+- `item_key`: The item's path relative to the folder root.
+- `tracked`: State, signature and quiet time.
+- `batch_id`: The ingest batch the item was handed to, once queued.
+- `error`: Why the last ingest failed.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ### JobClaimFilter
 
@@ -7188,6 +7242,64 @@ The value as JSON, the form `CONFIG` and the API carry.
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `PartialEq`, `Serialize`, `ToSchema`
 
+### IntakeFinish
+
+```rust
+pub enum IntakeFinish {
+    Done,
+    Removed,
+    Failed(String),
+    PartlyRemoved { reason: String, remaining: ItemSignature },
+    Retry { quiet_since_ms: u64 },
+}
+```
+
+How an ingest batch ended for one item.
+
+**Variants**
+
+- `Done`: Ingested and left in place (`after_ingest = leave`).
+- `Removed`: Ingested and moved or deleted: the record is dropped.
+- `Failed`: The ingest failed for this reason.
+- `PartlyRemoved`: Some members were moved or deleted and the rest could not be. The
+  record is kept `failed` with this reason under the signature of the
+  members left, so they are not ingested again on their own; they are
+  offered again only when they change.
+  - `reason`: What went wrong.
+  - `remaining`: The signature of the members still in place.
+- `Retry`: The batch never became one the job runs (it was not written, or
+  was not queued and has been cancelled): the item settles again from
+  this time, unix milliseconds, and is handed off anew.
+  - `quiet_since_ms`: When the new quiet period starts, unix milliseconds.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### IntakeWrite
+
+```rust
+pub enum IntakeWrite {
+    Store { item_key: String, tracked: TrackedItem },
+    Queue { item_key: String, signature: ItemSignature, batch_id: String },
+    Forget { item_key: String },
+}
+```
+
+One change to a drop folder's records.
+
+**Variants**
+
+- `Store`: Store a new or changed record; clears its batch and error.
+  - `item_key`: The item's key.
+  - `tracked`: The record to store.
+- `Queue`: The item settled and was handed to `batch_id`: store it `queued`.
+  - `item_key`: The item's key.
+  - `signature`: The signature that settled.
+  - `batch_id`: The ingest batch it went to.
+- `Forget`: The item is gone from the folder: delete its record.
+  - `item_key`: The item's key.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### KeeperUpdate
 
 ```rust
@@ -10773,6 +10885,7 @@ Returns the write error.
 ```rust
 pub async fn create_intake_batch(
     store: &LibraryStore,
+    id: &IngestBatchId,
     user_id: i64,
     node_id: &str,
     instance: &str,
@@ -10784,6 +10897,17 @@ Creates an intake batch: files read in place from `instance`, held by
 `user_id`, run on `node_id`. The host creates these itself (the drop
 folder); the person must be active.
 
+#### Arguments
+
+* `store` - The library database.
+* `id` - The batch id, chosen by the caller (a fresh
+  [`IngestBatchId::new`](#ingestbatchidnew)) and recorded before the call, so that after a
+  crash the caller finds the batch, or knows it was never written.
+* `user_id` - The patron who holds the books.
+* `node_id` - The node that runs the batch.
+* `instance` - The storage instance the members are read from.
+* `specs` - One member per object.
+
 #### Returns
 
 The new batch, open, or why it was refused. Its members are complete
@@ -10791,7 +10915,7 @@ from the start, so it can be committed at once.
 
 #### Errors
 
-Returns a read or write error.
+Returns a read or write error, including for an `id` already in use.
 
 ### create_upload_batch
 
@@ -11608,6 +11732,181 @@ Loads one instance by id.
 #### Errors
 
 Returns an error when the read fails or `id` is not a UUID.
+
+### intake_key
+
+```rust
+pub fn intake_key(instance_id: &str) -> DocumentKey
+```
+
+The `core.intake` address for one plugin instance.
+
+### intake_settings
+
+```rust
+pub async fn intake_settings(
+    store: &LibraryStore,
+    instance_id: &str,
+) -> Result<Option<IntakeSettings>>
+```
+
+The instance's drop folder settings, or `None` for a destination.
+
+#### Errors
+
+Returns the read or parse error. A caller deciding where acquired books
+go fails closed on it rather than writing into a drop folder.
+
+### load_intake_role
+
+```rust
+pub async fn load_intake_role(
+    store: &LibraryStore,
+    instance_id: &str,
+) -> Result<Option<ConfigurationDocument<IntakeRoleV1>>>
+```
+
+Loads one instance's role document.
+
+#### Returns
+
+The stored document, or `None` when nobody wrote one: the instance is
+then a destination.
+
+#### Errors
+
+Returns the read error, or an error when the stored document is invalid
+or of an unknown schema.
+
+### set_intake
+
+```rust
+pub async fn set_intake(
+    store: &LibraryStore,
+    actor: &ConfigActor,
+    instance_id: &PluginInstanceId,
+    settings: Option<IntakeSettings>,
+) -> Result<ConfigurationDocument<IntakeRoleV1>>
+```
+
+Makes the instance a drop folder with `settings`, changes a drop
+folder's settings, or (with `None`) makes it a destination again, under
+compare-and-swap.
+
+#### Arguments
+
+* `store` - The library database.
+* `actor` - Who is writing, for authorization and the audit log.
+* `instance_id` - The storage plugin instance.
+* `settings` - The drop folder's settings, or `None` for a destination.
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) for settings that fail
+`IntakeSettings::validate` or name a patron who is not an active user,
+[`LibraryError::Conflict`](README.md#libraryerror) when the role would change while the instance
+is deployed on some node or when the document keeps changing underneath,
+or the write's error.
+
+### set_intake_at
+
+```rust
+pub async fn set_intake_at(
+    store: &LibraryStore,
+    actor: &ConfigActor,
+    instance_id: &PluginInstanceId,
+    settings: Option<IntakeSettings>,
+    expected_revision: Option<i64>,
+) -> Result<ConfigurationDocument<IntakeRoleV1>>
+```
+
+[`set_intake`](#set_intake) for a caller that changed settings it read: the write
+applies only while the document is still at `expected_revision` (`0`
+when none was written), so an edit never restores fields another writer
+changed meanwhile.
+
+#### Arguments
+
+* `store` - The library database.
+* `actor` - Who is writing, for authorization and the audit log.
+* `instance_id` - The storage plugin instance.
+* `settings` - The drop folder's settings, or `None` for a destination.
+* `expected_revision` - The revision the settings were read at; `None`
+  replaces whatever is stored.
+
+#### Errors
+
+As [`set_intake`](#set_intake), and [`LibraryError::Conflict`](README.md#libraryerror) when the document is
+no longer at `expected_revision`.
+
+### apply_intake_writes
+
+```rust
+pub async fn apply_intake_writes(
+    store: &LibraryStore,
+    instance_id: &str,
+    writes: &[IntakeWrite],
+) -> Result<()>
+```
+
+Applies `writes` to the drop folder `instance_id`'s records.
+
+Each write is its own pair of statements, and the pairs are committed in
+batches sized to the database plugin; a crash between batches leaves
+earlier writes in place, which the next listing reconciles.
+
+#### Errors
+
+Returns an error when a batch fails.
+
+### finish_intake_item
+
+```rust
+pub async fn finish_intake_item(
+    store: &LibraryStore,
+    instance_id: &str,
+    item_key: &str,
+    batch_id: &str,
+    finish: &IntakeFinish,
+) -> Result<bool>
+```
+
+Records how the ingest batch `batch_id` ended for one item, if the item
+is still queued on that batch.
+
+#### Returns
+
+True when the record was updated; false when the item is no longer
+queued on `batch_id` (a later listing replaced it).
+
+#### Errors
+
+Returns an error when the write fails.
+
+### intake_item_hash
+
+```rust
+pub fn intake_item_hash(item_key: &str) -> String
+```
+
+The lowercase hex SHA-256 of an item key: its row's key.
+
+### load_intake_items
+
+```rust
+pub async fn load_intake_items(
+    store: &LibraryStore,
+    instance_id: &str,
+) -> Result<BTreeMap<String, IntakeItemRecord>>
+```
+
+Every stored record of the drop folder `instance_id`, by item key.
+Read in keyset pages no larger than the plugin's `maxResultRows`.
+
+#### Errors
+
+Returns an error when a read fails or a row holds a state or signature
+this version does not know.
 
 ### account_semaphore
 
@@ -16655,6 +16954,31 @@ pub const PLUGIN_INSTANCE_CONFIG_SCHEMA_VERSION: i64 = 1;
 ```
 
 Domain schema of [`PluginInstanceConfigV1`](#plugininstanceconfigv1).
+
+### INTAKE_NAMESPACE
+
+```rust
+pub const INTAKE_NAMESPACE: &str = "core.intake";
+```
+
+Namespace of a storage instance's role document.
+
+### INTAKE_SCHEMA_VERSION
+
+```rust
+pub const INTAKE_SCHEMA_VERSION: i64 = 1;
+```
+
+Schema version of [`IntakeRoleV1`](#intakerolev1).
+
+### MAX_INTAKE_ERROR_BYTES
+
+```rust
+pub const MAX_INTAKE_ERROR_BYTES: usize = 512;
+```
+
+Longest stored failure reason, in bytes; longer text is cut at a
+character boundary.
 
 ### ACCOUNT_SEMAPHORE_LIMIT
 

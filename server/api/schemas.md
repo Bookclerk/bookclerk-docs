@@ -101,6 +101,12 @@ What a change does to one switch of one Administrator.
 
 Type: one of `on`, `off`, `default`
 
+## AfterIngest
+
+What happens to a drop folder item once it has been ingested.
+
+Type: one of `move`, `delete`, `leave`
+
 ## ApiError
 
 An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.
@@ -1818,6 +1824,50 @@ A name in `encrypted_secrets`. The ciphertext is not part of the document.
 
 - `key` *string*, **required** — Key in the `SECRETS` object delivered to the guest.
 - `name` *string*, **required** — `encrypted_secrets.name` for this instance.
+
+## IntakeAttribution
+
+Who holds the books a drop folder ingests.
+
+Type: one of `owner`, `subfolder`
+
+## IntakeResponse
+
+`GET`, `PUT` and `DELETE /api/config/plugin-instances/{id}/intake` body:
+whether a storage instance is a drop folder, and its settings.
+
+- `plugin_instance_id` *string*, **required** — The storage instance's plugin instance id.
+- `revision` *integer (int64)*, **required** — Revision of the instance's `core.intake` document; `0` when none was written, so the instance is a destination.
+- `intake` *[`IntakeSettings`](#intakesettings) or null* — The drop folder's settings; `null` when the instance is a destination.
+
+## IntakeSettings
+
+The settings of one drop folder (`core.intake`).
+
+Every field has a default, so `{}` is a valid body only when
+`attribute_to` is `subfolder`; `owner` needs a `patron`.
+
+- `settle_seconds` *integer (int32)*, **required** — Seconds an item's files must stay unchanged before it is ingested, 5 to 86,400 (default 60). At least 5; at most 86400.
+- `scan_interval_seconds` *integer (int32)*, **required** — Seconds between two full listings of the folder, 30 to 86,400 (default 300). A change feed starts a listing sooner. At least 30; at most 86400.
+- `after_ingest` *[`AfterIngest`](#afteringest)*, **required** — What happens to an item once it is ingested (default `move`).
+- `attribute_to` *[`IntakeAttribution`](#intakeattribution)*, **required** — Who holds the ingested books (default `owner`).
+- `patron` *integer (int64) or null* — The user id that holds every book in `owner` mode; required there and refused in `subfolder` mode. At least 1.
+- `ignore` *array of string*, **required** — Extra file name patterns to ignore, at most 64, each 1 to 128 bytes with no `/`: `*` matches any run of characters and `?` one character, compared without ASCII case. The built-in list always applies too ([`BUILTIN_IGNORE_PATTERNS`]). At most 64 items.
+- `prune_imported_days` *integer (int32) or null* — With `after_ingest = move`, delete `_imported` day folders older than this many days, 1 to 3,650; absent keeps them. At least 1; at most 3650.
+
+## IntakeSettingsRequest
+
+The drop folder settings as a request body may send them: every field
+may be left out and takes the default [`IntakeSettings`] names. Only the
+published API schema uses it; the body is read as [`IntakeSettings`].
+
+- `settle_seconds` *integer (int32)* — Seconds an item's files must stay unchanged before it is ingested, 5 to 86,400 (default 60). At least 5; at most 86400.
+- `scan_interval_seconds` *integer (int32)* — Seconds between two full listings of the folder, 30 to 86,400 (default 300). At least 30; at most 86400.
+- `after_ingest` *[`AfterIngest`](#afteringest)* — What happens to an item once it is ingested (default `move`).
+- `attribute_to` *[`IntakeAttribution`](#intakeattribution)* — Who holds the ingested books (default `owner`).
+- `patron` *integer (int64) or null* — The user id that holds every book in `owner` mode; required there and refused in `subfolder` mode. It must name an active user. At least 1.
+- `ignore` *array of string* — Extra file name patterns to ignore, at most 64, each 1 to 128 bytes with no `/` (default none). At most 64 items.
+- `prune_imported_days` *integer (int32) or null* — With `after_ingest = move`, delete `_imported` day folders older than this many days, 1 to 3,650; absent keeps them. At least 1; at most 3650.
 
 ## IntegrationLoginBody
 
