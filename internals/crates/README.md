@@ -19,6 +19,7 @@ First-party plugins: databases, destinations, sources and integrations.
 
 | Crate | Description |
 | --- | --- |
+| [`bookclerk_plugin_ai_embedder`](bookclerk_plugin_ai_embedder/README.md) | Text-embedding model plugin: runs cut ONNX embedding models from language row packs inside the plugin jail |
 | [`bookclerk_plugin_database_d1`](bookclerk_plugin_database_d1/README.md) | Optional Cloudflare D1 library database plugin (Workers RPC guest) |
 | [`bookclerk_plugin_database_postgres`](bookclerk_plugin_database_postgres/README.md) | Optional PostgreSQL library database plugin (Workers RPC guest) |
 | [`bookclerk_plugin_database_sqlite`](bookclerk_plugin_database_sqlite/README.md) | Platform SQLite library database plugin (Workers RPC guest) |
@@ -53,10 +54,12 @@ The crates the hosts are built from. Not a stable API.
 | [`bookclerk_library`](bookclerk_library/README.md) | Library database schema, migrations, and book records |
 | [`bookclerk_media`](bookclerk_media/README.md) | Clear-media packaging: remux, metadata fix-up, and MP3 encode (no DRM) |
 | [`bookclerk_migrate`](bookclerk_migrate/README.md) | Import/export classic Libation Files and native Bookclerk backups |
+| [`bookclerk_model_pack`](bookclerk_model_pack/README.md) | Layout of an embedding model on disk: the model description, the cut graph, the tokenizer and the token-row packs per language |
 | [`bookclerk_mp4`](bookclerk_mp4/README.md) | ISO-BMFF container plumbing shared by media packaging and store plugins (no cryptography) |
 | [`bookclerk_naming`](bookclerk_naming/README.md) | Port of Libation's NamingTemplate tag-template engine (Chardonnay parity) |
 | [`bookclerk_node_client`](bookclerk_node_client/README.md) | Branch-node client: enrollment, the pinned owner socket, heartbeats, claimed work, token write-back, wakes and resume |
 | [`bookclerk_node_proto`](bookclerk_node_proto/README.md) | Branch-node protocol: node API frames, handshake signatures, key checks, and sealed boxes |
+| [`bookclerk_onnxruntime`](bookclerk_onnxruntime/README.md) | Pin and fetch of the ONNX Runtime shared library the model plugin loads |
 | [`bookclerk_player_api`](bookclerk_player_api/README.md) | Sans-IO request parsers, response shapes and Socket.io framing of the host's /player API for audiobook player apps |
 | [`bookclerk_player_engine`](bookclerk_player_engine/README.md) | Native playback for the desktop window: speed change, rate conversion and one-track playback over PCM from the media worker |
 | [`bookclerk_plugin_catalog`](bookclerk_plugin_catalog/README.md) | Registry-neutral plugin discovery, manifests, and secure install |
@@ -65,6 +68,7 @@ The crates the hosts are built from. Not a stable API.
 | [`bookclerk_sandbox`](bookclerk_sandbox/README.md) | Portable, unprivileged process confinement (Landlock/seccomp, Seatbelt, AppContainer) |
 | [`bookclerk_scan_delta`](bookclerk_scan_delta/README.md) | Hash-based scan deltas for first-party storefronts with no change feed, kept in the plugin's own database |
 | [`bookclerk_search`](bookclerk_search/README.md) | Full-text search over library works (Tantivy) |
+| [`bookclerk_sentencepiece`](bookclerk_sentencepiece/README.md) | Safe wrapper over the SentencePiece Lite tokenizer runtime, built from the pinned sources under third_party/sentencepiece-lite |
 | [`bookclerk_source`](bookclerk_source/README.md) | Host-side ContentSource trait and source registry; re-exports the storefront types guests share |
 | [`bookclerk_storage`](bookclerk_storage/README.md) | Pluggable local and S3 (feature `s3`) storage backends for acquired audiobooks |
 | [`bookclerk_storefront`](bookclerk_storefront/README.md) | Types storefront guests share with the host: DTOs, ABI conversions and listing helpers, with no database, ORM or OpenAPI dependencies |
