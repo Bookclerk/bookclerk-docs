@@ -4356,9 +4356,10 @@ Form body for `POST /oidc/revoke` (RFC 7009-style refresh-token revoke).
 
 ## RouteJson
 
-One route: a channel and the least severity it takes.
+One route: a channel, or the built-in "In app" target, and the least
+severity it takes.
 
-- `destination_id` *string*, **required** — The channel.
+- `destination_id` *string*, **required** — The channel's id, or `in-app` for the built-in target that puts the notification in every active Owner's and Administrator's inbox (the bell in the web app, and browser or desktop notifications where they turned them on). `in-app` runs no plugin and is listed first.
 - `min_severity` *string*, **required** — `info`, `warning` or `critical`: notifications less urgent than this skip the channel.
 
 ## RoutesBody

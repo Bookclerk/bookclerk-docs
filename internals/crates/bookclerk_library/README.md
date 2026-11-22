@@ -10256,9 +10256,10 @@ The stored id and the deliveries made.
 ##### Errors
 
 [`LibraryError::Invalid`](#libraryerror) when the notification breaks a message
-rule; [`LibraryError::NotFound`](#libraryerror) when its patron does not exist; an
-error when a read or the batch fails. A failed enqueue is not an
-error: the delivery waits for the sweep.
+rule; [`LibraryError::NotFound`](#libraryerror) when its patron does not exist;
+[`LibraryError::Conflict`](#libraryerror) when route replacements kept landing while
+it was routed; an error when a read or the batch fails. A failed
+enqueue is not an error: the delivery waits for the sweep.
 
 #### LibraryStore::route_notification_to
 
@@ -10665,7 +10666,8 @@ log rows.
 pub async fn notify_routes(&self) -> Result<BTreeMap<String, Vec<Route>>>
 ```
 
-Every operational route, by type.
+Every operational route, by type; an "In app" route comes first in
+its type's list under [`IN_APP_DESTINATION`](notifications.md#in_app_destination).
 
 ##### Errors
 
@@ -10681,7 +10683,8 @@ pub async fn set_notify_routes(
 ) -> Result<()>
 ```
 
-Replaces the routes of one operational type.
+Replaces the routes of one operational type. A route to
+[`IN_APP_DESTINATION`](notifications.md#in_app_destination) is the staff inbox, not a stored destination.
 
 ##### Errors
 

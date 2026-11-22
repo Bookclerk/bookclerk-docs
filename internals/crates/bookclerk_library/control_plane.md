@@ -7360,6 +7360,7 @@ pub enum LiveTopic {
     Users,
     Discover,
     Playback,
+    Notifications,
 }
 ```
 
@@ -7380,11 +7381,13 @@ A topic of the live socket.
 - `Playback`: Listening progress and bookmarks (`playback_progress`, `bookmarks`):
   someone started, stopped or finished an edition, or changed a
   bookmark. Position syncs while a session plays do not move it.
+- `Notifications`: Notification inboxes (`notify_inbox`): a notification reached
+  someone's inbox, or someone marked entries read.
 
 #### LiveTopic::ALL
 
 ```rust
-pub const ALL: [Self; 10] = _
+pub const ALL: [Self; 11] = _
 ```
 
 Every topic.
@@ -7417,8 +7420,9 @@ write to the table sets to the time of the write.
 `None` for `library`, whose writes span the library model's tables,
 for `library_links`, which has no change stamp, for
 `configuration_changes`, an append-only log whose stamp is not
-indexed, and for `playback`, which has two tables and moves only
-on some of their writes; their writes bump on a probe or outright
+indexed, for `playback`, which has two tables and moves only on
+some of their writes, and for `notifications`, whose inbox rows
+carry no change stamp; their writes bump on a probe or outright
 instead.
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`

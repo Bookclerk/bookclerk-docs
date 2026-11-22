@@ -56,6 +56,7 @@ A paused destination is skipped.
 | [`NOTIFICATION_RETENTION_DAYS`](#notification_retention_days) | constant | Days a notification, its delivery log and its inbox rows are kept. |
 | [`MAX_DESTINATION_LABEL_BYTES`](#max_destination_label_bytes) | constant | Longest destination label, in bytes. |
 | [`MAX_ROUTES_PER_TYPE`](#max_routes_per_type) | constant | Most routes, offers or patron targets one notification type may have. |
+| [`IN_APP_DESTINATION`](#in_app_destination) | constant | The reserved destination id of the built-in "In app" target: an operational route to it puts the notification in the inbox of every active Owner and Administrator, where the web app's bell, browser notifications and the desktop window's system notifications show it. It is not a stored destination and runs no plugin. |
 | [`TEST_NOTIFICATION_TYPE`](#test_notification_type) | constant | The host's built-in `test` type: an administrator or a patron sends it to one destination to check that it works. |
 | [`AUDIENCES`](#audiences) | constant | Every audience, in the order of the `audience` column's CHECK list. |
 | [`SEVERITIES`](#severities) | constant | Every severity, lowest first, in the order of the CHECK lists. |
@@ -220,7 +221,8 @@ What the router did with a notification.
 - `notification_id`: The id it was stored under.
 - `deliveries`: The deliveries it made, each with a send job enqueued (or left for
   the sweep when the enqueue failed).
-- `inboxed`: Whether it reached a patron's inbox.
+- `inboxed`: Whether it reached an inbox: its patron's, or the staff's through an
+  "In app" route.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
@@ -297,7 +299,7 @@ One operational route.
 
 **Fields**
 
-- `destination_id`: Channel destination.
+- `destination_id`: Channel destination, or [`IN_APP_DESTINATION`](#in_app_destination) for the staff inbox.
 - `min_severity`: Lowest severity sent.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
@@ -704,6 +706,18 @@ pub const MAX_ROUTES_PER_TYPE: usize = 32;
 ```
 
 Most routes, offers or patron targets one notification type may have.
+
+### IN_APP_DESTINATION
+
+```rust
+pub const IN_APP_DESTINATION: &str = "in-app";
+```
+
+The reserved destination id of the built-in "In app" target: an
+operational route to it puts the notification in the inbox of every
+active Owner and Administrator, where the web app's bell, browser
+notifications and the desktop window's system notifications show it.
+It is not a stored destination and runs no plugin.
 
 ### TEST_NOTIFICATION_TYPE
 

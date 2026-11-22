@@ -8576,7 +8576,7 @@ Fetches one page of a facet's values across the library's held works.
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
-| `facet` | \| `"source"` \| `"author"` \| `"series"` \| `"narrator"` \| `"genre"` \| `"publisher"` \| `"tag"` \| `"library_tag"` \| `"collection"` | The facet (not `progress`, whose values are fixed). |
+| `facet` | \| `"source"` \| `"tag"` \| `"author"` \| `"series"` \| `"narrator"` \| `"genre"` \| `"publisher"` \| `"library_tag"` \| `"collection"` | The facet (not `progress`, whose values are fixed). |
 | `cursor?` | `string` | The previous page's `next_cursor`; omitted for the first. |
 
 #### Returns
@@ -8584,6 +8584,30 @@ Fetches one page of a facet's values across the library's held works.
 `Promise`\<[`FacetValuesPage`](#facetvaluespage)\>
 
 The page and the next page's cursor.
+
+***
+
+### fetchInbox()
+
+```ts
+function fetchInbox(options?): Promise<InboxPageView>;
+```
+
+Reads one page of the signed-in person's notification inbox.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `options?` | \{ `cursor?`: `string` \| `null`; `limit?`: `number`; \} | `cursor` from the previous page and a page size. |
+| `options.cursor?` | `string` \| `null` | - |
+| `options.limit?` | `number` | - |
+
+#### Returns
+
+`Promise`\<`InboxPageView`\>
+
+The page, malformed entries dropped.
 
 ***
 
@@ -9357,6 +9381,28 @@ Resolves when the library answered that the sign-out is done.
 #### Throws
 
 When the library answers anything else.
+
+***
+
+### markInboxRead()
+
+```ts
+function markInboxRead(notificationId): Promise<number>;
+```
+
+Marks one inbox entry read, or the whole inbox when no id is given.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `notificationId` | `string` \| `null` | The entry to mark, or `null` for all of them. |
+
+#### Returns
+
+`Promise`\<`number`\>
+
+How many entries changed.
 
 ***
 

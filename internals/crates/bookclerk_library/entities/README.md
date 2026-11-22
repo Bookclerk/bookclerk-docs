@@ -85,9 +85,11 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`notify_deliveries`](notify_deliveries.md): SeaORM entity for `notify_deliveries`: the delivery log, one row per notification and destination.
 - [`notify_destinations`](notify_destinations.md): SeaORM entity for `notify_destinations`: where one notifier instance sends, either a library channel or one patron's personal address.
 - [`notify_inbox`](notify_inbox.md): SeaORM entity for `notify_inbox`: a patron-audience notification in its patron's in-app inbox.
+- [`notify_inbox_routes`](notify_inbox_routes.md): SeaORM entity for `notify_inbox_routes`: administrators' routing of one operational notification type to the built-in "In app" target, the inbox of every active Owner and Administrator.
 - [`notify_patron_offers`](notify_patron_offers.md): SeaORM entity for `notify_patron_offers`: a notifier instance patrons may use for one patron notification type.
 - [`notify_patron_prefs`](notify_patron_prefs.md): SeaORM entity for `notify_patron_prefs`: one patron's choice for one patron notification type.
 - [`notify_patron_targets`](notify_patron_targets.md): SeaORM entity for `notify_patron_targets`: a personal destination one patron chose for one patron notification type.
+- [`notify_route_revisions`](notify_route_revisions.md): SeaORM entity for `notify_route_revisions`: a fresh revision written with every replacement of one operational type's routes, so routing can tell that its separate reads of the channel routes and the "In app" route saw one configuration.
 - [`notify_routes`](notify_routes.md): SeaORM entity for `notify_routes`: administrators' routing of one operational notification type to one channel destination.
 - [`oidc_auth_codes`](oidc_auth_codes.md): SeaORM entity for the `oidc_auth_codes` — short-lived authorization codes (PKCE).
 - [`oidc_clients`](oidc_clients.md): SeaORM entity for the `oidc_clients` — registered OAuth/OIDC clients.
