@@ -9656,6 +9656,30 @@ show, for an episode) is a held work of the page index that passes
 
 Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
 
+#### LibraryStore::edition_in_scope
+
+```rust
+pub async fn edition_in_scope(
+    &self,
+    edition_id: &str,
+    scope: Option<&WorkScope>,
+) -> Result<bool>
+```
+
+Whether an edition is inside a patron scope: no scope admits every
+edition, and a scope admits one whose work passes
+[`Self::work_in_scope`](#librarystorework_in_scope). An edition that belongs to no work is
+outside every scope, so a scoped patron never learns of it.
+
+##### Arguments
+
+* `edition_id` - The edition (`editions.id`).
+* `scope` - The patron's filter, `None` when nothing is hidden.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails; callers fail closed.
+
 #### LibraryStore::library_facet_values
 
 ```rust

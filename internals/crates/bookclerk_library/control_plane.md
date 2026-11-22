@@ -9621,11 +9621,10 @@ Decides whether `person` may play this library's copy of
 manifest, a new play session and every stream request.
 
 The edition must be a title on one of this library's store accounts
-(`visible_to`, which today passes every such title for every person)
-and one this library has acquired, with its primary audio recorded on
-at least one destination. Nothing here is decided per person yet:
-whether the person's patron scope shows them the work at all is the
-caller's check ([`crate::LibraryStore::work_in_scope`](README.md#librarystorework_in_scope)).
+that the person's patron scope shows them (`visible_to`), and one this
+library has acquired, with its primary audio recorded on at least one
+destination. The routes also check the scope before they answer, so
+a hidden edition gets the same 404 as an unknown one.
 
 The Download member control ([`super::MemberControl::Download`](#membercontrol)) is
 not read: it stops taking copies to keep, and anyone who can see a
@@ -15571,6 +15570,10 @@ After the books on its store accounts, a clerk's pages go on with the
 books only the library's branches hold, each edition
 `Availability::Reachable`, for the person to ask the library for with
 its member request route (`POST /api/branch-requests`).
+
+Both parts follow the person's patron scope: only books it shows them
+are listed, judged on this library, so a clerk never learns of the
+rest.
 
 #### Arguments
 
