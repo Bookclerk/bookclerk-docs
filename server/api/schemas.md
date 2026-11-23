@@ -1189,6 +1189,12 @@ One page of the delivery log.
 
 Type: [`RevisionConflict`](#revisionconflict) or [`ErrorMessage`](#errormessage)
 
+## DeprovisionPluginInstance
+
+`POST /api/config/plugin-instances/{id}/deprovision` body.
+
+- `grant` *[`ProvisionGrantBody`](#provisiongrantbody) or null* — A fresh grant, when the plugin's stored credentials cannot remove what it created; omitted to use them.
+
 ## DesiredState
 
 What a deployment row asks its node to do, and who decided it.
@@ -3683,6 +3689,32 @@ and the configuration the guest receives.
 - `plugin_instance_id` *string*, **required** — Id of the instance that was removed.
 - `deleted` *boolean*, **required** — Always true: removing an instance that is already gone answers the same way.
 
+## PluginInstanceDeprovisioned
+
+`POST /api/config/plugin-instances/{id}/deprovision` reply.
+
+- `plugin_instance_id` *string*, **required** — Instance id.
+- `deprovisioned` *boolean*, **required** — Always true: what the guided setup created is gone.
+
+## PluginInstanceProvisioned
+
+`POST /api/config/plugin-instances/{id}/provision` reply: the document
+after the plugin's settings and credentials were stored.
+
+- `plugin_instance_id` *string*, **required** — Instance id.
+- `revision` *integer (int64)*, **required** — Revision after the write.
+- `settings` *map of string to [`SettingValue`](#settingvalue)*, **required** — Scalar settings now stored.
+- `secret_refs` *array of [`InstanceSecretRefV1`](#instancesecretrefv1)*, **required** — Secret refs now stored, the newly sealed credentials included.
+- `summary` *array of string*, **required** — What the plugin did, for the setup screen.
+
+## PluginInstanceProvisioning
+
+`GET /api/config/plugin-instances/{id}/provisioning` body: what the
+setup screen asks for before it runs the plugin's guided setup.
+
+- `plugin_instance_id` *string*, **required** — Instance id.
+- `provisioning` *[`ProvisioningView`](#provisioningview) or null* — The plugin's `[provisioning]` table; absent when it offers no guided setup.
+
 ## PluginInstancesResponse
 
 `GET /api/config/plugin-instances` body: every instance as this node
@@ -3973,6 +4005,32 @@ One person's progress in one edition.
 
 - `items` *array of [`ProgressJson`](#progressjson)*, **required** — The caller's progress rows, most recently played first. Editions their patron scope no longer shows are left out, so a page can be shorter than `limit` with more to come.
 - `next_cursor` *string or null* — Cursor of the next page; absent on the last.
+
+## ProvisionGrantBody
+
+The grant an operator gives a guided setup run.
+
+Type: object
+
+## ProvisioningView
+
+A plugin's `[provisioning]` table as the setup screen reads it.
+
+- `provider` *string*, **required** — The provider the grant is for, lowercase.
+- `grants` *array of string*, **required** — The grants the plugin accepts, in `plugin.toml` spelling; never empty.
+- `token_url` *string or null* — Where the operator creates a token at the provider.
+- `token_permissions` *array of string*, **required** — The permissions a pasted token needs, one line each.
+- `inputs` *array of string*, **required** — Setting keys the screen asks for before running.
+- `outputs` *array of string*, **required** — Setting keys the plugin may write back.
+- `deprovision` *boolean*, **required** — Whether the plugin removes what it created, which the screen offers before the instance is deleted.
+
+## ProvisionPluginInstance
+
+`POST /api/config/plugin-instances/{id}/provision` body.
+
+- `expected_revision` *integer (int64)*, **required** — Revision the caller last observed; the run is refused before it starts when it is not current.
+- `grant` *[`ProvisionGrantBody`](#provisiongrantbody)*, **required** — The operator's grant for this run.
+- `inputs` *map of string to [`SettingValue`](#settingvalue)* — The operator's choices, keyed by `[provisioning] inputs`; they are stored with what the plugin returns.
 
 ## PurchaseHint
 

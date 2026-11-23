@@ -4284,6 +4284,64 @@ settings: Record<string, InstanceSettingValue>;
 
 ***
 
+### PluginInstanceProvisioned
+
+What a guided setup run stored.
+
+#### Properties
+
+##### plugin\_instance\_id
+
+```ts
+plugin_instance_id: string;
+```
+
+##### revision
+
+```ts
+revision: number;
+```
+
+Revision after the write.
+
+##### secret\_refs
+
+```ts
+secret_refs: object[];
+```
+
+Secret refs now stored (names only).
+
+###### key
+
+```ts
+key: string;
+```
+
+###### name
+
+```ts
+name: string;
+```
+
+##### settings
+
+```ts
+settings: Record<string, InstanceSettingValue>;
+```
+
+Scalar settings now stored.
+
+##### summary
+
+```ts
+summary: string[];
+```
+
+What the plugin did, one line each.
+
+***
+
 ### PluginModelsView
 
 The models a model plugin offers, as the answering node has them.
@@ -5069,6 +5127,71 @@ id: string;
 ```ts
 name: string;
 ```
+
+***
+
+### ProvisioningView
+
+A plugin's guided setup (`[provisioning]` in its `plugin.toml`), as
+`GET /api/config/plugin-instances/{id}/provisioning` returns it.
+
+#### Properties
+
+##### deprovision
+
+```ts
+deprovision: boolean;
+```
+
+Whether the plugin removes what it created before the instance goes.
+
+##### grants
+
+```ts
+grants: string[];
+```
+
+Grants the plugin accepts (`api_token`).
+
+##### inputs
+
+```ts
+inputs: string[];
+```
+
+Setting keys the screen asks for before running.
+
+##### outputs
+
+```ts
+outputs: string[];
+```
+
+Setting keys the plugin may write back.
+
+##### provider
+
+```ts
+provider: string;
+```
+
+The provider the grant is for, lowercase (`cloudflare`).
+
+##### token\_permissions
+
+```ts
+token_permissions: string[];
+```
+
+Permissions a pasted token needs, one line each.
+
+##### token\_url?
+
+```ts
+token_url?: string | null;
+```
+
+Where the operator creates a token at the provider.
 
 ***
 
@@ -8615,6 +8738,35 @@ Ack payload.
 
 ***
 
+### deprovisionPluginInstance()
+
+```ts
+function deprovisionPluginInstance(instanceId, token?): Promise<{
+  deprovisioned: boolean;
+  plugin_instance_id: string;
+}>;
+```
+
+Asks an instance's plugin to remove what its guided setup created.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `instanceId` | `string` | Plugin instance id. |
+| `token?` | `string` | A fresh API token when the stored credentials cannot do it; omitted to use them. |
+
+#### Returns
+
+`Promise`\<\{
+  `deprovisioned`: `boolean`;
+  `plugin_instance_id`: `string`;
+\}\>
+
+Confirmation that the plugin removed it.
+
+***
+
 ### disableTotp()
 
 ```ts
@@ -8978,6 +9130,28 @@ Reads a plugin instance's stored document.
 `Promise`\<[`PluginInstanceConfig`](#plugininstanceconfig)\>
 
 Stored settings, secret refs, and the document revision.
+
+***
+
+### fetchPluginInstanceProvisioning()
+
+```ts
+function fetchPluginInstanceProvisioning(instanceId): Promise<ProvisioningView | null>;
+```
+
+Reads whether an instance's plugin offers a guided setup on this server.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `instanceId` | `string` | Plugin instance id. |
+
+#### Returns
+
+`Promise`\<[`ProvisioningView`](#provisioningview) \| `null`\>
+
+The plugin's `[provisioning]` table, or `null` when it has none.
 
 ***
 
@@ -10321,6 +10495,34 @@ Lists connectable storefronts for Accounts.
 `Promise`\<[`PortalSource`](#portalsource)[]\>
 
 Source descriptors including brand metadata.
+
+***
+
+### provisionPluginInstance()
+
+```ts
+function provisionPluginInstance(instanceId, body): Promise<PluginInstanceProvisioned>;
+```
+
+Runs an instance's guided setup with a pasted API token.
+
+The token is used for this run only; the server never stores or echoes it.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `instanceId` | `string` | Plugin instance id. |
+| `body` | \{ `expected_revision`: `number`; `inputs`: `Record`\<`string`, [`InstanceSettingValue`](#instancesettingvalue)\>; `token`: `string`; \} | The revision last seen, the token and the operator's inputs. |
+| `body.expected_revision` | `number` | - |
+| `body.inputs` | `Record`\<`string`, [`InstanceSettingValue`](#instancesettingvalue)\> | - |
+| `body.token` | `string` | - |
+
+#### Returns
+
+`Promise`\<[`PluginInstanceProvisioned`](#plugininstanceprovisioned)\>
+
+The stored settings and the plugin's summary.
 
 ***
 

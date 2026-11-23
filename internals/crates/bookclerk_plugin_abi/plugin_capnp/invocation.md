@@ -91,6 +91,12 @@ pub fn get_causation_id(self) -> Result<Reader<'a>>
 pub fn has_causation_id(&self) -> bool
 ```
 
+#### Reader::get_purpose
+
+```rust
+pub fn get_purpose(self) -> Result<InvocationPurpose, NotInSchema>
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -231,6 +237,18 @@ pub fn init_causation_id(self, size: u32) -> Builder<'a>
 
 ```rust
 pub fn has_causation_id(&self) -> bool
+```
+
+#### Builder::get_purpose
+
+```rust
+pub fn get_purpose(self) -> Result<InvocationPurpose, NotInSchema>
+```
+
+#### Builder::set_purpose
+
+```rust
+pub fn set_purpose(&mut self, value: InvocationPurpose)
 ```
 
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`

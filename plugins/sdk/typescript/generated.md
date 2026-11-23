@@ -3040,6 +3040,22 @@ One outcome per requested key, in request order. A missing key succeeds.
 
 ***
 
+### DeprovisionRequest
+
+Arguments of `Provisioning.deprovision`.
+
+#### Properties
+
+##### grant
+
+```ts
+grant: ProvisionGrant;
+```
+
+The operator's grant, or kind `none` to use the stored secrets.
+
+***
+
 ### Destination
 
 Object store the host writes acquired media into (`output.*` plugins).
@@ -3603,6 +3619,15 @@ oidc?: Oidc | null;
 ```
 
 `oidc` entrypoint.
+Null when the guest does not export this capability.
+
+##### provisioning?
+
+```ts
+provisioning?: Provisioning | null;
+```
+
+`provisioning` entrypoint: guided setup.
 Null when the guest does not export this capability.
 
 ##### queueConsumer?
@@ -5027,6 +5052,17 @@ id: string;
 ```
 
 Unique host-issued invocation id.
+
+##### purpose
+
+```ts
+purpose: "serve" | "provision";
+```
+
+What the host opens the entrypoints for. `provision` opens an instance
+that may not be configured yet: `CONFIG` and `SECRETS` hold what is
+stored so far, required settings may be missing, and the host calls
+only `Entrypoints.provisioning`.
 
 ***
 
@@ -8373,7 +8409,8 @@ entrypoints: (
   | "metadataFiles"
   | "notifier"
   | "ingress"
-  | "ai")[];
+  | "ai"
+  | "provisioning")[];
 ```
 
 Named entrypoints the guest exports.
@@ -8892,6 +8929,182 @@ Report progress; the host coalesces frequent updates.
 `Promise`\<[`EmptyReply`](#emptyreply)\>
 
 [EmptyReply](#emptyreply)
+
+***
+
+### Provisioned
+
+Success payload of `Provisioning.provision`.
+
+#### Properties
+
+##### secrets
+
+```ts
+secrets: ProvisionedSecret[];
+```
+
+Credentials to seal; each key at most once.
+
+##### settingsJson
+
+```ts
+settingsJson: string;
+```
+
+Non-secret settings to store, as a JSON object keyed by setting keys
+listed in `[provisioning] outputs`; at most `maxProvisionSettingsBytes`.
+
+##### summary
+
+```ts
+summary: string[];
+```
+
+Short lines for the setup screen ("Created bucket books"), at most
+`maxProvisionSummaryLines` of `maxProvisionSummaryLineBytes`. Never a
+credential.
+
+***
+
+### ProvisionedSecret
+
+One credential a guided setup returns for the host to seal.
+
+#### Properties
+
+##### key
+
+```ts
+key: string;
+```
+
+A `secret` setting key listed in `[provisioning] outputs`.
+
+##### value
+
+```ts
+value: string;
+```
+
+The credential, at most `maxProvisionSecretBytes`.
+
+***
+
+### ProvisionGrant
+
+A short-lived credential for one guided setup run. The host never stores
+or logs it; the plugin uses it only during the call.
+
+#### Properties
+
+##### expiresAtUnixMs?
+
+```ts
+expiresAtUnixMs?: number;
+```
+
+When the token expires (UTC Unix milliseconds); zero when unknown or it
+does not expire.
+Omitted when absent (wire zero value).
+
+##### kind
+
+```ts
+kind: "none" | "apiToken" | "oauthAccessToken";
+```
+
+Kind of grant.
+
+##### token?
+
+```ts
+token?: string;
+```
+
+The token; empty for `none`. At most `maxProvisionTokenBytes`.
+Omitted when absent (wire zero value).
+
+***
+
+### Provisioning
+
+Guided setup (`Entrypoints.provisioning`). The host collects a
+short-lived grant from the operator (a pasted API token, or an OAuth access
+token), opens the instance with `Invocation.purpose = provision` and hands
+the grant over. The plugin creates what it needs at the provider and
+returns settings and narrowly scoped credentials; the host checks them
+against `[provisioning] outputs` and the pinned settings schema, writes the
+settings, seals the credentials and drops the grant.
+
+#### Methods
+
+##### deprovision()
+
+```ts
+deprovision(request): Promise<EmptyReply>;
+```
+
+Remove what `provision` created. Removing what is already gone is not an
+error.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `request` | [`DeprovisionRequest`](#deprovisionrequest) | A grant, or none to use stored secrets. |
+
+###### Returns
+
+`Promise`\<[`EmptyReply`](#emptyreply)\>
+
+[EmptyReply](#emptyreply)
+
+##### provision()
+
+```ts
+provision(request): Promise<ProvisionReply>;
+```
+
+Create (or, when `CONFIG` holds earlier outputs, update or rotate) what
+the instance needs.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `request` | [`ProvisionRequest`](#provisionrequest) | The grant and the operator's choices. |
+
+###### Returns
+
+`Promise`\<[`ProvisionReply`](#provisionreply)\>
+
+[ProvisionReply](#provisionreply)
+
+***
+
+### ProvisionRequest
+
+Arguments of `Provisioning.provision`.
+
+#### Properties
+
+##### grant
+
+```ts
+grant: ProvisionGrant;
+```
+
+The operator's grant; never `none`.
+
+##### inputsJson
+
+```ts
+inputsJson: string;
+```
+
+The operator's choices as a JSON object keyed by `[provisioning] inputs`
+setting keys (`{"bucket": "books"}`); `{}` when none were asked for.
 
 ***
 
@@ -12865,6 +13078,24 @@ Result union of `PluginWorker.databaseMigrations`.
 
 ***
 
+### ProvisionReply
+
+```ts
+type ProvisionReply = 
+  | {
+  kind: "ok";
+  value: Provisioned;
+}
+  | {
+  kind: "err";
+  value: PluginError;
+};
+```
+
+Result union of `Provisioning.provision`.
+
+***
+
 ### PublishReply
 
 ```ts
@@ -13382,6 +13613,12 @@ Re-exports [IntegerArithKind](abi.md#integerarithkind)
 
 ***
 
+### InvocationPurpose
+
+Re-exports [InvocationPurpose](abi.md#invocationpurpose)
+
+***
+
 ### IsolationReq
 
 Re-exports [IsolationReq](abi.md#isolationreq)
@@ -13457,6 +13694,12 @@ Re-exports [PortalAuthMode](abi.md#portalauthmode)
 ### PriceLookup
 
 Re-exports [PriceLookup](abi.md#pricelookup)
+
+***
+
+### ProvisionGrantKind
+
+Re-exports [ProvisionGrantKind](abi.md#provisiongrantkind)
 
 ***
 

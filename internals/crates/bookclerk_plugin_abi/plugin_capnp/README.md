@@ -28,6 +28,7 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | [`Explicitness`](#explicitness) | enum |  |
 | [`OfferedCodec`](#offeredcodec) | enum |  |
 | [`OfferedAacProfile`](#offeredaacprofile) | enum |  |
+| [`InvocationPurpose`](#invocationpurpose) | enum |  |
 | [`RemoteMedia`](#remotemedia) | enum |  |
 | [`MetadataField`](#metadatafield) | enum |  |
 | [`NotificationSeverity`](#notificationseverity) | enum |  |
@@ -36,6 +37,7 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | [`NotifyDestinationKind`](#notifydestinationkind) | enum |  |
 | [`AiTask`](#aitask) | enum |  |
 | [`AiTextRole`](#aitextrole) | enum |  |
+| [`ProvisionGrantKind`](#provisiongrantkind) | enum |  |
 | [`DbType`](#dbtype) | enum |  |
 | [`DbStatementKind`](#dbstatementkind) | enum |  |
 | [`DbResultSelection`](#dbresultselection) | enum |  |
@@ -103,6 +105,12 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | [`MAX_WEBHOOK_HEADERS`](#max_webhook_headers) | constant |  |
 | [`MAX_WEBHOOK_NAME_BYTES`](#max_webhook_name_bytes) | constant |  |
 | [`MAX_WEBHOOK_HEADER_VALUE_BYTES`](#max_webhook_header_value_bytes) | constant |  |
+| [`MAX_PROVISION_TOKEN_BYTES`](#max_provision_token_bytes) | constant |  |
+| [`MAX_PROVISION_SECRET_BYTES`](#max_provision_secret_bytes) | constant |  |
+| [`MAX_PROVISION_SECRETS`](#max_provision_secrets) | constant |  |
+| [`MAX_PROVISION_SETTINGS_BYTES`](#max_provision_settings_bytes) | constant |  |
+| [`MAX_PROVISION_SUMMARY_LINES`](#max_provision_summary_lines) | constant |  |
+| [`MAX_PROVISION_SUMMARY_LINE_BYTES`](#max_provision_summary_line_bytes) | constant |  |
 | [`MAX_KV_METADATA_BYTES`](#max_kv_metadata_bytes) | constant |  |
 | [`MAX_NETWORK_GRANT_ENTRIES`](#max_network_grant_entries) | constant |  |
 | [`MAX_PLUGIN_MIGRATION_OPS`](#max_plugin_migration_ops) | constant |  |
@@ -222,6 +230,7 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`socket_handler`](socket_handler/README.md)
 - [`origin`](origin/README.md)
 - [`ingress`](ingress/README.md)
+- [`provisioning`](provisioning/README.md)
 - [`webhooks`](webhooks/README.md)
 - [`webhook_handler`](webhook_handler/README.md)
 - [`content_source`](content_source/README.md)
@@ -409,6 +418,12 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`ingress_health_reply`](ingress_health_reply.md)
 - [`webhook_ack_request`](webhook_ack_request.md)
 - [`webhook_delivered`](webhook_delivered.md)
+- [`provision_grant`](provision_grant.md)
+- [`provision_request`](provision_request.md)
+- [`provisioned_secret`](provisioned_secret.md)
+- [`provisioned`](provisioned.md)
+- [`provision_reply`](provision_reply.md)
+- [`deprovision_request`](deprovision_request.md)
 - [`db_value`](db_value.md)
 - [`db_column`](db_column.md)
 - [`db_row`](db_row.md)
@@ -533,6 +548,7 @@ pub enum Entrypoint {
     Notifier = 9,
     Ingress = 10,
     Ai = 11,
+    Provisioning = 12,
 }
 ```
 
@@ -770,6 +786,17 @@ pub enum OfferedAacProfile {
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<OfferedAacProfile>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
 
+### InvocationPurpose
+
+```rust
+pub enum InvocationPurpose {
+    Serve = 0,
+    Provision = 1,
+}
+```
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<InvocationPurpose>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
+
 ### RemoteMedia
 
 ```rust
@@ -873,6 +900,18 @@ pub enum AiTextRole {
 ```
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<AiTextRole>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
+
+### ProvisionGrantKind
+
+```rust
+pub enum ProvisionGrantKind {
+    None = 0,
+    ApiToken = 1,
+    OauthAccessToken = 2,
+}
+```
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<ProvisionGrantKind>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
 
 ### DbType
 
@@ -1319,6 +1358,42 @@ pub const MAX_WEBHOOK_NAME_BYTES: u32 = 32;
 
 ```rust
 pub const MAX_WEBHOOK_HEADER_VALUE_BYTES: u32 = 8192;
+```
+
+### MAX_PROVISION_TOKEN_BYTES
+
+```rust
+pub const MAX_PROVISION_TOKEN_BYTES: u32 = 4096;
+```
+
+### MAX_PROVISION_SECRET_BYTES
+
+```rust
+pub const MAX_PROVISION_SECRET_BYTES: u32 = 1024;
+```
+
+### MAX_PROVISION_SECRETS
+
+```rust
+pub const MAX_PROVISION_SECRETS: u32 = 16;
+```
+
+### MAX_PROVISION_SETTINGS_BYTES
+
+```rust
+pub const MAX_PROVISION_SETTINGS_BYTES: u32 = 16384;
+```
+
+### MAX_PROVISION_SUMMARY_LINES
+
+```rust
+pub const MAX_PROVISION_SUMMARY_LINES: u32 = 8;
+```
+
+### MAX_PROVISION_SUMMARY_LINE_BYTES
+
+```rust
+pub const MAX_PROVISION_SUMMARY_LINE_BYTES: u32 = 200;
 ```
 
 ### MAX_KV_METADATA_BYTES

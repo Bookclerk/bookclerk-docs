@@ -12,6 +12,7 @@ Semantic rules that cannot be expressed in serde alone live in
 | [`MediaManifest`](#mediamanifest) | struct | `[media]`: the work kinds and edition carriers a storefront or metadata provider reports, and the carriers a storefront can download. |
 | [`AcquireManifest`](#acquiremanifest) | struct | `[acquire]`: how fast the host may download from one store account of this storefront when it starts the downloads itself. |
 | [`IngressManifest`](#ingressmanifest) | struct | `[ingress]`: how an `ingress` plugin gives the library its public address. Required for that entrypoint and forbidden without it. |
+| [`ProvisioningManifest`](#provisioningmanifest) | struct | `[provisioning]`: the guided setup a `provisioning` plugin offers. Required for that entrypoint and forbidden without it. |
 | [`MetadataFilesManifest`](#metadatafilesmanifest) | struct | `[metadata_files]`: the metadata file dialects a `metadataFiles` plugin implements. Required for that entrypoint and forbidden without it. |
 | [`MetadataFileDialectManifest`](#metadatafiledialectmanifest) | struct | One `[[metadata_files.dialects]]` row: a file format the plugin reads, and writes when `writes` is true. |
 | [`NotifierManifest`](#notifiermanifest) | struct | `[notifier]`: what a `notifier` plugin can carry. Required for that entrypoint and forbidden without it. |
@@ -45,6 +46,7 @@ Semantic rules that cannot be expressed in serde alone live in
 | [`PluginRuntimeKind`](#pluginruntimekind) | enum | Guest runtime selection (`runtime` key in `plugin.toml`). |
 | [`CredentialSharing`](#credentialsharing) | enum | How a storefront's store credentials may be used from several Bookclerk instances at once (`credentials` key in `plugin.toml`). |
 | [`IngressKind`](#ingresskind) | enum | How public requests reach the library. |
+| [`ProvisionGrantType`](#provisiongranttype) | enum | A grant a guided setup accepts (`[provisioning].grants`). |
 | [`NotifierDestination`](#notifierdestination) | enum | Kind of destination a notifier sends to (`[notifier].destinations`). |
 | [`NotifierFormat`](#notifierformat) | enum | Body format a notifier renders (`[notifier].formats`). |
 | [`NetworkMode`](#networkmode) | enum | Network mode declared in `[capabilities.network]`. |
@@ -60,6 +62,9 @@ Semantic rules that cannot be expressed in serde alone live in
 | [`MAX_DOWNLOADS_PER_DAY`](#max_downloads_per_day) | constant | Most downloads a day `[acquire].downloads_per_day` may declare. |
 | [`MAX_MIN_GAP_SECONDS`](#max_min_gap_seconds) | constant | Longest gap between downloads `[acquire].min_gap_seconds` may declare (one day). |
 | [`MAX_COOLDOWN_SECONDS`](#max_cooldown_seconds) | constant | Longest cool-down `[acquire].cooldown_seconds` may declare (one week). |
+| [`MAX_PROVISIONING_TOKEN_URL_BYTES`](#max_provisioning_token_url_bytes) | constant | Longest `[provisioning].token_url`, in bytes. |
+| [`MAX_PROVISIONING_PERMISSIONS`](#max_provisioning_permissions) | constant | Most `[provisioning].token_permissions` lines. |
+| [`MAX_PROVISIONING_PERMISSION_CHARS`](#max_provisioning_permission_chars) | constant | Longest `[provisioning].token_permissions` line, in characters. |
 | [`MAX_NOTIFIER_ADDRESS_FIELDS`](#max_notifier_address_fields) | constant | Most `[[notifier.address_fields]]` rows; the same as the most keys an address document may carry. |
 | [`MAX_NOTIFICATION_TYPES`](#max_notification_types) | constant | Most `[[notifications.types]]` rows one plugin may declare. |
 | [`KNOWN_NOTIFICATION_HOSTS`](#known_notification_hosts) | constant | Hosts of chat, push and email services that notifier plugins talk to. A plugin that is not a notifier but asks for one of these is flagged: its consent screen says it can send messages outside Bookclerk. |
@@ -206,6 +211,44 @@ address. Required for that entrypoint and forbidden without it.
 - `kind`: Whether requests arrive through `ORIGIN` or straight at the daemon.
 
 Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### ProvisioningManifest
+
+```rust
+pub struct ProvisioningManifest {
+    pub provider: String,
+    pub grants: Vec<ProvisionGrantType>,
+    pub token_url: Option<String>,
+    pub token_permissions: Vec<String>,
+    pub inputs: Vec<String>,
+    pub outputs: Vec<String>,
+    pub deprovision: bool,
+}
+```
+
+`[provisioning]`: the guided setup a `provisioning` plugin offers.
+Required for that entrypoint and forbidden without it.
+
+The setup screen is built from this table alone: what to ask the
+operator (`inputs`), which grant to collect (`grants`, with
+`token_url` and `token_permissions` for a pasted token), and which
+settings the plugin may write back (`outputs`). The host refuses any
+other key in the plugin's answer.
+
+**Fields**
+
+- `provider`: The provider the grant is for, lowercase (`cloudflare`); the shared
+  account-linking screen groups plugins by it.
+- `grants`: The grants the plugin accepts; never empty.
+- `token_url`: Where the operator creates a token at the provider (`https://`).
+- `token_permissions`: The permissions a pasted token needs, one line each, shown on the
+  setup screen.
+- `inputs`: Non-secret setting keys the screen asks for before running.
+- `outputs`: Setting keys, secret or not, the plugin may write; never empty.
+- `deprovision`: Whether the plugin can remove what it created (`deprovision`), which
+  the host offers before the instance is deleted.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
 ### MetadataFilesManifest
 
@@ -1053,6 +1096,7 @@ pub struct PluginManifest {
     pub notifier: Option<NotifierManifest>,
     pub notifications: NotificationsManifest,
     pub ingress: Option<IngressManifest>,
+    pub provisioning: Option<ProvisioningManifest>,
     pub ai: AiManifest,
     pub capabilities: CapabilitiesManifest,
     pub cli: Option<CliSchema>,
@@ -1150,6 +1194,9 @@ rejected.
 - `ingress`: How the plugin serves the library publicly (`[ingress]`): required
   for plugins that export the `ingress` entrypoint and forbidden for
   every other plugin; see [`IngressManifest`](#ingressmanifest).
+- `provisioning`: The guided setup the plugin offers (`[provisioning]`): required for
+  plugins that export the `provisioning` entrypoint and forbidden for
+  every other plugin; see [`ProvisioningManifest`](#provisioningmanifest).
 - `ai`: Model tasks the plugin serves and calls (`[ai]`); see
   [`AiManifest`](#aimanifest).
 - `capabilities`: Declared network capability (consent has no Wrangler analogue).
@@ -1509,6 +1556,15 @@ even though the parser accepts its absence.
 
 Returns [`Error::Message`](error.md#error) when `version` is missing or not semver.
 
+#### PluginManifest::provision_outputs
+
+```rust
+pub fn provision_outputs(&self) -> Option<ProvisionOutputs>
+```
+
+The keys the plugin's guided setup may write, split into settings
+and secrets; `None` without `[provisioning]`.
+
 #### PluginManifest::calls_ai_task
 
 ```rust
@@ -1813,6 +1869,30 @@ The `plugin.toml` spelling: `"relay"` or `"direct"`.
 
 Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
+### ProvisionGrantType
+
+```rust
+pub enum ProvisionGrantType {
+    ApiToken,
+}
+```
+
+A grant a guided setup accepts (`[provisioning].grants`).
+
+**Variants**
+
+- `ApiToken`: An API token the operator creates at the provider and pastes.
+
+#### ProvisionGrantType::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+The `plugin.toml` spelling.
+
+Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`
+
 ### NotifierDestination
 
 ```rust
@@ -1975,7 +2055,7 @@ True when `name` starts with a [`RESERVED_QUEUE_PREFIXES`](#reserved_queue_prefi
 ### ALL_ENTRYPOINTS
 
 ```rust
-pub const ALL_ENTRYPOINTS: [Entrypoint; 12] = _;
+pub const ALL_ENTRYPOINTS: [Entrypoint; 13] = _;
 ```
 
 Every entrypoint in declaration order (mirrors the Cap'n Proto enum).
@@ -2016,6 +2096,30 @@ pub const MAX_COOLDOWN_SECONDS: i64 = 604_800;
 ```
 
 Longest cool-down `[acquire].cooldown_seconds` may declare (one week).
+
+### MAX_PROVISIONING_TOKEN_URL_BYTES
+
+```rust
+pub const MAX_PROVISIONING_TOKEN_URL_BYTES: usize = 2048;
+```
+
+Longest `[provisioning].token_url`, in bytes.
+
+### MAX_PROVISIONING_PERMISSIONS
+
+```rust
+pub const MAX_PROVISIONING_PERMISSIONS: usize = 16;
+```
+
+Most `[provisioning].token_permissions` lines.
+
+### MAX_PROVISIONING_PERMISSION_CHARS
+
+```rust
+pub const MAX_PROVISIONING_PERMISSION_CHARS: usize = 120;
+```
+
+Longest `[provisioning].token_permissions` line, in characters.
 
 ### MAX_NOTIFIER_ADDRESS_FIELDS
 

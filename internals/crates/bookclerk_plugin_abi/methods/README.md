@@ -5,7 +5,7 @@ Role capability method names (camelCase on the wire).
 Each submodule exposes a single [`NAME`](health.md#name) constant equal to
 the corresponding `ContentSource` / `RemoteLibrary` / `Oidc` /
 `MetadataProvider` / `CoverFetcher` / `MetadataFiles` / `Notifier` /
-`NotificationRaiser` / `AiModels` / `AiRunner` / `Cli` /
+`NotificationRaiser` / `AiModels` / `AiRunner` / `Provisioning` / `Cli` /
 `EventConsumer` / `EventPublisher` / `QueueConsumer` / `QueueProducer` /
 `PluginWorker` method in
 `schema/plugin.capnp`. Prefer these constants over string literals when
@@ -42,6 +42,8 @@ drift tests. Flat `UPPER_SNAKE` aliases live under [`names`](names.md).
 - [`raise`](raise.md): Raise a notification type the plugin declared (Cap'n Proto `NotificationRaiser.raise`).
 - [`models`](models.md): List the models a plugin serves (Cap'n Proto `AiModels.models`).
 - [`run`](run.md): Run one model on one input (Cap'n Proto `AiModels.run` on a model plugin, `AiRunner.run` on the `AI` binding).
+- [`provision`](provision.md): Run a guided setup with the operator's grant (Cap'n Proto `Provisioning.provision`).
+- [`deprovision`](deprovision.md): Remove what a guided setup created (Cap'n Proto `Provisioning.deprovision`).
 - [`clients`](clients.md): Plugin-provided OIDC client templates (Cap'n Proto `Oidc.clients`).
 - [`describe`](describe.md): Return the guest's declared CLI schema (`crate::CliSchema`; Cap'n Proto `PluginCli.describe`). Also the root `PluginWorker.describe` identity call.
 - [`invoke`](invoke.md): Invoke a declared plugin CLI command (Cap'n Proto `PluginCli.invoke`).

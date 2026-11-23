@@ -86,6 +86,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`OnDemandSource`](#ondemandsource) | struct | Source registry entry that starts its storefront guest on the first call and stops it after the idle timeout without calls. |
 | [`HeldSession`](#heldsession) | struct | A guest session lent to a caller, with the hold that keeps an on-demand guest up. |
 | [`OnDemandStorage`](#ondemandstorage) | struct | Destination registry entry that starts its storage guest on a call and stops it after the idle timeout without calls. |
+| [`ProvisionToken`](#provisiontoken) | struct | A token the operator pasted for one guided setup run. `Debug` never prints it, and constructing one registers it with log redaction. |
 | [`OutboxQueueProducer`](#outboxqueueproducer) | struct | `QueueProducer` server for one binding of one invocation: validates a guest `QueueSendMessage` and appends it to the library outbox. |
 | [`QueueOutbox`](#queueoutbox) | struct | Host-owned facts a session needs before it can hand a guest its queue producer bindings: the outbox store plus the granted `(binding, queue)` pairs. |
 | [`BookclerkPackageMetadata`](#bookclerkpackagemetadata) | struct | `[package.metadata.bookclerk]` published on crates.io. |
@@ -115,6 +116,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`OriginUpgrade`](#originupgrade) | enum | The library's answer to one WebSocket upgrade a relay plugin carries. |
 | [`Activate`](#activate) | enum | When installing moves the active pointer. |
 | [`ModelState`](#modelstate) | enum | Where one model stands on this node. |
+| [`ProvisionRunError`](#provisionrunerror) | enum | Why a guided setup run did not produce something to store. |
 | [`RemoteApprovalError`](#remoteapprovalerror) | enum | Why `approve_remote_request` refused, by cause, so a caller (the operator API) can tell "review again" from "fix the input" from "retry later". |
 | [`RemoteConsentState`](#remoteconsentstate) | enum | How this host stands on one owner plugin's request. |
 | [`LocalInbound`](#localinbound) | enum | What the library's side of a `LocalSocket` delivers. |
@@ -258,6 +260,8 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`activates_on_demand`](#activates_on_demand) | function | True when a deployment of `manifest` may sleep while idle and start on the next call. |
 | [`storefront_activates_on_demand`](#storefront_activates_on_demand) | function | True when a storefront deployment of `manifest` may sleep while idle. |
 | [`storage_activates_on_demand`](#storage_activates_on_demand) | function | True when a storage deployment of `manifest` may sleep while idle. |
+| [`deprovision_instance`](#deprovision_instance) | function | Asks `plugin` to remove what its guided setup created for `instance_id`. |
+| [`provision_instance`](#provision_instance) | function | Runs `plugin`'s guided setup for `instance_id` with `token`. |
 | [`family_keyword`](#family_keyword) | function | Family-specific crates.io keyword (`bookclerk-source`, …). |
 | [`host_target_triple`](#host_target_triple) | function | Host target triple used when selecting release assets. |
 | [`validate_plugin_id`](#validate_plugin_id) | function | Validate plugin id segment used in crate names and `plugin.toml`. |
@@ -326,6 +330,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`TRIGGER_IDLE_TIMEOUT`](#trigger_idle_timeout) | constant | How long a trigger-driven guest stays up after its last call returns. |
 | [`STOREFRONT_IDLE_TIMEOUT`](#storefront_idle_timeout) | constant | How long a storefront stays up after its last call returns. |
 | [`STORAGE_IDLE_TIMEOUT`](#storage_idle_timeout) | constant | How long a storage destination stays up after its last call returns. |
+| [`PROVISION_TIMEOUT`](#provision_timeout) | constant | Longest a `provision` or `deprovision` call may take: creating cloud resources and minting a token are a handful of API calls. |
 | [`CRATE_NAME_PREFIX`](#crate_name_prefix) | constant | Required crates.io name prefix: `bookclerk-plugin-{family}-{id}`. |
 | [`PRODUCT_KEYWORD`](#product_keyword) | constant | Shared crates.io keyword (`bookclerk`) expected on published plugin crates. |
 | [`REGISTRY_KEYWORD`](#registry_keyword) | constant | Keyword every published plugin crate should include. |
@@ -3152,6 +3157,43 @@ the guest has no session (a test double).
 
 Implements: `Clone`, `OnDemandStatus`, `StorageBackend`
 
+### ProvisionToken
+
+```rust
+pub struct ProvisionToken(/* private */);
+```
+
+A token the operator pasted for one guided setup run. `Debug` never
+prints it, and constructing one registers it with log redaction.
+
+#### ProvisionToken::parse
+
+```rust
+pub fn parse(token: &str) -> Result<Self, String>
+```
+
+Checks and keeps a pasted token.
+
+##### Arguments
+
+* `token` - The text the operator pasted; surrounding space is
+  trimmed.
+
+##### Errors
+
+Returns a message when the token is empty, longer than
+`maxProvisionTokenBytes`, or holds a space or control character.
+
+#### ProvisionToken::expose
+
+```rust
+pub fn expose(&self) -> &str
+```
+
+The token's text, for the plugin.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### OutboxQueueProducer
 
 ```rust
@@ -4024,6 +4066,28 @@ runtime.
 
 Returns a plugin error when the guest did not export `ai` or the
 method fails.
+
+#### PluginSession::provisioning
+
+```rust
+pub async fn provisioning<T, F, Fut>(&self, call: F) -> Result<T>
+where
+    T: Send + 'static,
+    F: FnOnce(Box<dyn Provisioning>) -> Fut + Send + 'static,
+    Fut: Future<Output = Result<T, PluginError>> + 'static,
+```
+
+One typed `provisioning` method (`provision` or `deprovision`) on
+the opened primary entrypoints. Open the session with
+`bookclerk_plugin_sdk::InvocationPurpose::Provision` first.
+
+`call` runs on the vat thread; its output crosses back to the caller's
+runtime.
+
+##### Errors
+
+Returns a plugin error when the guest did not export `provisioning`
+or the method fails.
 
 #### PluginSession::ingress
 
@@ -5494,6 +5558,33 @@ Where one model stands on this node.
 - `Installed`: Every file is on this node and matches the pin.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### ProvisionRunError
+
+```rust
+pub enum ProvisionRunError {
+    NotOffered(String),
+    BadInput(String),
+    Refused(PluginError),
+    Answer(ProvisionRefusal),
+    Host(String),
+}
+```
+
+Why a guided setup run did not produce something to store.
+
+**Variants**
+
+- `NotOffered`: The plugin offers no guided setup, or not with this grant, or does
+  not remove what it creates.
+- `BadInput`: An input is not one `[provisioning] inputs` lists, or the inputs are
+  too long.
+- `Refused`: The guest refused the run (its typed error, for example a choice it
+  cannot honour or a token without the needed permissions).
+- `Answer`: The guest's answer broke the provisioning contract.
+- `Host`: The guest could not be prepared, spawned, opened or reached in time.
+
+Implements: `Debug`, `Display`, `Error`, `From<ProvisionRefusal>`
 
 ### RemoteApprovalError
 
@@ -7708,6 +7799,70 @@ other storage guests stay running.
 
 * `manifest` - the installed manifest the deployment spawns.
 
+### deprovision_instance
+
+```rust
+pub async fn deprovision_instance(
+    store: &LibraryStore,
+    config: &Config,
+    plugin: &DiscoveredPlugin,
+    instance_id: &PluginInstanceId,
+    token: Option<&ProvisionToken>,
+) -> Result<(), ProvisionRunError>
+```
+
+Asks `plugin` to remove what its guided setup created for
+`instance_id`.
+
+#### Arguments
+
+* `store` - The library, for the instance's stored settings and secrets.
+* `config` - Host configuration, for the spawn.
+* `plugin` - The installed plugin the instance belongs to.
+* `instance_id` - The instance being torn down.
+* `token` - A fresh token from the operator, or `None` for the plugin to
+  use its stored secrets.
+
+#### Errors
+
+Returns [`ProvisionRunError::NotOffered`](#provisionrunerror) unless the manifest sets
+`[provisioning] deprovision = true`, and the other variants as
+[`provision_instance`](#provision_instance) does.
+
+### provision_instance
+
+```rust
+pub async fn provision_instance(
+    store: &LibraryStore,
+    config: &Config,
+    plugin: &DiscoveredPlugin,
+    instance_id: &PluginInstanceId,
+    token: &ProvisionToken,
+    inputs: &BTreeMap<String, Value>,
+) -> Result<CheckedProvision, ProvisionRunError>
+```
+
+Runs `plugin`'s guided setup for `instance_id` with `token`.
+
+#### Arguments
+
+* `store` - The library, for the instance's stored settings and secrets.
+* `config` - Host configuration, for the spawn.
+* `plugin` - The installed plugin the instance belongs to.
+* `instance_id` - The instance being set up.
+* `token` - The operator's pasted token.
+* `inputs` - The operator's choices, keyed by `[provisioning] inputs`.
+
+#### Returns
+
+The settings to store, credentials to seal and summary lines, checked
+against `[provisioning] outputs`. The caller still checks each value
+against the pinned settings schema before writing.
+
+#### Errors
+
+Returns a [`ProvisionRunError`](#provisionrunerror) for each way the run can fail.
+
 ### family_keyword
 
 ```rust
@@ -8556,6 +8711,15 @@ How long a storage destination stays up after its last call returns.
 Storage work comes in bursts (an acquire writes several parts and a
 cover, a library scan pages through the inventory), so the timeout
 matches storefronts.
+
+### PROVISION_TIMEOUT
+
+```rust
+pub const PROVISION_TIMEOUT: Duration = _;
+```
+
+Longest a `provision` or `deprovision` call may take: creating cloud
+resources and minting a token are a handful of API calls.
 
 ### CRATE_NAME_PREFIX
 

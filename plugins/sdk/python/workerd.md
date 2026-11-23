@@ -36,6 +36,7 @@ Outside the isolate (authoring / unit tests), lightweight stubs stand in for
 | [`CoverEntrypoint`](#coverentrypoint) | class | `covers` entrypoint: downloads cover images for the host. |
 | [`MetadataFilesEntrypoint`](#metadatafilesentrypoint) | class | `metadataFiles` entrypoint: reads and writes metadata files for the host. |
 | [`IngressEntrypoint`](#ingressentrypoint) | class | `ingress` entrypoint: gives the library a public `https` address. |
+| [`ProvisioningEntrypoint`](#provisioningentrypoint) | class | `provisioning` entrypoint: guided setup at a cloud provider. |
 | [`MetadataEntrypoint`](#metadataentrypoint) | class | `metadata` entrypoint: bibliographic lookups against a public catalog. |
 | [`NamedEntrypoint`](#namedentrypoint) | class | Base for named entrypoints. |
 | [`AiBinding`](#aibinding) | class | `AI` binding, present when `plugin.toml` lists tasks under `[ai].calls`. |
@@ -55,6 +56,7 @@ Outside the isolate (authoring / unit tests), lightweight stubs stand in for
 | [`WebhookMessage`](#webhookmessage) | class | One stored webhook request, leased to this pull. |
 | [`WebhookPullResult`](#webhookpullresult) | class | One pull's leased requests. |
 | [`WebhooksBinding`](#webhooksbinding) | class | `[[webhooks]]` binding (`env.WEBHOOKS`). |
+| [`provisioned`](#provisioned) | function | Build a `Provisioned` answer from plain values. |
 | [`pack_embedding_vectors`](#pack_embedding_vectors) | function | Pack embedding vectors into the wire form of `AiTextEmbeddingsOutput["vectors"]`. |
 | [`unpack_embedding_vectors`](#unpack_embedding_vectors) | function | Split the wire form of `AiTextEmbeddingsOutput["vectors"]` into vectors. |
 | [`cli_args`](#cli_args) | function | Turn `CliInvokeParams.args` (`[{name, value}]`) into a `{name: value}` dict. |
@@ -1127,6 +1129,50 @@ async def stop(self) -> None
 ```
 
 Take the address down; the host stops relying on it after this returns.
+
+### ProvisioningEntrypoint
+
+```python
+class ProvisioningEntrypoint(NamedEntrypoint)
+```
+
+`provisioning` entrypoint: guided setup at a cloud provider.
+
+The host collects a short-lived grant from the operator (a pasted API
+token), hands it to `provision` and stores what it returns: settings
+listed in `[provisioning] outputs` and credentials it seals. The grant is
+dropped after the call, so return any lasting credential you create. On a
+re-run `CONFIG` and `SECRETS` hold the earlier outputs: update or rotate
+rather than create again.
+
+#### ProvisioningEntrypoint.provision
+
+```python
+async def provision(self, request: abi.ProvisionRequest) -> abi.Provisioned
+```
+
+Create (or update) what the instance needs.
+
+**Args**
+
+- `request`: The operator's grant and choices (`inputsJson`, a JSON object keyed by `[provisioning] inputs`).
+
+**Returns**
+
+Settings to store, credentials to seal and summary lines; see
+[`provisioned`](#provisioned).
+
+#### ProvisioningEntrypoint.deprovision
+
+```python
+async def deprovision(self, request: abi.DeprovisionRequest) -> None
+```
+
+Remove what `provision` created; what is already gone is not an error.
+
+**Args**
+
+- `request`: The operator's grant, or kind `none` to use stored secrets.
 
 ### MetadataEntrypoint
 
@@ -2282,6 +2328,28 @@ Finish or retry leased requests.
 - `PluginError`: `invalid_params` for a malformed lease, too many leases, or a lease in both lists.
 
 ## Functions
+
+### provisioned
+
+```python
+def provisioned(
+    settings: dict[str, str | int | float | bool] | None=None,
+    secrets: dict[str, str] | None=None,
+    summary: list[str] | None=None,
+) -> abi.Provisioned
+```
+
+Build a `Provisioned` answer from plain values.
+
+**Args**
+
+- `settings`: Settings to store, by setting key.
+- `secrets`: Credentials to seal, by `secret` setting key.
+- `summary`: Lines for the setup screen.
+
+**Returns**
+
+The wire shape [`ProvisioningEntrypoint.provision`](#provisioningentrypointprovision) returns.
 
 ### pack_embedding_vectors
 

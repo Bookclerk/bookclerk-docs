@@ -182,6 +182,16 @@ Union of `INTEGER_ARITH_KINDS` wire names.
 
 ***
 
+### InvocationPurpose
+
+```ts
+type InvocationPurpose = typeof INVOCATION_PURPOSES[number];
+```
+
+Union of `INVOCATION_PURPOSES` wire names.
+
+***
+
 ### IsolationReq
 
 ```ts
@@ -309,6 +319,16 @@ type PriceLookup = typeof PRICE_LOOKUPS[number];
 ```
 
 Union of `PRICE_LOOKUPS` wire names.
+
+***
+
+### ProvisionGrantKind
+
+```ts
+type ProvisionGrantKind = typeof PROVISION_GRANT_KINDS[number];
+```
+
+Union of `PROVISION_GRANT_KINDS` wire names.
 
 ***
 
@@ -513,7 +533,7 @@ Ordinal-ordered `DbType` wire names (index = Cap'n Proto ordinal).
 ### ENTRYPOINTS
 
 ```ts
-const ENTRYPOINTS: readonly ["storefront", "storage", "databaseAdapter", "remoteLibrary", "cli", "oidc", "metadata", "covers", "metadataFiles", "notifier", "ingress", "ai"];
+const ENTRYPOINTS: readonly ["storefront", "storage", "databaseAdapter", "remoteLibrary", "cli", "oidc", "metadata", "covers", "metadataFiles", "notifier", "ingress", "ai", "provisioning"];
 ```
 
 Named entrypoint a plugin exports (Cloudflare Workers named-entrypoint
@@ -697,6 +717,18 @@ const INTEGER_ARITH_KINDS: readonly ["add", "sub", "mul", "abs"];
 INTEGER `+` `-` `*` `abs` site lowered to overflow -> NULL.
 
 Ordinal-ordered `IntegerArithKind` wire names (index = Cap'n Proto ordinal).
+
+***
+
+### INVOCATION\_PURPOSES
+
+```ts
+const INVOCATION_PURPOSES: readonly ["serve", "provision"];
+```
+
+Why the host opens a plugin's entrypoints (`Invocation.purpose`).
+
+Ordinal-ordered `InvocationPurpose` wire names (index = Cap'n Proto ordinal).
 
 ***
 
@@ -1167,6 +1199,67 @@ Maximum already-separated operations across one `databaseMigrations` registratio
 
 ***
 
+### MAX\_PROVISION\_SECRET\_BYTES
+
+```ts
+const MAX_PROVISION_SECRET_BYTES: 1024;
+```
+
+Longest `ProvisionedSecret.value`, in bytes.
+
+***
+
+### MAX\_PROVISION\_SECRETS
+
+```ts
+const MAX_PROVISION_SECRETS: 16;
+```
+
+Most credentials one `Provisioned` returns.
+
+***
+
+### MAX\_PROVISION\_SETTINGS\_BYTES
+
+```ts
+const MAX_PROVISION_SETTINGS_BYTES: 16384;
+```
+
+Largest `Provisioned.settingsJson` and `ProvisionRequest.inputsJson`, in
+bytes.
+
+***
+
+### MAX\_PROVISION\_SUMMARY\_LINE\_BYTES
+
+```ts
+const MAX_PROVISION_SUMMARY_LINE_BYTES: 200;
+```
+
+Longest line of `Provisioned.summary`, in bytes.
+
+***
+
+### MAX\_PROVISION\_SUMMARY\_LINES
+
+```ts
+const MAX_PROVISION_SUMMARY_LINES: 8;
+```
+
+Most lines in `Provisioned.summary`.
+
+***
+
+### MAX\_PROVISION\_TOKEN\_BYTES
+
+```ts
+const MAX_PROVISION_TOKEN_BYTES: 4096;
+```
+
+Longest `ProvisionGrant.token`, in bytes.
+
+***
+
 ### MAX\_REFRESHED\_CREDENTIAL\_BYTES
 
 ```ts
@@ -1544,6 +1637,18 @@ const PRODUCT_API_VERSION: 3;
 ```
 
 Product ABI version (`plugin.toml` `api_version` / `describe().apiVersion`).
+
+***
+
+### PROVISION\_GRANT\_KINDS
+
+```ts
+const PROVISION_GRANT_KINDS: readonly ["none", "apiToken", "oauthAccessToken"];
+```
+
+What kind of grant the operator gave a guided setup (`ProvisionGrant`).
+
+Ordinal-ordered `ProvisionGrantKind` wire names (index = Cap'n Proto ordinal).
 
 ***
 

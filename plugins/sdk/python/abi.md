@@ -142,6 +142,7 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`SocketHandler`](#sockethandler) | class | Guest handler for host-brokered sockets (`Entrypoints.socketHandler`). |
 | [`Origin`](#origin) | class | The library, as a relay `ingress` plugin reaches it (`Bindings.origin`, `ORIGIN` in the Workers idiom). The plugin turns each request its provider delivers into a `fetch` and streams the response back. The host treats every request as the `tunnel` transport: public `https`, never loopback, with the client address the plugin reports. |
 | [`Ingress`](#ingress) | class | A public address provider (`Entrypoints.ingress`): the one `ingress` family instance the library runs. A relay provider carries traffic to `Bindings.origin`; a direct provider keeps a DNS name pointing at this install. |
+| [`Provisioning`](#provisioning) | class | Guided setup (`Entrypoints.provisioning`). The host collects a short-lived grant from the operator (a pasted API token, or an OAuth access token), opens the instance with `Invocation.purpose = provision` and hands the grant over. The plugin creates what it needs at the provider and returns settings and narrowly scoped credentials; the host checks them against `[provisioning] outputs` and the pinned settings schema, writes the settings, seals the credentials and drops the grant. |
 | [`Webhooks`](#webhooks) | class | Host-served inbound webhooks, granted through `Bindings.webhooks`. |
 | [`WebhookHandler`](#webhookhandler) | class | Guest handler for inbound webhooks (`Entrypoints.webhookHandler`). |
 | [`ContentSource`](#contentsource) | class | Storefront content source (not byte Source). Every method takes and returns typed structs from the "Typed method payloads" section. |
@@ -372,6 +373,13 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`IngressHealthReplyErr`](#ingresshealthreplyerr) | class | `IngressHealthReply` member `err`. |
 | [`WebhookAckRequest`](#webhookackrequest) | class | Arguments of `Webhooks.ack`. |
 | [`WebhookDelivered`](#webhookdelivered) | class | Argument of `WebhookHandler.delivered`. |
+| [`ProvisionGrant`](#provisiongrant) | class | A short-lived credential for one guided setup run. The host never stores or logs it; the plugin uses it only during the call. |
+| [`ProvisionRequest`](#provisionrequest) | class | Arguments of `Provisioning.provision`. |
+| [`ProvisionedSecret`](#provisionedsecret) | class | One credential a guided setup returns for the host to seal. |
+| [`Provisioned`](#provisioned) | class | Success payload of `Provisioning.provision`. |
+| [`ProvisionReplyOk`](#provisionreplyok) | class | `ProvisionReply` member `ok`. |
+| [`ProvisionReplyErr`](#provisionreplyerr) | class | `ProvisionReply` member `err`. |
+| [`DeprovisionRequest`](#deprovisionrequest) | class | Arguments of `Provisioning.deprovision`. |
 | [`DbValueNull`](#dbvaluenull) | class | `DbValue` member `null`. |
 | [`DbValueBoolean`](#dbvalueboolean) | class | `DbValue` member `boolean`. |
 | [`DbValueInt64`](#dbvalueint64) | class | `DbValue` member `int64`. |
@@ -463,6 +471,7 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`Explicitness`](#explicitness) | constant | Whether an edition is marked as explicit (adult) content. A patron scope can hide explicit editions; `unknown` and `clean` editions stay visible. |
 | [`OfferedCodec`](#offeredcodec) | constant | Audio codec of a stream a store offers (`QualityOffer.codec`). Spelled as the host's probed codecs are, so an offer compares with a held file. |
 | [`OfferedAacProfile`](#offeredaacprofile) | constant | AAC profile of an offered AAC stream (`QualityOffer.aacProfile`). |
+| [`InvocationPurpose`](#invocationpurpose) | constant | Why the host opens a plugin's entrypoints (`Invocation.purpose`). |
 | [`RemoteMedia`](#remotemedia) | constant | The kind of public media `CoverFetcher.fetchCovers` downloads. |
 | [`MetadataField`](#metadatafield) | constant | A field of a `MetadataFileRecord`. Dialects declare in the manifest which fields their format carries; a parsed record lists the ones its file states, and a render request lists the ones to write. |
 | [`NotificationSeverity`](#notificationseverity) | constant | How urgent a notification is. Routing rules carry a minimum severity. |
@@ -471,6 +480,7 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`NotifyDestinationKind`](#notifydestinationkind) | constant | Kind of destination a `Notifier` sends to. |
 | [`AiTask`](#aitask) | constant | What a model does. A model has exactly one task, and the task fixes the shape of `AiRunParams.input` and of the reply. |
 | [`AiTextRole`](#aitextrole) | constant | What a text is to an embedding model. Some models embed a search query differently from the documents it is matched against. |
+| [`ProvisionGrantKind`](#provisiongrantkind) | constant | What kind of grant the operator gave a guided setup (`ProvisionGrant`). |
 | [`DbType`](#dbtype) | constant | Universal database cell/parameter domain. Engine-native arrays, enums, unsigned integers, and JSON text sentinels are not baseline ABI values. |
 | [`DbStatementKind`](#dbstatementkind) | constant | How the host classifies a statement for result handling. |
 | [`DbResultSelection`](#dbresultselection) | constant | Which part of a statement's outcome the caller wants back. |
@@ -549,6 +559,7 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`WebhookUrlReply`](#webhookurlreply) | constant | Result union of `Webhooks.url`. |
 | [`WebhookPullReply`](#webhookpullreply) | constant | Result union of `Webhooks.pull`. |
 | [`IngressHealthReply`](#ingresshealthreply) | constant | Result union of `Ingress.health`. |
+| [`ProvisionReply`](#provisionreply) | constant | Result union of `Provisioning.provision`. |
 | [`DbValue`](#dbvalue) | constant | One typed SQL cell or bind parameter. |
 | [`OptionalColumnReference`](#optionalcolumnreference) | constant | Per-column `REFERENCES` slot in `CreateTableSchema`. |
 | [`TableConstraint`](#tableconstraint) | constant | One table-level constraint. |
@@ -1108,6 +1119,7 @@ refuses an entrypoint the manifest or operator grant did not allow.
 - `ingress`: `ingress` entrypoint. Null when the guest does not export this capability.
 - `ai`: `ai` entrypoint. Null when the guest does not export this capability.
 - `webhookHandler`: `[[webhooks]]` handler: called after the host stores deliveries. Null when the guest does not export this capability.
+- `provisioning`: `provisioning` entrypoint: guided setup. Null when the guest does not export this capability.
 
 ### EntrypointsReplyOk
 
@@ -3162,6 +3174,54 @@ async def stop(self) -> EmptyReply
 ```
 
 Take the public address down; stopping a stopped one is not an error.
+
+**Returns**
+
+`EmptyReply`
+
+### Provisioning
+
+```python
+class Provisioning(Protocol)
+```
+
+Guided setup (`Entrypoints.provisioning`). The host collects a
+short-lived grant from the operator (a pasted API token, or an OAuth access
+token), opens the instance with `Invocation.purpose = provision` and hands
+the grant over. The plugin creates what it needs at the provider and
+returns settings and narrowly scoped credentials; the host checks them
+against `[provisioning] outputs` and the pinned settings schema, writes the
+settings, seals the credentials and drops the grant.
+
+#### Provisioning.provision
+
+```python
+async def provision(self, request: ProvisionRequest) -> ProvisionReply
+```
+
+Create (or, when `CONFIG` holds earlier outputs, update or rotate) what
+the instance needs.
+
+**Args**
+
+- `request`: The grant and the operator's choices.
+
+**Returns**
+
+`ProvisionReply`
+
+#### Provisioning.deprovision
+
+```python
+async def deprovision(self, request: DeprovisionRequest) -> EmptyReply
+```
+
+Remove what `provision` created. Removing what is already gone is not an
+error.
+
+**Args**
+
+- `request`: A grant, or none to use stored secrets.
 
 **Returns**
 
@@ -5535,6 +5595,7 @@ echo `correlationId` / `causationId` onto published events.
 - `deadlineUnixMs`: UTC Unix milliseconds; zero when the invocation has no deadline. The host fence is authoritative.
 - `correlationId`: Trace correlation id; empty when none.
 - `causationId`: Id of the event or command that caused this invocation; empty when none.
+- `purpose`: What the host opens the entrypoints for. `provision` opens an instance that may not be configured yet: `CONFIG` and `SECRETS` hold what is stored so far, required settings may be missing, and the host calls only `Entrypoints.provisioning`.
 
 ### QueueMessage
 
@@ -7360,6 +7421,104 @@ Argument of `WebhookHandler.delivered`.
 - `name`: `[[webhooks]]` name.
 - `waiting`: Deliveries waiting for this webhook when the host called.
 
+### ProvisionGrant
+
+```python
+class ProvisionGrant(TypedDict)
+```
+
+A short-lived credential for one guided setup run. The host never stores
+or logs it; the plugin uses it only during the call.
+
+**Attributes**
+
+- `kind`: Kind of grant.
+- `token`: The token; empty for `none`. At most `maxProvisionTokenBytes`. Omitted when absent (wire zero value).
+- `expiresAtUnixMs`: When the token expires (UTC Unix milliseconds); zero when unknown or it does not expire. Omitted when absent (wire zero value).
+
+### ProvisionRequest
+
+```python
+class ProvisionRequest(TypedDict)
+```
+
+Arguments of `Provisioning.provision`.
+
+**Attributes**
+
+- `grant`: The operator's grant; never `none`.
+- `inputsJson`: The operator's choices as a JSON object keyed by `[provisioning] inputs` setting keys (`{"bucket": "books"}`); `{}` when none were asked for.
+
+### ProvisionedSecret
+
+```python
+class ProvisionedSecret(TypedDict)
+```
+
+One credential a guided setup returns for the host to seal.
+
+**Attributes**
+
+- `key`: A `secret` setting key listed in `[provisioning] outputs`.
+- `value`: The credential, at most `maxProvisionSecretBytes`.
+
+### Provisioned
+
+```python
+class Provisioned(TypedDict)
+```
+
+Success payload of `Provisioning.provision`.
+
+**Attributes**
+
+- `settingsJson`: Non-secret settings to store, as a JSON object keyed by setting keys listed in `[provisioning] outputs`; at most `maxProvisionSettingsBytes`.
+- `secrets`: Credentials to seal; each key at most once.
+- `summary`: Short lines for the setup screen ("Created bucket books"), at most `maxProvisionSummaryLines` of `maxProvisionSummaryLineBytes`. Never a credential.
+
+### ProvisionReplyOk
+
+```python
+class ProvisionReplyOk(TypedDict)
+```
+
+`ProvisionReply` member `ok`.
+
+Success: what to store.
+
+**Attributes**
+
+- `kind`: Always `"ok"`.
+- `value`: Success: what to store.
+
+### ProvisionReplyErr
+
+```python
+class ProvisionReplyErr(TypedDict)
+```
+
+`ProvisionReply` member `err`.
+
+Typed failure: `invalid_params` for a refused choice, `unauthorized`
+or `forbidden` when the grant cannot do what is needed.
+
+**Attributes**
+
+- `kind`: Always `"err"`.
+- `value`: Typed failure: `invalid_params` for a refused choice, `unauthorized` or `forbidden` when the grant cannot do what is needed.
+
+### DeprovisionRequest
+
+```python
+class DeprovisionRequest(TypedDict)
+```
+
+Arguments of `Provisioning.deprovision`.
+
+**Attributes**
+
+- `grant`: The operator's grant, or kind `none` to use the stored secrets.
+
 ### DbValueNull
 
 ```python
@@ -8873,6 +9032,14 @@ OfferedAacProfile = Literal['unknown', 'lc', 'he', 'heV2', 'xhe']
 
 AAC profile of an offered AAC stream (`QualityOffer.aacProfile`).
 
+### InvocationPurpose
+
+```python
+InvocationPurpose = Literal['serve', 'provision']
+```
+
+Why the host opens a plugin's entrypoints (`Invocation.purpose`).
+
 ### RemoteMedia
 
 ```python
@@ -8942,6 +9109,14 @@ AiTextRole = Literal['document', 'query']
 
 What a text is to an embedding model. Some models embed a search query
 differently from the documents it is matched against.
+
+### ProvisionGrantKind
+
+```python
+ProvisionGrantKind = Literal['none', 'apiToken', 'oauthAccessToken']
+```
+
+What kind of grant the operator gave a guided setup (`ProvisionGrant`).
 
 ### DbType
 
@@ -9581,6 +9756,14 @@ IngressHealthReply = Union[IngressHealthReplyOk, IngressHealthReplyErr]
 ```
 
 Result union of `Ingress.health`.
+
+### ProvisionReply
+
+```python
+ProvisionReply = Union[ProvisionReplyOk, ProvisionReplyErr]
+```
+
+Result union of `Provisioning.provision`.
 
 ### DbValue
 

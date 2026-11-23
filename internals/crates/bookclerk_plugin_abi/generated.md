@@ -139,6 +139,11 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`IngressHealth`](#ingresshealth) | struct | Success payload of `Ingress.health`. |
 | [`WebhookAckRequest`](#webhookackrequest) | struct | Arguments of `Webhooks.ack`. |
 | [`WebhookDelivered`](#webhookdelivered) | struct | Argument of `WebhookHandler.delivered`. |
+| [`ProvisionGrant`](#provisiongrant) | struct | A short-lived credential for one guided setup run. The host never stores or logs it; the plugin uses it only during the call. |
+| [`ProvisionRequest`](#provisionrequest) | struct | Arguments of `Provisioning.provision`. |
+| [`ProvisionedSecret`](#provisionedsecret) | struct | One credential a guided setup returns for the host to seal. |
+| [`Provisioned`](#provisioned) | struct | Success payload of `Provisioning.provision`. |
+| [`DeprovisionRequest`](#deprovisionrequest) | struct | Arguments of `Provisioning.deprovision`. |
 | [`Entrypoint`](#entrypoint) | enum | Named entrypoint a plugin exports (Cloudflare Workers named-entrypoint analogue). Each value is a capability the host calls over RPC; triggers on the default entrypoint (`event`, `job`) are declared separately. |
 | [`PortalAuthMode`](#portalauthmode) | enum | Portal Accounts connect mode for storefronts. |
 | [`CliArgKind`](#cliargkind) | enum | Value kind for a `CliArgSpec`. |
@@ -157,6 +162,7 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`Explicitness`](#explicitness) | enum | Whether an edition is marked as explicit (adult) content. A patron scope can hide explicit editions; `unknown` and `clean` editions stay visible. |
 | [`OfferedCodec`](#offeredcodec) | enum | Audio codec of a stream a store offers (`QualityOffer.codec`). Spelled as the host's probed codecs are, so an offer compares with a held file. |
 | [`OfferedAacProfile`](#offeredaacprofile) | enum | AAC profile of an offered AAC stream (`QualityOffer.aacProfile`). |
+| [`InvocationPurpose`](#invocationpurpose) | enum | Why the host opens a plugin's entrypoints (`Invocation.purpose`). |
 | [`RemoteMedia`](#remotemedia) | enum | The kind of public media `CoverFetcher.fetchCovers` downloads. |
 | [`MetadataField`](#metadatafield) | enum | A field of a `MetadataFileRecord`. Dialects declare in the manifest which fields their format carries; a parsed record lists the ones its file states, and a render request lists the ones to write. |
 | [`NotificationSeverity`](#notificationseverity) | enum | How urgent a notification is. Routing rules carry a minimum severity. |
@@ -165,6 +171,7 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`NotifyDestinationKind`](#notifydestinationkind) | enum | Kind of destination a `Notifier` sends to. |
 | [`AiTask`](#aitask) | enum | What a model does. A model has exactly one task, and the task fixes the shape of `AiRunParams.input` and of the reply. |
 | [`AiTextRole`](#aitextrole) | enum | What a text is to an embedding model. Some models embed a search query differently from the documents it is matched against. |
+| [`ProvisionGrantKind`](#provisiongrantkind) | enum | What kind of grant the operator gave a guided setup (`ProvisionGrant`). |
 | [`QueueResult`](#queueresult) | enum | Per-message outcome inside a `QueueConsumer.queue` batch reply. |
 | [`SocketFrame`](#socketframe) | enum | One WebSocket message, or one chunk of a `tls://` stream (always `binary`). |
 | [`OriginConnected`](#originconnected) | enum | Success payload of `Origin.connect`. |
@@ -515,6 +522,18 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`read_webhook_ack_request`](#read_webhook_ack_request) | function | Decode a `WebhookAckRequest` from a Cap'n Proto reader. |
 | [`write_webhook_delivered`](#write_webhook_delivered) | function | Encode a `WebhookDelivered` onto a Cap'n Proto builder. |
 | [`read_webhook_delivered`](#read_webhook_delivered) | function | Decode a `WebhookDelivered` from a Cap'n Proto reader. |
+| [`write_provision_grant`](#write_provision_grant) | function | Encode a `ProvisionGrant` onto a Cap'n Proto builder. |
+| [`read_provision_grant`](#read_provision_grant) | function | Decode a `ProvisionGrant` from a Cap'n Proto reader. |
+| [`write_provision_request`](#write_provision_request) | function | Encode a `ProvisionRequest` onto a Cap'n Proto builder. |
+| [`read_provision_request`](#read_provision_request) | function | Decode a `ProvisionRequest` from a Cap'n Proto reader. |
+| [`write_provisioned_secret`](#write_provisioned_secret) | function | Encode a `ProvisionedSecret` onto a Cap'n Proto builder. |
+| [`read_provisioned_secret`](#read_provisioned_secret) | function | Decode a `ProvisionedSecret` from a Cap'n Proto reader. |
+| [`write_provisioned`](#write_provisioned) | function | Encode a `Provisioned` onto a Cap'n Proto builder. |
+| [`read_provisioned`](#read_provisioned) | function | Decode a `Provisioned` from a Cap'n Proto reader. |
+| [`write_provision_reply`](#write_provision_reply) | function | Encode a `ProvisionReply` union from a typed result. |
+| [`read_provision_reply`](#read_provision_reply) | function | Decode a `ProvisionReply` union into a typed result. |
+| [`write_deprovision_request`](#write_deprovision_request) | function | Encode a `DeprovisionRequest` onto a Cap'n Proto builder. |
+| [`read_deprovision_request`](#read_deprovision_request) | function | Decode a `DeprovisionRequest` from a Cap'n Proto reader. |
 | [`read_any_message`](#read_any_message) | function | Decodes `bytes` as an unpacked single-segment Cap'n Proto message whose root is the struct `selector` names, through that struct's `read_*` codec, and drops the result. |
 | [`roundtrip_any_message`](#roundtrip_any_message) | function | Decodes `bytes` as the struct `selector` names (as `read_any_message` does), writes the value back through that struct's `write_*` codec, decodes the result and requires it to equal the first value. |
 | [`READ_ANY_COUNT`](#read_any_count) | constant | Number of root structs `read_any_message` can decode; selectors are `0..READ_ANY_COUNT` in schema order. |
@@ -2148,6 +2167,7 @@ pub struct Invocation {
     pub deadline_unix_ms: u64,
     pub correlation_id: String,
     pub causation_id: String,
+    pub purpose: InvocationPurpose,
 }
 ```
 
@@ -2162,6 +2182,10 @@ echo `correlationId` / `causationId` onto published events.
   fence is authoritative.
 - `correlation_id`: Trace correlation id; empty when none.
 - `causation_id`: Id of the event or command that caused this invocation; empty when none.
+- `purpose`: What the host opens the entrypoints for. `provision` opens an instance
+  that may not be configured yet: `CONFIG` and `SECRETS` hold what is
+  stored so far, required settings may be missing, and the host calls
+  only `Entrypoints.provisioning`.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -3749,6 +3773,106 @@ Argument of `WebhookHandler.delivered`.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
+### ProvisionGrant
+
+```rust
+pub struct ProvisionGrant {
+    pub kind: ProvisionGrantKind,
+    pub token: Option<String>,
+    pub expires_at_unix_ms: Option<u64>,
+}
+```
+
+A short-lived credential for one guided setup run. The host never stores
+or logs it; the plugin uses it only during the call.
+
+**Fields**
+
+- `kind`: Kind of grant.
+- `token`: The token; empty for `none`. At most `maxProvisionTokenBytes`.
+  `None` when absent (wire zero value).
+- `expires_at_unix_ms`: When the token expires (UTC Unix milliseconds); zero when unknown or it
+  does not expire.
+  `None` when absent (wire zero value).
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### ProvisionRequest
+
+```rust
+pub struct ProvisionRequest {
+    pub grant: ProvisionGrant,
+    pub inputs_json: String,
+}
+```
+
+Arguments of `Provisioning.provision`.
+
+**Fields**
+
+- `grant`: The operator's grant; never `none`.
+- `inputs_json`: The operator's choices as a JSON object keyed by `\[provisioning\] inputs`
+  setting keys (`{"bucket": "books"}`); `{}` when none were asked for.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### ProvisionedSecret
+
+```rust
+pub struct ProvisionedSecret {
+    pub key: String,
+    pub value: String,
+}
+```
+
+One credential a guided setup returns for the host to seal.
+
+**Fields**
+
+- `key`: A `secret` setting key listed in `\[provisioning\] outputs`.
+- `value`: The credential, at most `maxProvisionSecretBytes`.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### Provisioned
+
+```rust
+pub struct Provisioned {
+    pub settings_json: String,
+    pub secrets: Vec<ProvisionedSecret>,
+    pub summary: Vec<String>,
+}
+```
+
+Success payload of `Provisioning.provision`.
+
+**Fields**
+
+- `settings_json`: Non-secret settings to store, as a JSON object keyed by setting keys
+  listed in `\[provisioning\] outputs`; at most `maxProvisionSettingsBytes`.
+- `secrets`: Credentials to seal; each key at most once.
+- `summary`: Short lines for the setup screen ("Created bucket books"), at most
+  `maxProvisionSummaryLines` of `maxProvisionSummaryLineBytes`. Never a
+  credential.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### DeprovisionRequest
+
+```rust
+pub struct DeprovisionRequest {
+    pub grant: ProvisionGrant,
+}
+```
+
+Arguments of `Provisioning.deprovision`.
+
+**Fields**
+
+- `grant`: The operator's grant, or kind `none` to use the stored secrets.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
 ## Enums
 
 ### Entrypoint
@@ -3767,6 +3891,7 @@ pub enum Entrypoint {
     Notifier,
     Ingress,
     Ai,
+    Provisioning,
 }
 ```
 
@@ -3790,6 +3915,7 @@ the default entrypoint (`event`, `job`) are declared separately.
 - `Notifier`: Notification delivery: `send` and `validateDestination` (`Notifier`).
 - `Ingress`: Public address provider: `start`, `health` and `stop` (`Ingress`).
 - `Ai`: Model serving: `models` and `run` (`AiModels`).
+- `Provisioning`: Guided setup: `provision` and `deprovision` (`Provisioning`).
 
 #### Entrypoint::wire_name
 
@@ -4502,6 +4628,40 @@ Parse a wire name; `None` for unknown strings.
 
 Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<OfferedAacProfile>`, `Hash`, `PartialEq`, `Serialize`
 
+### InvocationPurpose
+
+```rust
+pub enum InvocationPurpose {
+    Serve,
+    Provision,
+}
+```
+
+Why the host opens a plugin's entrypoints (`Invocation.purpose`).
+
+**Variants**
+
+- `Serve`: Ordinary work: every required setting is set.
+- `Provision`: Guided setup (`Entrypoints.provisioning`): settings may be incomplete.
+
+#### InvocationPurpose::wire_name
+
+```rust
+pub fn wire_name(self) -> &'static str
+```
+
+Wire name of this enumerant (matches the TypeScript / Python SDK literal).
+
+#### InvocationPurpose::from_wire_name
+
+```rust
+pub fn from_wire_name(name: &str) -> Option<Self>
+```
+
+Parse a wire name; `None` for unknown strings.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<InvocationPurpose>`, `Hash`, `PartialEq`, `Serialize`
+
 ### RemoteMedia
 
 ```rust
@@ -4812,6 +4972,42 @@ pub fn from_wire_name(name: &str) -> Option<Self>
 Parse a wire name; `None` for unknown strings.
 
 Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<AiTextRole>`, `Hash`, `PartialEq`, `Serialize`
+
+### ProvisionGrantKind
+
+```rust
+pub enum ProvisionGrantKind {
+    None,
+    ApiToken,
+    OauthAccessToken,
+}
+```
+
+What kind of grant the operator gave a guided setup (`ProvisionGrant`).
+
+**Variants**
+
+- `None`: No grant: `deprovision` uses the instance's stored secrets.
+- `ApiToken`: An API token the operator created at the provider and pasted.
+- `OauthAccessToken`: An OAuth access token from the provider's sign-in.
+
+#### ProvisionGrantKind::wire_name
+
+```rust
+pub fn wire_name(self) -> &'static str
+```
+
+Wire name of this enumerant (matches the TypeScript / Python SDK literal).
+
+#### ProvisionGrantKind::from_wire_name
+
+```rust
+pub fn from_wire_name(name: &str) -> Option<Self>
+```
+
+Parse a wire name; `None` for unknown strings.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<ProvisionGrantKind>`, `Hash`, `PartialEq`, `Serialize`
 
 ### QueueResult
 
@@ -9234,6 +9430,153 @@ Decode a [`WebhookDelivered`](#webhookdelivered) from a Cap'n Proto reader.
 
 Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
 
+### write_provision_grant
+
+```rust
+pub fn write_provision_grant(b: Builder<'_>, v: &ProvisionGrant) -> Result<()>
+```
+
+Encode a [`ProvisionGrant`](#provisiongrant) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_provision_grant
+
+```rust
+pub fn read_provision_grant(r: Reader<'_>) -> Result<ProvisionGrant>
+```
+
+Decode a [`ProvisionGrant`](#provisiongrant) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_provision_request
+
+```rust
+pub fn write_provision_request(b: Builder<'_>, v: &ProvisionRequest) -> Result<()>
+```
+
+Encode a [`ProvisionRequest`](#provisionrequest) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_provision_request
+
+```rust
+pub fn read_provision_request(r: Reader<'_>) -> Result<ProvisionRequest>
+```
+
+Decode a [`ProvisionRequest`](#provisionrequest) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_provisioned_secret
+
+```rust
+pub fn write_provisioned_secret(b: Builder<'_>, v: &ProvisionedSecret) -> Result<()>
+```
+
+Encode a [`ProvisionedSecret`](#provisionedsecret) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_provisioned_secret
+
+```rust
+pub fn read_provisioned_secret(r: Reader<'_>) -> Result<ProvisionedSecret>
+```
+
+Decode a [`ProvisionedSecret`](#provisionedsecret) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_provisioned
+
+```rust
+pub fn write_provisioned(b: Builder<'_>, v: &Provisioned) -> Result<()>
+```
+
+Encode a [`Provisioned`](#provisioned) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_provisioned
+
+```rust
+pub fn read_provisioned(r: Reader<'_>) -> Result<Provisioned>
+```
+
+Decode a [`Provisioned`](#provisioned) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_provision_reply
+
+```rust
+pub fn write_provision_reply(
+    b: Builder<'_>,
+    v: &Result<Provisioned, PluginError>,
+) -> Result<()>
+```
+
+Encode a `ProvisionReply` union from a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when a nested field cannot be encoded.
+
+### read_provision_reply
+
+```rust
+pub fn read_provision_reply(r: Reader<'_>) -> Result<Result<Provisioned, PluginError>>
+```
+
+Decode a `ProvisionReply` union into a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when the union is unset or a field is malformed.
+
+### write_deprovision_request
+
+```rust
+pub fn write_deprovision_request(b: Builder<'_>, v: &DeprovisionRequest) -> Result<()>
+```
+
+Encode a [`DeprovisionRequest`](#deprovisionrequest) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_deprovision_request
+
+```rust
+pub fn read_deprovision_request(r: Reader<'_>) -> Result<DeprovisionRequest>
+```
+
+Decode a [`DeprovisionRequest`](#deprovisionrequest) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
 ### read_any_message
 
 ```rust
@@ -9286,7 +9629,7 @@ when the decoded value does not survive `write_*` then `read_*` intact.
 ### READ_ANY_COUNT
 
 ```rust
-pub const READ_ANY_COUNT: u8 = 173;
+pub const READ_ANY_COUNT: u8 = 179;
 ```
 
 Number of root structs [`read_any_message`](#read_any_message) can decode; selectors are

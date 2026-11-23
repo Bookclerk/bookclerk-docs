@@ -2444,6 +2444,1252 @@ Schema:
 
 A `text/plain` body: a string.
 
+## `POST /api/config/plugin-instances/{id}/provision`
+
+`POST /api/config/plugin-instances/{id}/provision`: runs the plugin's
+guided setup with the operator's token and stores what it returns.
+
+Operator principal only. The plugin must be installed on this server.
+The token is used for this run only: it is never stored, logged or
+echoed back. The plugin runs under its normal grant, network included.
+Its settings and credentials are checked against `[provisioning]
+outputs` and the pinned schema, then written with the inputs as one
+revision; the credentials are sealed. A running instance picks up the
+new revision as it does any configuration change.
+
+**Access:** The operator (token or session) only.
+
+**Credentials:** `operatorToken` or `operatorSession`
+
+### Parameters
+
+- `id` (path) *string*, **required** — Plugin instance id.
+
+### Request body
+
+`application/json`: [`ProvisionPluginInstance`](schemas.md#provisionplugininstance)
+
+- `expected_revision` *integer (int64)*, **required** — Revision the caller last observed; the run is refused before it starts when it is not current.
+- `grant` *[`ProvisionGrantBody`](schemas.md#provisiongrantbody)*, **required** — The operator's grant for this run.
+- `inputs` *map of string to [`SettingValue`](schemas.md#settingvalue)* — The operator's choices, keyed by `[provisioning] inputs`; they are stored with what the plugin returns.
+
+### Responses
+
+- `200` — The document after the run. Body: [`PluginInstanceProvisioned`](schemas.md#plugininstanceprovisioned) (`application/json`)
+  - `plugin_instance_id` *string*, **required** — Instance id.
+  - `revision` *integer (int64)*, **required** — Revision after the write.
+  - `settings` *map of string to [`SettingValue`](schemas.md#settingvalue)*, **required** — Scalar settings now stored.
+  - `secret_refs` *array of [`InstanceSecretRefV1`](schemas.md#instancesecretrefv1)*, **required** — Secret refs now stored, the newly sealed credentials included.
+  - `summary` *array of string*, **required** — What the plugin did, for the setup screen.
+- `400` — The body, the token or an input is invalid. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`); string (`text/plain`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `404` — No such instance. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `409` — `expected_revision` is not current, the plugin offers no guided setup, or it is not installed here. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The plugin refused the run: a choice it cannot honour, or a token without the permissions it needs. As `text/plain`, when the JSON does not fit the body. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`); string (`text/plain`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `502` — The plugin could not run, or its answer broke the provisioning contract. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/plugin-instances/<id>/provision' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"expected_revision": 2, "grant": {"token": "q9W2...redacted", "kind": "api_token"}}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/plugin-instances/<id>/provision' `
+    -Method Post `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{"expected_revision": 2, "grant": {"token": "q9W2...redacted", "kind": "api_token"}}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/config/plugin-instances/<id>/provision",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={"expected_revision": 2, "grant": {"token": "q9W2...redacted", "kind": "api_token"}},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/config/plugin-instances/<id>/provision", {
+  method: "POST",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({"expected_revision": 2, "grant": {"token": "q9W2...redacted", "kind": "api_token"}}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/config/plugin-instances/<id>/provision")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({"expected_revision": 2, "grant": {"token": "q9W2...redacted", "kind": "api_token"}}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The document after the run.
+
+```json
+{
+  "plugin_instance_id": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b",
+  "revision": 3,
+  "settings": {
+    "account_id": "3f4b7e3dcab231cbfdaa90a6a28bd548",
+    "bucket": "audiobooks"
+  },
+  "secret_refs": [
+    {
+      "key": "api_token",
+      "name": "api_token"
+    }
+  ],
+  "summary": [
+    "Created bucket audiobooks",
+    "Created an API token for the bucket"
+  ]
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "`POST /api/config/plugin-instances/{id}/provision` reply: the document\nafter the plugin's settings and credentials were stored.",
+  "required": [
+    "plugin_instance_id",
+    "revision",
+    "settings",
+    "secret_refs",
+    "summary"
+  ],
+  "properties": {
+    "plugin_instance_id": {
+      "type": "string",
+      "description": "Instance id.",
+      "example": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"
+    },
+    "revision": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Revision after the write.",
+      "example": 3
+    },
+    "settings": {
+      "type": "object",
+      "description": "Scalar settings now stored.",
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "boolean",
+            "description": "JSON boolean."
+          },
+          {
+            "type": "number",
+            "description": "Finite JSON number: an integer kind stores an `i64`, so the schema\nis an unformatted `number` rather than a `double`.",
+            "examples": [
+              8
+            ]
+          },
+          {
+            "type": "string",
+            "description": "JSON string, at most 1024 bytes."
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": {
+                "oneOf": [
+                  {
+                    "type": "boolean",
+                    "description": "JSON boolean."
+                  },
+                  {
+                    "type": "number",
+                    "description": "Finite JSON number; an integer for integer columns.",
+                    "examples": [
+                      8
+                    ]
+                  },
+                  {
+                    "type": "string",
+                    "description": "JSON string, at most 1024 bytes."
+                  }
+                ],
+                "description": "One cell of a table setting row: the scalar kinds only."
+              },
+              "propertyNames": {
+                "type": "string"
+              }
+            },
+            "description": "Rows of a table setting: each row maps a column key to a scalar cell.\nRows are records rather than positional lists, so a column added to\nthe declaration later keeps existing rows valid."
+          }
+        ],
+        "description": "One setting value: a scalar, or the rows of a table setting.",
+        "example": "/srv/audiobooks"
+      },
+      "propertyNames": {
+        "type": "string"
+      },
+      "example": {
+        "account_id": "3f4b7e3dcab231cbfdaa90a6a28bd548",
+        "bucket": "audiobooks"
+      }
+    },
+    "secret_refs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A name in `encrypted_secrets`. The ciphertext is not part of the document.",
+        "required": [
+          "key",
+          "name"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Key in the `SECRETS` object delivered to the guest.",
+            "example": "api_token"
+          },
+          "name": {
+            "type": "string",
+            "description": "`encrypted_secrets.name` for this instance.",
+            "example": "api_token"
+          }
+        }
+      },
+      "description": "Secret refs now stored, the newly sealed credentials included."
+    },
+    "summary": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "What the plugin did, for the setup screen.",
+      "example": [
+        "Created bucket audiobooks",
+        "Created an API token for the bucket"
+      ]
+    }
+  }
+}
+```
+
+Status `400`: The body, the token or an input is invalid. As `text/plain`, when the body is not syntactically valid JSON.
+
+```json
+{
+  "error": "invalid token: the token is empty"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `404`: No such instance.
+
+```json
+{
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `409`: `expected_revision` is not current, the plugin offers no guided setup, or it is not installed here.
+
+```json
+{
+  "current_revision": 7,
+  "error": "revision_conflict"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The plugin refused the run: a choice it cannot honour, or a token without the permissions it needs. As `text/plain`, when the JSON does not fit the body.
+
+```json
+{
+  "error": "the plugin refused (forbidden): the token cannot create R2 buckets"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `502`: The plugin could not run, or its answer broke the provisioning contract.
+
+```json
+{
+  "error": "the plugin's answer was refused: setting `region` is not a declared output"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `POST /api/config/plugin-instances/{id}/deprovision`
+
+`POST /api/config/plugin-instances/{id}/deprovision`: asks the plugin to
+remove what its guided setup created, before the instance is deleted.
+
+Operator principal only. The plugin must be installed on this server and
+set `[provisioning] deprovision = true`. Without a grant it uses its
+stored credentials; a plugin whose credentials cannot remove what it made
+refuses with `unauthorized`, and the operator retries with a token. The
+instance's settings are left as they are.
+
+**Access:** The operator (token or session) only.
+
+**Credentials:** `operatorToken` or `operatorSession`
+
+### Parameters
+
+- `id` (path) *string*, **required** — Plugin instance id.
+
+### Request body
+
+`application/json`: [`DeprovisionPluginInstance`](schemas.md#deprovisionplugininstance)
+
+- `grant` *[`ProvisionGrantBody`](schemas.md#provisiongrantbody) or null* — A fresh grant, when the plugin's stored credentials cannot remove what it created; omitted to use them.
+
+### Responses
+
+- `200` — What the guided setup created is gone. Body: [`PluginInstanceDeprovisioned`](schemas.md#plugininstancedeprovisioned) (`application/json`)
+  - `plugin_instance_id` *string*, **required** — Instance id.
+  - `deprovisioned` *boolean*, **required** — Always true: what the guided setup created is gone.
+- `400` — The body or the token is invalid. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`); string (`text/plain`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `404` — No such instance. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `409` — The plugin does not remove what it creates, or it is not installed here. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The plugin refused; with `unauthorized`, retry with a token. As `text/plain`, when the JSON does not fit the body. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`); string (`text/plain`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `502` — The plugin could not run. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/plugin-instances/<id>/deprovision' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/plugin-instances/<id>/deprovision' `
+    -Method Post `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/config/plugin-instances/<id>/deprovision",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/config/plugin-instances/<id>/deprovision", {
+  method: "POST",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/config/plugin-instances/<id>/deprovision")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: What the guided setup created is gone.
+
+```json
+{
+  "plugin_instance_id": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b",
+  "deprovisioned": true
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "`POST /api/config/plugin-instances/{id}/deprovision` reply.",
+  "required": [
+    "plugin_instance_id",
+    "deprovisioned"
+  ],
+  "properties": {
+    "plugin_instance_id": {
+      "type": "string",
+      "description": "Instance id.",
+      "example": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"
+    },
+    "deprovisioned": {
+      "type": "boolean",
+      "description": "Always true: what the guided setup created is gone.",
+      "example": true
+    }
+  }
+}
+```
+
+Status `400`: The body or the token is invalid. As `text/plain`, when the body is not syntactically valid JSON.
+
+```json
+{
+  "error": "invalid token: the token holds a space or a control character"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `404`: No such instance.
+
+```json
+{
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `409`: The plugin does not remove what it creates, or it is not installed here.
+
+```json
+{
+  "error": "plugin `r2` does not remove what its guided setup creates"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The plugin refused; with `unauthorized`, retry with a token. As `text/plain`, when the JSON does not fit the body.
+
+```json
+{
+  "error": "the plugin refused (unauthorized): a token is needed to delete the bucket's API token"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `502`: The plugin could not run.
+
+```json
+{
+  "error": "the guided setup could not run: the plugin did not start"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `GET /api/config/plugin-instances/{id}/provisioning`
+
+`GET /api/config/plugin-instances/{id}/provisioning`: whether the
+instance's plugin offers a guided setup here, and what it asks for.
+
+Read from the plugin installed on this server, since the guided setup
+runs where the plugin is.
+
+**Access:** The operator (token or session) only.
+
+**Credentials:** `operatorToken` or `operatorSession`
+
+### Parameters
+
+- `id` (path) *string*, **required** — Plugin instance id.
+
+### Responses
+
+- `200` — The plugin's guided setup, if it offers one. Body: [`PluginInstanceProvisioning`](schemas.md#plugininstanceprovisioning) (`application/json`)
+  - `plugin_instance_id` *string*, **required** — Instance id.
+  - `provisioning` *[`ProvisioningView`](schemas.md#provisioningview) or null* — The plugin's `[provisioning]` table; absent when it offers no guided setup.
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — The caller's role does not allow this route. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `404` — No such instance. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `409` — The plugin is not installed on this server. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/plugin-instances/<id>/provisioning' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/plugin-instances/<id>/provisioning' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/config/plugin-instances/<id>/provisioning",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/config/plugin-instances/<id>/provisioning", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/config/plugin-instances/<id>/provisioning")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The plugin's guided setup, if it offers one.
+
+```json
+{
+  "plugin_instance_id": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b",
+  "provisioning": {
+    "provider": "cloudflare",
+    "grants": [
+      "api_token"
+    ],
+    "token_url": "https://dash.cloudflare.com/profile/api-tokens",
+    "token_permissions": [
+      "Account > Workers R2 Storage > Edit"
+    ],
+    "inputs": [
+      "bucket",
+      "jurisdiction"
+    ],
+    "outputs": [
+      "account_id",
+      "bucket",
+      "access_key_id",
+      "secret_access_key"
+    ],
+    "deprovision": true
+  }
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "`GET /api/config/plugin-instances/{id}/provisioning` body: what the\nsetup screen asks for before it runs the plugin's guided setup.",
+  "required": [
+    "plugin_instance_id"
+  ],
+  "properties": {
+    "plugin_instance_id": {
+      "type": "string",
+      "description": "Instance id.",
+      "example": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"
+    },
+    "provisioning": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "The plugin's `[provisioning]` table; absent when it offers no guided\nsetup.",
+          "required": [
+            "provider",
+            "grants",
+            "token_permissions",
+            "inputs",
+            "outputs",
+            "deprovision"
+          ],
+          "properties": {
+            "provider": {
+              "type": "string",
+              "description": "The provider the grant is for, lowercase.",
+              "example": "cloudflare"
+            },
+            "grants": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "The grants the plugin accepts, in `plugin.toml` spelling; never empty.",
+              "example": [
+                "api_token"
+              ]
+            },
+            "token_url": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Where the operator creates a token at the provider.",
+              "example": "https://dash.cloudflare.com/profile/api-tokens"
+            },
+            "token_permissions": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "The permissions a pasted token needs, one line each.",
+              "example": [
+                "Account > Workers R2 Storage > Edit"
+              ]
+            },
+            "inputs": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Setting keys the screen asks for before running.",
+              "example": [
+                "bucket",
+                "jurisdiction"
+              ]
+            },
+            "outputs": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Setting keys the plugin may write back.",
+              "example": [
+                "account_id",
+                "bucket",
+                "access_key_id",
+                "secret_access_key"
+              ]
+            },
+            "deprovision": {
+              "type": "boolean",
+              "description": "Whether the plugin removes what it created, which the screen offers\nbefore the instance is deleted.",
+              "example": true
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: The caller's role does not allow this route.
+
+```json
+{
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `404`: No such instance.
+
+```json
+{
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `409`: The plugin is not installed on this server.
+
+```json
+{
+  "error": "plugin r2 is not installed on this server; run the guided setup on a server that has it"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
 ## `GET /api/config/plugin-instances/{id}/filter`
 
 `GET /api/config/plugin-instances/{id}/filter`: which books the storage

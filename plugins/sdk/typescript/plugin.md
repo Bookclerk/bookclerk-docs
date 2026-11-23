@@ -3111,6 +3111,7 @@ which installs the granted bindings on `env` before dispatching.
 - [`CoverEntrypoint`](#coverentrypoint)
 - [`MetadataFilesEntrypoint`](#metadatafilesentrypoint)
 - [`AiEntrypoint`](#aientrypoint)
+- [`ProvisioningEntrypoint`](#provisioningentrypoint)
 - [`NotifierEntrypoint`](#notifierentrypoint)
 - [`IngressEntrypoint`](#ingressentrypoint)
 
@@ -3668,6 +3669,198 @@ Resolves when the host records progress.
 
 ***
 
+### ProvisioningEntrypoint
+
+`provisioning` entrypoint (`Provisioning`): guided setup at a cloud
+provider. The host collects a short-lived grant from the operator (a pasted
+API token), hands it to `provision`, and stores what it returns: settings
+listed in `[provisioning] outputs` and credentials it seals. The grant is
+dropped after the call, so return any lasting credential you create. On a
+re-run `env.CONFIG` and `env.SECRETS` hold the earlier outputs: update or
+rotate rather than create again. Export it as
+`export class Provisioning extends ProvisioningEntrypoint`.
+
+#### Extends
+
+- [`NamedEntrypoint`](#namedentrypoint)\<`Env`\>
+
+#### Type Parameters
+
+| Type Parameter | Default type |
+| ------ | ------ |
+| <a id="type-parameter-env-11"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
+
+#### Constructors
+
+##### Constructor
+
+```ts
+new ProvisioningEntrypoint<Env>(ctx, env): ProvisioningEntrypoint<Env>;
+```
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `ctx` | `ExecutionContext` |
+| `env` | `Env` |
+
+###### Returns
+
+[`ProvisioningEntrypoint`](#provisioningentrypoint)\<`Env`\>
+
+###### Inherited from
+
+[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-13)
+
+#### Properties
+
+##### ctx
+
+```ts
+readonly ctx: ExecutionContext;
+```
+
+###### Inherited from
+
+[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-8)
+
+##### env
+
+```ts
+readonly env: Env;
+```
+
+###### Inherited from
+
+[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-8)
+
+##### invocation
+
+```ts
+invocation: Invocation;
+```
+
+Invocation identity of the current call (set by `bookclerkInvoke`).
+
+###### Inherited from
+
+[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-9)
+
+##### bookclerkMethods
+
+```ts
+static bookclerkMethods: readonly string[];
+```
+
+Methods the adapter may dispatch on this entrypoint.
+
+###### Overrides
+
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-7)
+
+#### Methods
+
+##### bookclerkInvoke()
+
+```ts
+bookclerkInvoke(
+   context, 
+   method, 
+   ...args
+): Promise<unknown>;
+```
+
+**`Internal`**
+
+Adapter dispatch: install granted bindings, then call `method`.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `context` | [`GrantedContext`](#grantedcontext) | Granted bindings for this invocation. |
+| `method` | `string` | Method name from the static allowlist. |
+| ...`args` | `unknown`[] | Method arguments. |
+
+###### Returns
+
+`Promise`\<`unknown`\>
+
+Method result.
+
+###### Inherited from
+
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-7)
+
+##### deprovision()
+
+```ts
+deprovision(request): Promise<void>;
+```
+
+Removes what `provision` created. Removing what is already gone is not
+an error.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `request` | [`DeprovisionRequest`](generated.md#deprovisionrequest) | The operator's grant, or kind `none` to use the stored secrets. |
+
+###### Returns
+
+`Promise`\<`void`\>
+
+Resolves once the resources are gone.
+
+##### fetch()
+
+```ts
+fetch(_request?): Promise<Response>;
+```
+
+Rejects HTTP fetch — workerd guests are Workers-RPC only.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `_request?` | `Request` | Incoming HTTP request when the entrypoint is fetch-facing. |
+
+###### Returns
+
+`Promise`\<`Response`\>
+
+Always a 404 empty response.
+
+###### Inherited from
+
+[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-8)
+
+##### provision()
+
+```ts
+provision(request): Promise<Provisioned>;
+```
+
+Creates (or updates) what the instance needs.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `request` | [`ProvisionRequest`](generated.md#provisionrequest) | The operator's grant and choices (`inputsJson`, a JSON object keyed by `[provisioning] inputs`). |
+
+###### Returns
+
+`Promise`\<[`Provisioned`](generated.md#provisioned)\>
+
+Settings to store (`settingsJson`), credentials to seal and
+  summary lines for the setup screen; see [provisioned](#provisioned).
+
+***
+
 ### QueueBatch
 
 One `queue(batch)` delivery (`QueueBatch` struct), Workers `MessageBatch`-shaped.
@@ -3941,7 +4134,7 @@ polling for a remote library server. Export it as
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| <a id="type-parameter-env-11"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
+| <a id="type-parameter-env-12"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
 
 #### Constructors
 
@@ -4238,7 +4431,7 @@ writes acquired media into. Export it as
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| <a id="type-parameter-env-12"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
+| <a id="type-parameter-env-13"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
 
 #### Constructors
 
@@ -4686,7 +4879,7 @@ and returns the typed ABI structs generated from `schema/plugin.capnp`.
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| <a id="type-parameter-env-13"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
+| <a id="type-parameter-env-14"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
 
 #### Constructors
 
@@ -5322,7 +5515,7 @@ Invocation identity (`Invocation` struct).
 
 ###### Inherited from
 
-[`GrantedContext`](#grantedcontext).[`invocation`](#invocation-17)
+[`GrantedContext`](#grantedcontext).[`invocation`](#invocation-18)
 
 ##### kv?
 
@@ -6128,7 +6321,7 @@ Invocation identity (`Invocation` struct).
 
 ###### Inherited from
 
-[`GrantedContext`](#grantedcontext).[`invocation`](#invocation-17)
+[`GrantedContext`](#grantedcontext).[`invocation`](#invocation-18)
 
 ##### jobId?
 
@@ -7120,7 +7313,8 @@ type EntrypointName =
   | "metadataFiles"
   | "notifier"
   | "ingress"
-  | "ai";
+  | "ai"
+  | "provisioning";
 ```
 
 Wire name of each named entrypoint (`plugin.toml` `entrypoints`).
@@ -7587,6 +7781,31 @@ Packs embedding vectors into the wire form of
 `Uint8Array`
 
 The bytes.
+
+***
+
+### provisioned()
+
+```ts
+function provisioned(answer): Provisioned;
+```
+
+Builds a [Provisioned](generated.md#provisioned) answer from plain objects.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `answer` | \{ `secrets?`: `Record`\<`string`, `string`\>; `settings?`: `Record`\<`string`, `string` \| `number` \| `boolean`\>; `summary?`: `string`[]; \} | Settings to store, credentials to seal (by `secret` setting key) and summary lines. |
+| `answer.secrets?` | `Record`\<`string`, `string`\> | - |
+| `answer.settings?` | `Record`\<`string`, `string` \| `number` \| `boolean`\> | - |
+| `answer.summary?` | `string`[] | - |
+
+#### Returns
+
+[`Provisioned`](generated.md#provisioned)
+
+The wire shape `provision` returns.
 
 ***
 

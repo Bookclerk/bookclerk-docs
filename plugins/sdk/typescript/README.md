@@ -50,6 +50,7 @@ extending its base:
 | `entrypoints = ["metadataFiles"]` | `MetadataFiles` | `MetadataFilesEntrypoint` |
 | `entrypoints = ["notifier"]` | `Notifier` | `NotifierEntrypoint` |
 | `entrypoints = ["ingress"]` | `Ingress` | `IngressEntrypoint` |
+| `entrypoints = ["provisioning"]` | `Provisioning` | `ProvisioningEntrypoint` |
 | `entrypoints = ["ai"]` | `Ai` | `AiEntrypoint` |
 
 ```ts
@@ -2516,6 +2517,12 @@ Re-exports [DeliveredCheckpoint](plugin.md#deliveredcheckpoint)
 
 ***
 
+### DeprovisionRequest
+
+Re-exports [DeprovisionRequest](generated.md#deprovisionrequest)
+
+***
+
 ### DescribeReply
 
 Re-exports [DescribeReply](generated.md#describereply)
@@ -3113,6 +3120,12 @@ Re-exports [Invocation](generated.md#invocation)
 ### invocationOf
 
 Re-exports [invocationOf](plugin.md#invocationof)
+
+***
+
+### InvocationPurpose
+
+Re-exports [InvocationPurpose](abi.md#invocationpurpose)
 
 ***
 
@@ -4061,6 +4074,60 @@ Re-exports [PRODUCT_API_VERSION](abi.md#product_api_version)
 ### ProgressSink
 
 Re-exports [ProgressSink](plugin.md#progresssink)
+
+***
+
+### provisioned
+
+Re-exports [provisioned](plugin.md#provisioned)
+
+***
+
+### Provisioned
+
+Re-exports [Provisioned](generated.md#provisioned)
+
+***
+
+### ProvisionedSecret
+
+Re-exports [ProvisionedSecret](generated.md#provisionedsecret)
+
+***
+
+### ProvisionGrant
+
+Re-exports [ProvisionGrant](generated.md#provisiongrant)
+
+***
+
+### ProvisionGrantKind
+
+Re-exports [ProvisionGrantKind](abi.md#provisiongrantkind)
+
+***
+
+### Provisioning
+
+Re-exports [Provisioning](generated.md#provisioning-1)
+
+***
+
+### ProvisioningEntrypoint
+
+Re-exports [ProvisioningEntrypoint](plugin.md#provisioningentrypoint)
+
+***
+
+### ProvisionReply
+
+Re-exports [ProvisionReply](generated.md#provisionreply)
+
+***
+
+### ProvisionRequest
+
+Re-exports [ProvisionRequest](generated.md#provisionrequest)
 
 ***
 

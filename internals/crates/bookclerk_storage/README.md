@@ -72,6 +72,7 @@ Product narrative: destination sections in `docs/server/configuration.md`. Style
 
 - [`b2_api`](b2_api.md): Backblaze B2 native API replies, read into checked types.
 - [`b2_events`](b2_events.md): Backblaze B2 event notifications and notification-rule replies, read into checked types.
+- [`cloudflare_api`](cloudflare_api.md): Cloudflare API replies the `r2` destination's guided setup reads, and the request parts it builds.
 - [`fs_kind`](fs_kind.md): What kind of file system a local path lives on, so the local backend only leans on hard links, inode numbers and atomic renames where the file system keeps their promises.
 - [`guest`](guest.md): Serving a backend's intent operations from a storage guest. Serves a `StorageBackend`'s intent operations through a storage guest's `Destination` capability.
 - [`intent`](intent.md): Intent operations (moves, batches, conditional writes, change feeds) and their fallbacks. Intent-based storage operations and the host's fallback for each.

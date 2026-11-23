@@ -212,6 +212,7 @@ See `docs/adr/control-plane.md`.
 | [`IngressExposure`](#ingressexposure) | enum | What public traffic from the ingress may reach. |
 | [`OriginReport`](#originreport) | enum | What `record_started` did with a reported origin. |
 | [`InstanceConfigReplace`](#instanceconfigreplace) | enum | Outcome of `replace_instance_config`. |
+| [`RequiredSettings`](#requiredsettings) | enum | Whether `resolve_instance_bindings_with` insists on required settings and secrets. |
 | [`SettingCell`](#settingcell) | enum | One cell of a table setting row: the scalar kinds only. |
 | [`SettingValue`](#settingvalue) | enum | One setting value: a scalar, or the rows of a table setting. |
 | [`IntakeFinish`](#intakefinish) | enum | How an ingest batch ended for one item. |
@@ -424,6 +425,7 @@ See `docs/adr/control-plane.md`.
 | [`reconcile_instance_configs_to_schema`](#reconcile_instance_configs_to_schema) | function | Rewrites every instance document of `plugin_key` to what `schema` still accepts: settings whose key is gone, became a secret, or whose value no longer fits (a type or enum change), and secret refs whose key is gone or became plain, are dropped. Table rows are brought to the current columns with `bookclerk_plugin_abi::SettingSpec::normalize_value`: cells of removed columns are dropped and defaults of new columns written, which changes the document without removing a key. |
 | [`replace_instance_config`](#replace_instance_config) | function | Replaces the instance document when `expected_revision` is current. |
 | [`resolve_instance_bindings`](#resolve_instance_bindings) | function | Resolves `CONFIG` and `SECRETS` for `instance_id` against `schema`. |
+| [`resolve_instance_bindings_with`](#resolve_instance_bindings_with) | function | `resolve_instance_bindings`, optionally without the required-setting checks. |
 | [`seal_instance_secret`](#seal_instance_secret) | function | Seals one instance secret with the library DEK. |
 | [`set_secret_ref`](#set_secret_ref) | function | Adds a secret ref for `key` whose sealed row is named `key`, replacing an existing ref for the same key. |
 | [`set_setting`](#set_setting) | function | Sets `key` to `value` in `settings`, or removes it when `value` is `None`. |
@@ -7366,6 +7368,28 @@ Outcome of [`replace_instance_config`](#replace_instance_config).
 
 Implements: `Clone`, `Debug`, `PartialEq`
 
+### RequiredSettings
+
+```rust
+pub enum RequiredSettings {
+    Enforce,
+    Relax,
+}
+```
+
+Whether [`resolve_instance_bindings_with`](#resolve_instance_bindings_with) insists on required settings
+and secrets.
+
+**Variants**
+
+- `Enforce`: A missing required setting or secret fails resolution: the guest is
+  opened to serve.
+- `Relax`: Missing required settings and secrets are left out: the guest is
+  opened for guided setup (`Invocation.purpose = provision`), which
+  is what fills them in.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
 ### SettingCell
 
 ```rust
@@ -11764,6 +11788,26 @@ without a `secrets` grant fails resolution. An empty ref list with no
 #### Errors
 
 Returns an error when the document or a secret ref cannot be resolved.
+
+### resolve_instance_bindings_with
+
+```rust
+pub async fn resolve_instance_bindings_with(
+    store: &LibraryStore,
+    instance_id: &PluginInstanceId,
+    grant: &InstanceBindingGrant,
+    schema: &SettingsSchema,
+    required: RequiredSettings,
+) -> Result<ResolvedInstanceBindings>
+```
+
+[`resolve_instance_bindings`](#resolve_instance_bindings), optionally without the required-setting
+checks.
+
+#### Errors
+
+As [`resolve_instance_bindings`](#resolve_instance_bindings), less the missing-required errors when
+`required` is [`RequiredSettings::Relax`](#requiredsettings).
 
 ### seal_instance_secret
 

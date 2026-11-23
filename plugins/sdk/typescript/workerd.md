@@ -1773,6 +1773,18 @@ Re-exports [ProgressSink](plugin.md#progresssink)
 
 ***
 
+### provisioned
+
+Re-exports [provisioned](plugin.md#provisioned)
+
+***
+
+### ProvisioningEntrypoint
+
+Re-exports [ProvisioningEntrypoint](plugin.md#provisioningentrypoint)
+
+***
+
 ### PublishEvent
 
 Re-exports [PublishEvent](env.md#publishevent)

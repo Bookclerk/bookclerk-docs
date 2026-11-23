@@ -29,7 +29,10 @@ A native guest implements `PluginWorker` (`describe`, and
 stdin and stdout Cap'n Proto runner. The entrypoints it returns are the
 same named entrypoints the other SDKs export as classes: storefront,
 storage, remote library, database adapter, CLI, OIDC, metadata, covers,
-metadata files, notifier and model plugin (`ai`). The
+metadata files, notifier, guided setup (`provisioning`) and model plugin
+(`ai`). In a guided setup run, `invocation.purpose` is `Provision` and
+`open` returns only `provisioning`; see
+[Guided setup](../../abi.md#guided-setup-provisioning). The
 crate root re-exports the DTOs and helpers a guest needs; prefer
 `use bookclerk_plugin_sdk::…` over reaching into submodules.
 
@@ -353,6 +356,7 @@ submodules unless you need module-level docs.
 - [`sockets::SocketMessage`](../../../internals/crates/bookclerk_plugin_abi/generated.md#socketmessage)
 - [`sockets::Sockets`](../../../internals/crates/bookclerk_plugin_abi/README.md#sockets)
 - [`bookclerk_plugin_abi::ai`](../../../internals/crates/bookclerk_plugin_abi/ai.md)
+- [`bookclerk_plugin_abi::provision`](../../../internals/crates/bookclerk_plugin_abi/provision.md)
 - [`bookclerk_plugin_abi::byte_source_from_async_read`](../../../internals/crates/bookclerk_plugin_abi/README.md#byte_source_from_async_read)
 - [`bookclerk_plugin_abi::canonical_execute_request_hash`](../../../internals/crates/bookclerk_plugin_abi/README.md#canonical_execute_request_hash)
 - [`bookclerk_plugin_abi::connect_plugin`](../../../internals/crates/bookclerk_plugin_abi/README.md#connect_plugin)
@@ -596,6 +600,21 @@ submodules unless you need module-level docs.
 - [`bookclerk_plugin_abi::MAX_AI_LANGUAGES`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_ai_languages)
 - [`bookclerk_plugin_abi::MAX_AI_MODELS`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_ai_models)
 - [`bookclerk_plugin_abi::MAX_AI_MODEL_NAME_BYTES`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_ai_model_name_bytes)
+- [`bookclerk_plugin_abi::DeprovisionRequest`](../../../internals/crates/bookclerk_plugin_abi/generated.md#deprovisionrequest)
+- [`bookclerk_plugin_abi::InvocationPurpose`](../../../internals/crates/bookclerk_plugin_abi/generated.md#invocationpurpose)
+- [`bookclerk_plugin_abi::ProvisionGrant`](../../../internals/crates/bookclerk_plugin_abi/generated.md#provisiongrant)
+- [`bookclerk_plugin_abi::ProvisionGrantKind`](../../../internals/crates/bookclerk_plugin_abi/generated.md#provisiongrantkind)
+- [`bookclerk_plugin_abi::ProvisionRequest`](../../../internals/crates/bookclerk_plugin_abi/generated.md#provisionrequest)
+- [`bookclerk_plugin_abi::Provisioned`](../../../internals/crates/bookclerk_plugin_abi/generated.md#provisioned)
+- [`bookclerk_plugin_abi::ProvisionedSecret`](../../../internals/crates/bookclerk_plugin_abi/generated.md#provisionedsecret)
+- [`bookclerk_plugin_abi::Provisioning`](../../../internals/crates/bookclerk_plugin_abi/README.md#provisioning)
+- [`bookclerk_plugin_abi::ProvisioningClient`](../../../internals/crates/bookclerk_plugin_abi/README.md#provisioningclient)
+- [`bookclerk_plugin_abi::MAX_PROVISION_SECRETS`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_provision_secrets)
+- [`bookclerk_plugin_abi::MAX_PROVISION_SECRET_BYTES`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_provision_secret_bytes)
+- [`bookclerk_plugin_abi::MAX_PROVISION_SETTINGS_BYTES`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_provision_settings_bytes)
+- [`bookclerk_plugin_abi::MAX_PROVISION_SUMMARY_LINES`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_provision_summary_lines)
+- [`bookclerk_plugin_abi::MAX_PROVISION_SUMMARY_LINE_BYTES`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_provision_summary_line_bytes)
+- [`bookclerk_plugin_abi::MAX_PROVISION_TOKEN_BYTES`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_provision_token_bytes)
 - [`bookclerk_plugin_abi::NetworkGrant`](../../../internals/crates/bookclerk_plugin_abi/network_grant.md#networkgrant)
 - [`bookclerk_plugin_abi::SettingGrantState`](../../../internals/crates/bookclerk_plugin_abi/network_grant.md#settinggrantstate)
 - [`bookclerk_plugin_abi::SettingNetwork`](../../../internals/crates/bookclerk_plugin_abi/settings_schema.md#settingnetwork)
