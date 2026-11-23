@@ -866,6 +866,7 @@ Implements: `Clone`, `Copy`, `Debug`
 pub struct MetadataEnrichOptions {
     pub min_interval: Duration,
     pub max_requests: usize,
+    pub retry_after: Duration,
 }
 ```
 
@@ -875,6 +876,8 @@ Pacing for one enrichment run.
 
 - `min_interval`: Pause before each provider ask.
 - `max_requests`: Most provider asks in one run; titles past the cap wait for the next run.
+- `retry_after`: How long an edition whose last ask left gaps open waits before it
+  is asked again.
 
 Implements: `Clone`, `Debug`, `Default`
 
@@ -2473,8 +2476,9 @@ pub async fn enrich_books_from_metadata(
 Fills missing description, subjects, cover and language from the
 deployed metadata providers.
 
-Walks the held editions and skips those a provider already filled. With
-no provider deployed, every answer is empty and nothing changes.
+Walks the held editions with gaps, skipping those whose last ask left
+gaps open less than [`MetadataEnrichOptions::retry_after`](#metadataenrichoptions) ago. With no
+provider deployed nothing is asked.
 
 #### Arguments
 

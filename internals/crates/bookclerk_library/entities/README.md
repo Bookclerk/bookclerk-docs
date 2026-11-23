@@ -48,6 +48,7 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`edition_acquisitions`](edition_acquisitions.md): SeaORM entity for `edition_acquisitions`: each edition's acquire state.
 - [`edition_chapters`](edition_chapters.md): SeaORM entity for `edition_chapters`: the chapter list an edition's claims resolved to (`store::chapters`).
 - [`edition_copies`](edition_copies.md): SeaORM entity for `edition_copies`: each edition's copy at each output destination and where it stands (storage destinations ADR, `docs/adr/storage-destinations.md`, decision 3).
+- [`edition_enrich_attempts`](edition_enrich_attempts.md): SeaORM entity for the `edition_enrich_attempts` table (composite primary key).
 - [`edition_files`](edition_files.md): SeaORM entity for `edition_files`: every file key an acquire or a host upload wrote, per output destination, and the edition it belongs to (library data model ADR, `docs/adr/library-data-model.md`, section 3). Written by the acquire pipeline (`crate::LibraryStore::record_edition_file`) and by `control_plane::uploads`, which refuses an upload a key another edition holds and deletes an aborted upload's copy only while the key is still its own.
 - [`edition_identifiers`](edition_identifiers.md): SeaORM entity for the `edition_identifiers` table (composite primary key).
 - [`editions`](editions.md): SeaORM entity for the `editions` table (text primary key).

@@ -192,6 +192,7 @@
     "internals/crates/bookclerk_library/entities/edition_acquisitions",
     "internals/crates/bookclerk_library/entities/edition_chapters",
     "internals/crates/bookclerk_library/entities/edition_copies",
+    "internals/crates/bookclerk_library/entities/edition_enrich_attempts",
     "internals/crates/bookclerk_library/entities/edition_files",
     "internals/crates/bookclerk_library/entities/edition_identifiers",
     "internals/crates/bookclerk_library/entities/editions",

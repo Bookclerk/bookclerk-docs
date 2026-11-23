@@ -90,6 +90,7 @@ plain audio that lacks Audible brand intro/outro.
 
 ```rust
 pub trait MetadataProviders: Send + Sync {
+    fn provider_keys(&self) -> Vec<String>;
     fn lookup<'life0, 'life1, 'async_trait>(
         &'life0 self,
         params: &'life1 MetadataLookupParams,
@@ -121,6 +122,18 @@ Deployed metadata providers the host asks for bibliographic records.
 
 Implementations ask every provider in a stable order. A provider that
 fails is reported in the answer's `failures` and does not stop the others.
+
+#### MetadataProviders::provider_keys
+
+```rust
+fn provider_keys(&self) -> Vec<String>
+```
+
+The plugin keys of the providers asked, in the order they are asked.
+
+Empty when no provider is deployed: every answer is then empty, so
+a caller can skip work whose only use is to score a provider record
+(and a cache can key on the set, so deploying a provider is seen).
 
 #### MetadataProviders::lookup
 
@@ -742,7 +755,8 @@ Catalog search + provider lookup against an already-built HTTP client.
 
 #### Returns
 
-The highest-scoring candidate at or above `min_confidence`.
+The highest-scoring candidate at or above `min_confidence`; `None`
+without any catalog search when no metadata provider is deployed.
 
 #### Errors
 

@@ -110,6 +110,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`WorkTagsRequest`](#worktagsrequest) | struct | A validated `WorkTagsBody`: at most `MAX_WORK_TAGS` distinct tags (by `facet_key`), trimmed, each 1 to `MAX_WORK_TAG_BYTES` bytes, in the order sent with the first spelling kept. |
 | [`CatalogListing`](#cataloglisting) | struct | One title a store's catalog answer reported. |
 | [`CatalogListingRecord`](#cataloglistingrecord) | struct | A stored catalog listing, as Discover and the wishlist read it. |
+| [`ListedProduct`](#listedproduct) | struct | One store product as a marketplace lists it, the key `LibraryStore::listing_expressions` answers by. |
 | [`ListingDetail`](#listingdetail) | struct | The store's own text for a listing, beyond the title the resolver sees. |
 | [`ListingOffer`](#listingoffer) | struct | One price a store quoted for one listing and audience. |
 | [`RecordedListings`](#recordedlistings) | struct | What `LibraryStore::record_catalog_listings` stored for one answer. |
@@ -259,6 +260,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`SplitOutcome`](#splitoutcome) | enum | What `LibraryStore::split_work` did. |
 | [`CopyState`](#copystate) | enum | Where an edition's copy at one destination stands. |
 | [`DiscoverSubject`](#discoversubject) | enum | Whose Discover shelves a stored row belongs to. |
+| [`EnrichAttemptOutcome`](#enrichattemptoutcome) | enum | How a gap-fill attempt that left an edition's gaps open ended (`edition_enrich_attempts.outcome`). |
 | [`FeedState`](#feedstate) | enum | The state of a destination's change feed. |
 | [`FileOwner`](#fileowner) | enum | Who a recorded file key belongs to. |
 | [`FileRole`](#filerole) | enum | What a recorded file is. |
@@ -4689,6 +4691,51 @@ The stored offer for `audience`.
 
 Implements: `Clone`, `Debug`
 
+### ListedProduct
+
+```rust
+pub struct ListedProduct {
+    pub plugin_key: String,
+    pub marketplace: String,
+    pub product_id: String,
+}
+```
+
+One store product as a marketplace lists it, the key
+[`LibraryStore::listing_expressions`](#librarystorelisting_expressions) answers by.
+
+A store's product id names one edition per marketplace, and the same id
+can name another recording in another marketplace, so a product is only
+placed reliably together with the marketplace it was seen in.
+
+**Fields**
+
+- `plugin_key`: The store's PluginKey (`store_listings.plugin_key`).
+- `marketplace`: The marketplace the product was seen in (`us`, `uk`, ...); empty
+  when it is not known, which matches every marketplace.
+- `product_id`: The store's product id, as the store reports it (it is compared in
+  its stored spelling).
+
+#### ListedProduct::new
+
+```rust
+pub fn new(
+    plugin_key: impl Into<String>,
+    marketplace: impl Into<String>,
+    product_id: impl Into<String>,
+) -> Self
+```
+
+A product of `plugin_key` seen in `marketplace`.
+
+##### Arguments
+
+* `plugin_key` - The store's PluginKey.
+* `marketplace` - The marketplace, or empty when unknown.
+* `product_id` - The store's product id.
+
+Implements: `Clone`, `Debug`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`
+
 ### ListingDetail
 
 ```rust
@@ -7364,26 +7411,28 @@ Returns the database error.
 ```rust
 pub async fn listing_expressions(
     &self,
-    products: &[(String, String)],
-) -> Result<HashMap<(String, String), BTreeSet<String>>>
+    products: &[ListedProduct],
+) -> Result<HashMap<ListedProduct, BTreeSet<String>>>
 ```
 
 The expressions (recordings) the shared listing pool placed each
-store product in, in any marketplace.
+store product in, in the marketplace it was seen in.
 
-A store's product id names one edition per marketplace, so a product
-usually has one expression; a product listed in two marketplaces
-under different editions has each of their expressions. A product
-the pool never listed is left out.
+A store's product id names one edition per marketplace, but one id
+can name different recordings in two marketplaces. So a product is
+placed by the listings of its own marketplace; only when the pool
+lists it in no such marketplace (or the marketplace is not known)
+do its listings in every marketplace count, each with its own
+expression. A product the pool never listed is left out.
 
 ##### Arguments
 
-* `products` - `(plugin_key, product_id)` pairs, as stores report
-  them (the product id is compared in its stored spelling).
+* `products` - The products asked about (the product id is compared
+  in its stored spelling, the marketplace ignoring ASCII case).
 
 ##### Returns
 
-Each pooled product's expression ids, keyed by the pair as given.
+Each pooled product's expression ids, keyed by the product as given.
 
 ##### Errors
 
@@ -8405,6 +8454,56 @@ tries again.
 
 Returns [`LibraryError::NotFound`](#libraryerror) when the edition is gone, or
 [`LibraryError::Orm`](#libraryerror) when a read or write fails.
+
+#### LibraryStore::enrich_attempted_since
+
+```rust
+pub async fn enrich_attempted_since(
+    &self,
+    enricher: &str,
+    edition_ids: &[String],
+    since: DateTime<Utc>,
+) -> Result<HashSet<String>>
+```
+
+The editions among `edition_ids` that `enricher` tried at or after
+`since` without filling every gap
+([`LibraryStore::record_enrich_attempt`](#librarystorerecord_enrich_attempt)).
+
+##### Arguments
+
+* `enricher` - Which enricher asked (such as `metadata`).
+* `edition_ids` - The editions to check.
+* `since` - Attempts before this time no longer count.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
+#### LibraryStore::record_enrich_attempt
+
+```rust
+pub async fn record_enrich_attempt(
+    &self,
+    edition_id: &str,
+    enricher: &str,
+    outcome: EnrichAttemptOutcome,
+) -> Result<()>
+```
+
+Records that `enricher` tried `edition_id` now and left gaps open,
+replacing its earlier attempt.
+
+##### Arguments
+
+* `edition_id` - The edition asked about.
+* `enricher` - Which enricher asked (such as `metadata`).
+* `outcome` - How the attempt ended.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when the write fails (an edition that
+is gone fails its foreign key).
 
 #### LibraryStore::edition_acquisition
 
@@ -19311,6 +19410,41 @@ pub fn key(&self) -> String
 The subject's stored key, the inverse of [`Self::parse`](#discoversubjectparse).
 
 Implements: `Clone`, `Debug`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`
+
+### EnrichAttemptOutcome
+
+```rust
+pub enum EnrichAttemptOutcome {
+    Partial,
+    Unmatched,
+}
+```
+
+How a gap-fill attempt that left an edition's gaps open ended
+(`edition_enrich_attempts.outcome`).
+
+**Variants**
+
+- `Partial`: A record filled some of the gaps, and others stay open.
+- `Unmatched`: Every enricher answered, and no record matched or filled a gap.
+
+#### EnrichAttemptOutcome::ALL
+
+```rust
+pub const ALL: [Self; 2] = _
+```
+
+Every outcome, in the order the table's check lists them.
+
+#### EnrichAttemptOutcome::as_str
+
+```rust
+pub const fn as_str(self) -> &'static str
+```
+
+The stored spelling.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
 ### FeedState
 
