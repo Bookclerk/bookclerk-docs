@@ -2883,6 +2883,86 @@ started_at: string;
 
 ***
 
+### OfferedModelView
+
+One model a model plugin offers.
+
+#### Properties
+
+##### detail?
+
+```ts
+detail?: string;
+```
+
+Why the last download failed, while `state` is `waiting`.
+
+##### download\_bytes
+
+```ts
+download_bytes: number;
+```
+
+Bytes downloaded and kept on disk.
+
+##### fits
+
+```ts
+fits: boolean;
+```
+
+False when the model needs more memory than the plugin may use on this node.
+
+##### id
+
+```ts
+id: string;
+```
+
+The model id: the value the choosing setting takes.
+
+##### label
+
+```ts
+label: string;
+```
+
+Name shown in the picker.
+
+##### memory\_bytes
+
+```ts
+memory_bytes: number;
+```
+
+Memory the plugin needs while the model is loaded, in bytes.
+
+##### received\_bytes?
+
+```ts
+received_bytes?: number;
+```
+
+Bytes on disk so far, while `state` is `downloading`.
+
+##### state
+
+```ts
+state: ModelInstallState;
+```
+
+Where the model stands on this node.
+
+##### summary
+
+```ts
+summary: string;
+```
+
+One sentence on what the model is good for.
+
+***
+
 ### OidcAsClient
 
 Bookclerk-as-IdP OAuth client (secrets never listed after create/rotate).
@@ -4180,6 +4260,46 @@ settings: Record<string, InstanceSettingValue>;
 
 ***
 
+### PluginModelsView
+
+The models a model plugin offers, as the answering node has them.
+
+#### Properties
+
+##### chosen
+
+```ts
+chosen: string;
+```
+
+The model the setting names now.
+
+##### memory\_ceiling\_bytes
+
+```ts
+memory_ceiling_bytes: number;
+```
+
+Memory the plugin may use on this node, in bytes.
+
+##### models
+
+```ts
+models: OfferedModelView[];
+```
+
+Every offered model, ascending by id.
+
+##### setting
+
+```ts
+setting: string;
+```
+
+Key of the instance setting that chooses the model.
+
+***
+
 ### PluginPlacementView
 
 Scheduler placement of a plugin instance: the operator's intent and the
@@ -4549,6 +4669,14 @@ logo?: string;
 ```
 
 Same-origin logo for Settings list rows (embedded, or a copy of the remote logo).
+
+##### models?
+
+```ts
+models?: PluginModelsView;
+```
+
+The models a model plugin offers, as this node has them; absent for other plugins.
 
 ##### placement?
 
@@ -7493,6 +7621,25 @@ type MemberControls = Record<MemberControl, boolean>;
 ```
 
 A value for every member control (`true` = allowed).
+
+***
+
+### ModelInstallState
+
+```ts
+type ModelInstallState = 
+  | "not_installed"
+  | "checking"
+  | "downloading"
+  | "waiting"
+  | "downloads_off"
+  | "installed";
+```
+
+Where one offered model stands on the answering node: `not_installed`
+(another model is chosen), `checking`, `downloading`, `waiting` (the last
+download failed and is tried again), `downloads_off` (chosen, but this
+node does not download models) or `installed`.
 
 ***
 

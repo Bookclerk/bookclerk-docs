@@ -2443,6 +2443,12 @@ outside Bookclerk (noticed by the destination's change feed or listing).
 
 Type: one of `mark_missing`, `restore`
 
+## ModelInstallState
+
+Where one offered model stands on the answering node.
+
+Type: one of `not_installed`, `checking`, `downloading`, `waiting`, `downloads_off`, `installed`
+
 ## MultiDestinationMode
 
 Behavior when some output destinations already have a title and others do not.
@@ -2734,6 +2740,20 @@ padding.
 JSON body of an OAuth start: the browser login URL to open.
 
 - `url` *string*, **required** — The store's login page, bound to this sign-in.
+
+## OfferedModelView
+
+One model a model plugin offers.
+
+- `id` *string*, **required** — The model id: the value the choosing setting takes.
+- `label` *string*, **required** — Name shown in the picker.
+- `summary` *string*, **required** — One sentence on what the model is good for.
+- `download_bytes` *integer (int64)*, **required** — Bytes downloaded and kept on disk. At least 0.
+- `memory_bytes` *integer (int64)*, **required** — Memory the plugin needs while the model is loaded, in bytes. At least 0.
+- `fits` *boolean*, **required** — False when the model needs more memory than the plugin may use on this node; the picker does not offer it.
+- `state` *[`ModelInstallState`](#modelinstallstate)*, **required** — Where the model stands on this node.
+- `received_bytes` *integer (int64) or null* — Bytes on disk so far, while `state` is `downloading`. At least 0.
+- `detail` *string or null* — Why the last download failed, while `state` is `waiting`.
 
 ## OfferJson
 
@@ -3655,6 +3675,15 @@ One plugin instance with its schema, document, and deployments.
 - `placement` *[`PlacementView`](#placementview) or null* — Scheduler placement; absent when the instance is hand-managed.
 - `storage_sync` *[`StorageSyncView`](#storagesyncview) or null* — How outside changes at this destination are followed; absent until a storage instance's first sync pass.
 
+## PluginModelsView
+
+The models a model plugin offers, as this node has them.
+
+- `setting` *string*, **required** — Key of the instance setting that chooses the model.
+- `chosen` *string*, **required** — The model the setting names now (the package's default when it names none).
+- `memory_ceiling_bytes` *integer (int64)*, **required** — Memory the plugin may use on this node, in bytes. At least 0.
+- `models` *array of [`OfferedModelView`](#offeredmodelview)*, **required** — Every offered model, ascending by id.
+
 ## PluginPlacementChanged
 
 `PUT /api/config/plugin-instances/{id}/placement` body: the placement
@@ -3739,6 +3768,7 @@ Settings UI group for one discovered or loaded plugin.
 - `deployment` *[`PluginDeploymentView`](#plugindeploymentview) or null* — This node's deployment of the instance, when one exists.
 - `placement` *[`PlacementView`](#placementview) or null* — Scheduler placement; absent when the instance is hand-managed (the Enabled switch applies only then).
 - `storage_sync` *[`StorageSyncView`](#storagesyncview) or null* — How outside changes at this destination are followed; absent for other plugins and before a destination's first sync pass.
+- `models` *[`PluginModelsView`](#pluginmodelsview) or null* — The models a model plugin offers and where each stands on this node; absent for other plugins and while the plugin is not deployed here.
 - `present_on` *array of string* — Nodes whose deployment of the instance is `present`.
 
 ## PluginUninstalled

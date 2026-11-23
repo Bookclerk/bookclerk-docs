@@ -39,6 +39,7 @@ same code. See `docs/internals/model-packs.md`.
 | [`Element`](#element) | enum | Element type of a token table. |
 | [`Pooling`](#pooling) | enum | How the graph's output becomes one vector per text. |
 | [`PackError`](#packerror) | enum | Why a model directory's file was refused. |
+| [`file_matches`](#file_matches) | function | Whether a file on disk has a given length and SHA-256, read in pieces so its size never matters to memory. |
 | [`encode_rows`](#encode_rows) | function | Writes a row pack. |
 | [`revision`](#revision) | function | The revision of a loaded model: a digest of its description, which lists the digest of every file, and of the languages loaded. |
 | [`MANIFEST_FILE`](#manifest_file) | constant | Name of the model description inside a model directory. |
@@ -138,6 +139,24 @@ Checks that `content` is the file the description lists.
 
 [`PackError::FileMismatch`](#packerror) when the length or the digest differs.
 
+#### PackFile::verify_file
+
+```rust
+pub fn verify_file(&self, path: &Path) -> Result<(), PackError>
+```
+
+Checks that a file on disk is the file the description lists,
+reading it in pieces so its size never matters to memory.
+
+##### Arguments
+
+* `path` - The file to read.
+
+##### Errors
+
+[`PackError::FileMismatch`](#packerror) when the file cannot be read or its
+length or digest differs.
+
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
 ### PackFileName
@@ -224,6 +243,19 @@ Writes the description as JSON that [`PackManifest::parse`](#packmanifestparse) 
 
 The first rule the description breaks, as [`PackManifest::parse`](#packmanifestparse)
 would report it.
+
+#### PackManifest::files
+
+```rust
+pub fn files(&self) -> impl Iterator<Item = &PackFile>
+```
+
+Every file the description lists: the graph, the tokenizer, the
+base rows, then each language's row pack by tag.
+
+##### Returns
+
+The files, each name once for a checked description.
 
 #### PackManifest::row_bytes
 
@@ -492,6 +524,25 @@ Why a model directory's file was refused.
 Implements: `Clone`, `Debug`, `Display`, `Eq`, `Error`, `PartialEq`
 
 ## Functions
+
+### file_matches
+
+```rust
+pub fn file_matches(path: &Path, bytes: u64, sha256: &Sha256Hex) -> bool
+```
+
+Whether a file on disk has a given length and SHA-256, read in pieces
+so its size never matters to memory.
+
+#### Arguments
+
+* `path` - The file to read.
+* `bytes` - The length it must have.
+* `sha256` - The digest it must have.
+
+#### Returns
+
+False when the file cannot be read or either differs.
 
 ### encode_rows
 

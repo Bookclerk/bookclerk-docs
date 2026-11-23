@@ -2222,6 +2222,7 @@ pub struct PluginsConfig {
     pub registries: Vec<PluginRegistryEntry>,
     pub allow_unverified_publisher: bool,
     pub webhooks: WebhooksExposure,
+    pub models: PluginModelsConfig,
 }
 ```
 
@@ -2245,6 +2246,7 @@ ones it loads.
   required). Bookclerk does not verify publisher signatures.
 - `webhooks`: Whether plugins' `[[webhooks]]` take requests from the Internet on
   `POST /hooks/<token>/<name>`.
+- `models`: How this node gets the model files of its model plugins.
 
 #### PluginsConfig::apply_env_overrides
 

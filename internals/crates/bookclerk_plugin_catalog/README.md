@@ -32,6 +32,11 @@ See `docs/plugins/registry.md`.
 | [`PackageLinks`](#packagelinks) | struct | Optional documentation / support links. |
 | [`PublisherIdentity`](#publisheridentity) | struct | Optional publisher signing identity (when available). |
 | [`SandboxRequest`](#sandboxrequest) | struct | Publisher-requested sandbox (informational until host approves). |
+| [`BearerToken`](#bearertoken) | struct | A registry pull token, safe to put in a request header. |
+| [`DescriptionPin`](#descriptionpin) | struct | The pin of a model: what its `model.json` must be. That file lists the size and SHA-256 of every other file, so this one digest fixes the whole model. |
+| [`ModelOffer`](#modeloffer) | struct | One model the plugin can be given. |
+| [`ModelOffers`](#modeloffers) | struct | The models a plugin package offers and where they are published. |
+| [`ModelRegistry`](#modelregistry) | struct | Where model packs are downloaded from. |
 | [`PluginMutationLock`](#pluginmutationlock) | struct | RAII exclusive lock covering one host plugin namespace (`$FILES_DIR`). |
 | [`InstallReceipt`](#installreceipt) | struct | Record written after a successful install / update. |
 | [`TrustPolicy`](#trustpolicy) | struct | Trust policy for plugin installation (digest-required artifacts). |
@@ -66,6 +71,10 @@ See `docs/plugins/registry.md`.
 | [`normalize_protocol`](#normalize_protocol) | function | Normalize optional `protocol` for Workers RPC packages. |
 | [`parse_sha256_hex`](#parse_sha256_hex) | function | Decode hex SHA-256 into 32 bytes. |
 | [`validate_sha256_hex`](#validate_sha256_hex) | function | Validate lowercase hex SHA-256 (64 chars). |
+| [`fetch_model`](#fetch_model) | function | Downloads a model into the plugin's models directory and verifies it. |
+| [`model_installed`](#model_installed) | function | Whether a model directory holds the offered model: its `model.json` is the pinned one and every file it lists is there with the listed size. |
+| [`parse_token_reply`](#parse_token_reply) | function | Reads the bearer token from a registry's token reply. |
+| [`remove_other_models`](#remove_other_models) | function | Removes model directories and stopped downloads the plugin should no longer hold. |
 | [`acquire_plugins_lock`](#acquire_plugins_lock) | function | Acquires the host mutation lock for `plugins_root`'s parent files dir. |
 | [`check_owner_artifact_url`](#check_owner_artifact_url) | function | Checks a URL a library asks this host to fetch an archive from. |
 | [`fetch_owner_artifact`](#fetch_owner_artifact) | function | Fetches an owner-chosen `https:` archive into `dest`, bounded by `MAX_DOWNLOAD_BYTES` and `DOWNLOAD_TIMEOUT` per request. Redirects are followed (at most `MAX_REDIRECTS`) only when each hop passes `check_owner_artifact_url`, and every hop connects only to addresses that pass `owner_address_allowed` (`PublicOnlyResolver`); no proxy is used. The caller checks the archive digest. |
@@ -99,10 +108,20 @@ See `docs/plugins/registry.md`.
 | [`INSTALL_LEDGER_SCHEMA_VERSION`](#install_ledger_schema_version) | constant | Schema version for `InstallLedger`. |
 | [`MANIFEST_SCHEMA_VERSION`](#manifest_schema_version) | constant | Current package manifest schema. |
 | [`PROTOCOL_WORKERS_RPC`](#protocol_workers_rpc) | constant | Product wire protocol for Workers RPC (`api_version = 3`). |
+| [`MAX_MODEL_BYTES`](#max_model_bytes) | constant | Largest model accepted, all files together, in bytes. |
+| [`MAX_MODEL_OFFERS`](#max_model_offers) | constant | Most models one plugin package may offer. |
+| [`MAX_MODEL_OFFERS_BYTES`](#max_model_offers_bytes) | constant | Longest `MODEL_OFFERS_FILE` read, in bytes. |
+| [`MAX_TOKEN_BYTES`](#max_token_bytes) | constant | Longest bearer token accepted, in bytes. |
+| [`MAX_TOKEN_REPLY_BYTES`](#max_token_reply_bytes) | constant | Longest registry token reply read, in bytes. |
+| [`MODEL_OFFERS_FILE`](#model_offers_file) | constant | Name of the file in the model plugin's package that lists the models it can be given and pins each one. |
 | [`PLUGIN_MUTATION_LOCK_FILE`](#plugin_mutation_lock_file) | constant | Filename under `$BOOKCLERK_FILES_DIR` for the host plugin mutation lock. |
 | [`PAYLOAD_SKIP_NAMES`](#payload_skip_names) | constant | Directory / file names excluded from the immutable payload (host-owned receipts only). Packaged `data/` and `tmp/` are hashed: mutable plugin state lives under `$FILES_DIR/plugin-state/<PluginKey fs-id>/`, not inside the install tree. |
 | [`RECEIPT_FILE`](#receipt_file) | constant | Filename for the receipt beside `plugin.toml`. |
 | [`TARGETS`](#targets) | constant | Canonical Bookclerk install targets (not raw rustc triples). |
+
+## Modules
+
+- [`model_fetch_testing`](model_fetch_testing.md): Test support for model downloads: a tiny model and a registry on loopback that serves it the way the real one does (a token endpoint, then blobs by digest with `Range` support).
 
 ## Traits
 
@@ -1257,6 +1276,219 @@ Publisher-requested sandbox (informational until host approves).
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
+### BearerToken
+
+```rust
+pub struct BearerToken(/* private */);
+```
+
+A registry pull token, safe to put in a request header.
+
+#### BearerToken::as_str
+
+```rust
+pub fn as_str(&self) -> &str
+```
+
+The token as it goes after `Bearer ` in an `Authorization` header.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### DescriptionPin
+
+```rust
+pub struct DescriptionPin {
+    pub bytes: u64,
+    pub sha256: Sha256Hex,
+}
+```
+
+The pin of a model: what its `model.json` must be. That file lists the
+size and SHA-256 of every other file, so this one digest fixes the
+whole model.
+
+**Fields**
+
+- `bytes`: Length of `model.json` in bytes.
+- `sha256`: SHA-256 of `model.json`.
+
+#### DescriptionPin::of
+
+```rust
+pub fn of(content: &[u8]) -> Self
+```
+
+The pin that `content` satisfies.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`
+
+### ModelOffer
+
+```rust
+pub struct ModelOffer {
+    pub label: String,
+    pub summary: String,
+    pub model_json: DescriptionPin,
+    pub download_bytes: u64,
+    pub memory_bytes: u64,
+}
+```
+
+One model the plugin can be given.
+
+**Fields**
+
+- `label`: Name shown in the picker.
+- `summary`: One sentence for the picker on what the model is good for.
+- `model_json`: The pin: size and SHA-256 of the model's `model.json`.
+- `download_bytes`: Bytes downloaded and kept on disk, all files together.
+- `memory_bytes`: Memory the plugin needs while the model is loaded, in bytes.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`
+
+### ModelOffers
+
+```rust
+pub struct ModelOffers {
+    /* private fields */
+}
+```
+
+The models a plugin package offers and where they are published.
+
+#### ModelOffers::parse
+
+```rust
+pub fn parse(bytes: &[u8]) -> Result<Self>
+```
+
+Reads and checks a [`MODEL_OFFERS_FILE`](#model_offers_file).
+
+##### Arguments
+
+* `bytes` - The file's content.
+
+##### Errors
+
+Returns an error when the file is too large, is not the expected
+JSON, names a registry or a model id that is not well formed, pins
+a description over the size limit, or names a default it does
+not offer.
+
+#### ModelOffers::read
+
+```rust
+pub fn read(install_dir: &Path) -> Result<Option<Self>>
+```
+
+Reads the model list of an installed plugin package.
+
+##### Arguments
+
+* `install_dir` - The plugin's install directory.
+
+##### Returns
+
+`None` when the package carries no model list.
+
+##### Errors
+
+Returns an error when the file cannot be read or
+[`ModelOffers::parse`](#modeloffersparse) refuses it.
+
+#### ModelOffers::default_model
+
+```rust
+pub fn default_model(&self) -> &str
+```
+
+Id of the model a library uses until it chooses another.
+
+#### ModelOffers::models
+
+```rust
+pub fn models(&self) -> impl Iterator<Item = (&str, &ModelOffer)>
+```
+
+The offered models, ascending by model id.
+
+#### ModelOffers::get
+
+```rust
+pub fn get(&self, model_id: &str) -> Option<&ModelOffer>
+```
+
+One offered model.
+
+##### Arguments
+
+* `model_id` - The model id.
+
+#### ModelOffers::registry
+
+```rust
+pub fn registry(&self) -> ModelRegistry
+```
+
+The registry the packs are published in, reached over HTTPS.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`
+
+### ModelRegistry
+
+```rust
+pub struct ModelRegistry {
+    /* private fields */
+}
+```
+
+Where model packs are downloaded from.
+
+#### ModelRegistry::at
+
+```rust
+pub fn at(&self, base: &str) -> Result<Self>
+```
+
+The same registry reached at another address: a mirror, or a test
+server on loopback.
+
+##### Arguments
+
+* `base` - Scheme and authority, `https://…` or loopback `http://…`,
+  with no path.
+
+##### Errors
+
+Returns an error for any other URL.
+
+#### ModelRegistry::token_url
+
+```rust
+pub fn token_url(&self, model_id: &str) -> String
+```
+
+URL that hands out a pull token for one model's repository.
+
+##### Arguments
+
+* `model_id` - The model, one of the offered ids.
+
+#### ModelRegistry::blob_url
+
+```rust
+pub fn blob_url(&self, model_id: &str, sha256: &Sha256Hex) -> String
+```
+
+URL of the blob with a given SHA-256 in a model's repository.
+
+##### Arguments
+
+* `model_id` - The model, one of the offered ids.
+* `sha256` - SHA-256 of the blob's content.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### PluginMutationLock
 
 ```rust
@@ -2208,6 +2440,100 @@ Validate lowercase hex SHA-256 (64 chars).
 
 Returns an error when the operation fails.
 
+### fetch_model
+
+```rust
+pub fn fetch_model(
+    registry: &ModelRegistry,
+    model_id: &str,
+    offer: &ModelOffer,
+    models_dir: &Path,
+    progress: &dyn Fn(u64, u64) + Sync,
+) -> Result<()>
+```
+
+Downloads a model into the plugin's models directory and verifies it.
+
+The files are downloaded into a directory beside the model's own and
+take its place only when every one has the size and SHA-256 the pinned
+`model.json` lists, so the plugin never sees a partial model. A file a
+stopped download already completed is kept and not downloaded again.
+This call blocks until the model is installed or the download fails.
+
+#### Arguments
+
+* `registry` - Where the packs are published
+  ([`ModelOffers::registry`](#modeloffersregistry)).
+* `model_id` - The model, one of the offered ids.
+* `offer` - Its offer, with the pin.
+* `models_dir` - The plugin's models directory; created when missing.
+* `progress` - Called with the bytes on disk so far and the model's
+  total, as files arrive.
+
+#### Errors
+
+Returns an error when the id is not well formed, the registry refuses
+or keeps failing, a file is not the one listed, the description is not
+the pinned one or names another model, or a file cannot be written.
+
+### model_installed
+
+```rust
+pub fn model_installed(offer: &ModelOffer, model_dir: &Path) -> bool
+```
+
+Whether a model directory holds the offered model: its `model.json` is
+the pinned one and every file it lists is there with the listed size.
+
+File contents are not hashed here (the plugin checks every file's
+SHA-256 before it loads a model), so this is cheap enough to run at
+every start.
+
+#### Arguments
+
+* `offer` - The offered model.
+* `model_dir` - `<models directory>/<model id>`.
+
+### parse_token_reply
+
+```rust
+pub fn parse_token_reply(body: &[u8]) -> Result<BearerToken>
+```
+
+Reads the bearer token from a registry's token reply.
+
+The reply comes from the network and the token goes into a request
+header, so only a token of 1 to [`MAX_TOKEN_BYTES`](#max_token_bytes) characters from
+`A-Z a-z 0-9 . _ ~ + / = -` (what RFC 6750 allows) is accepted.
+
+#### Arguments
+
+* `body` - The reply body.
+
+#### Errors
+
+Returns an error when the body is too large, is not a JSON object with
+a `token` string, or the token holds any other character.
+
+### remove_other_models
+
+```rust
+pub fn remove_other_models(models_dir: &Path, keep: &[&str]) -> Result<()>
+```
+
+Removes model directories and stopped downloads the plugin should no
+longer hold.
+
+#### Arguments
+
+* `models_dir` - The plugin's models directory.
+* `keep` - Model ids to keep, installed or still downloading.
+
+#### Errors
+
+Returns an error when the directory cannot be read or an entry cannot
+be removed. A models directory that does not exist is not an error.
+
 ### acquire_plugins_lock
 
 ```rust
@@ -2597,6 +2923,55 @@ pub const PROTOCOL_WORKERS_RPC: &str = "workers-rpc";
 ```
 
 Product wire protocol for Workers RPC (`api_version = 3`).
+
+### MAX_MODEL_BYTES
+
+```rust
+pub const MAX_MODEL_BYTES: u64 = _;
+```
+
+Largest model accepted, all files together, in bytes.
+
+### MAX_MODEL_OFFERS
+
+```rust
+pub const MAX_MODEL_OFFERS: usize = 32;
+```
+
+Most models one plugin package may offer.
+
+### MAX_MODEL_OFFERS_BYTES
+
+```rust
+pub const MAX_MODEL_OFFERS_BYTES: usize = _;
+```
+
+Longest [`MODEL_OFFERS_FILE`](#model_offers_file) read, in bytes.
+
+### MAX_TOKEN_BYTES
+
+```rust
+pub const MAX_TOKEN_BYTES: usize = 8192;
+```
+
+Longest bearer token accepted, in bytes.
+
+### MAX_TOKEN_REPLY_BYTES
+
+```rust
+pub const MAX_TOKEN_REPLY_BYTES: usize = _;
+```
+
+Longest registry token reply read, in bytes.
+
+### MODEL_OFFERS_FILE
+
+```rust
+pub const MODEL_OFFERS_FILE: &str = "models.json";
+```
+
+Name of the file in the model plugin's package that lists the models
+it can be given and pins each one.
 
 ### PLUGIN_MUTATION_LOCK_FILE
 

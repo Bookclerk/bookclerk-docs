@@ -825,6 +825,16 @@ Sets or clears the model a task alias resolves to.
 * `model` - The chosen model as `(plugin id, model id)`, or `None`
   to fall back to the first deployed model of the task.
 
+#### AiRouter::forget_listings
+
+```rust
+pub async fn forget_listings(&self)
+```
+
+Drops every cached listing, so the next run or listing asks each
+plugin again. The host calls this after it installed or removed a
+model's files, which changes what a running plugin lists.
+
 #### AiRouter::models
 
 ```rust

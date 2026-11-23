@@ -975,6 +975,7 @@
     "internals/crates/bookclerk_plugin_ai_embedder/plugin",
     "internals/crates/bookclerk_plugin_ai_embedder/text",
     "internals/crates/bookclerk_plugin_catalog/README",
+    "internals/crates/bookclerk_plugin_catalog/model_fetch_testing",
     "internals/crates/bookclerk_plugin_database_d1/README",
     "internals/crates/bookclerk_plugin_database_d1/adapter",
     "internals/crates/bookclerk_plugin_database_d1/atomic",

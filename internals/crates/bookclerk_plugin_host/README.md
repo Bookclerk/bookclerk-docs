@@ -78,6 +78,10 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`PreparedOpen`](#preparedopen) | struct | Bindings passed to `PluginWorker.open`, plus the spawn config table. |
 | [`KvNamespaces`](#kvnamespaces) | struct | Host-owned facts a session needs before it can hand a guest its KV bindings: the library store plus the granted rows. |
 | [`LibraryKvNamespace`](#librarykvnamespace) | struct | `KvNamespace` server for one `(plugin_key, namespace)` on the library. |
+| [`ModelDelivery`](#modeldelivery) | struct | Downloads and tracks the models of this node's model plugins. |
+| [`ModelStatus`](#modelstatus) | struct | One offered model and where it stands on this node. |
+| [`ModelWant`](#modelwant) | struct | What one deployed model plugin should have, as the reconciler saw it at the last spawn. |
+| [`PluginModels`](#pluginmodels) | struct | The models of one deployed model plugin on this node. |
 | [`OnDemandIntegration`](#ondemandintegration) | struct | Integration registry entry that starts its guest on the first call and stops it after the idle timeout without calls. |
 | [`OnDemandSource`](#ondemandsource) | struct | Source registry entry that starts its storefront guest on the first call and stops it after the idle timeout without calls. |
 | [`HeldSession`](#heldsession) | struct | A guest session lent to a caller, with the hold that keeps an on-demand guest up. |
@@ -109,6 +113,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`StorageRole`](#storagerole) | enum | What the host does with a deployed storage instance. |
 | [`OriginUpgrade`](#originupgrade) | enum | The library's answer to one WebSocket upgrade a relay plugin carries. |
 | [`Activate`](#activate) | enum | When installing moves the active pointer. |
+| [`ModelState`](#modelstate) | enum | Where one model stands on this node. |
 | [`RemoteApprovalError`](#remoteapprovalerror) | enum | Why `approve_remote_request` refused, by cause, so a caller (the operator API) can tell "review again" from "fix the input" from "retry later". |
 | [`RemoteConsentState`](#remoteconsentstate) | enum | How this host stands on one owner plugin's request. |
 | [`LocalInbound`](#localinbound) | enum | What the library's side of a `LocalSocket` delivers. |
@@ -315,6 +320,8 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`VERSION_CACHE_DIR`](#version_cache_dir) | constant | Directory under `plugins/` holding materialized version trees. |
 | [`VERSION_CACHE_GRACE`](#version_cache_grace) | constant | How long an unreferenced cached digest survives before the sweep. |
 | [`KV_GRANT_BINDING`](#kv_grant_binding) | constant | Grant token that authorizes every `[[kv_namespaces]]` row of a plugin. |
+| [`MODELS_DIR`](#models_dir) | constant | Directory in a model plugin's data directory that holds one directory per installed model. |
+| [`MODEL_SETTING_KEY`](#model_setting_key) | constant | Key of the instance setting that names the chosen model. |
 | [`TRIGGER_IDLE_TIMEOUT`](#trigger_idle_timeout) | constant | How long a trigger-driven guest stays up after its last call returns. |
 | [`STOREFRONT_IDLE_TIMEOUT`](#storefront_idle_timeout) | constant | How long a storefront stays up after its last call returns. |
 | [`STORAGE_IDLE_TIMEOUT`](#storage_idle_timeout) | constant | How long a storage destination stays up after its last call returns. |
@@ -1539,6 +1546,23 @@ pub fn new(
 ```
 
 Runtime bound to the daemon's live registries.
+
+#### LiveDeploymentRuntime::set_model_delivery
+
+```rust
+pub fn set_model_delivery(&self, delivery: ModelDelivery)
+```
+
+Lets this node install the models its model plugins pin. Until it is
+set, no model is looked for or downloaded.
+
+#### LiveDeploymentRuntime::model_delivery
+
+```rust
+pub fn model_delivery(&self) -> Option<ModelDelivery>
+```
+
+What installs models on this node, when the daemon set it.
 
 #### LiveDeploymentRuntime::set_ingress_host
 
@@ -2864,6 +2888,161 @@ pub fn namespace(&self) -> &str
 Namespace this binding is scoped to.
 
 Implements: `KvNamespace`
+
+### ModelDelivery
+
+```rust
+pub struct ModelDelivery {
+    /* private fields */
+}
+```
+
+Downloads and tracks the models of this node's model plugins.
+
+#### ModelDelivery::new
+
+```rust
+pub fn new(ai: Arc<AiRouter>, download: bool, mirror: Option<String>) -> Self
+```
+
+A delivery with no plugin tracked yet.
+
+##### Arguments
+
+* `ai` - The node's model router; an installed chosen model becomes
+  the model its tasks' aliases name.
+* `download` - False to never download (`plugins.models.download`);
+  models an operator placed by hand are still found.
+* `mirror` - Address to reach the registry at instead of the one
+  the package names (`plugins.models.registry`).
+
+#### ModelDelivery::ensure
+
+```rust
+pub fn ensure(&self, want: ModelWant)
+```
+
+Takes the want of a plugin instance that is about to be spawned and
+makes sure a worker is installing its chosen model.
+
+The chosen model becomes the library's model for the plugin's
+tasks right away; until it is installed the router falls back to a
+model the plugin already lists. Must be called inside a Tokio
+runtime.
+
+##### Arguments
+
+* `want` - What the instance should have.
+
+#### ModelDelivery::forget
+
+```rust
+pub fn forget(&self, plugin_instance_id: &str)
+```
+
+Stops following a plugin instance that no longer runs on this node.
+A download in flight finishes its current attempt and is not
+retried; the files stay for the next deployment.
+
+##### Arguments
+
+* `plugin_instance_id` - The retired instance.
+
+#### ModelDelivery::downloads
+
+```rust
+pub fn downloads(&self) -> bool
+```
+
+Whether this node downloads models.
+
+#### ModelDelivery::status
+
+```rust
+pub fn status(&self) -> Vec<PluginModels>
+```
+
+The models of every tracked model plugin, ascending by instance id.
+
+Implements: `Clone`
+
+### ModelStatus
+
+```rust
+pub struct ModelStatus {
+    pub model_id: String,
+    pub offer: ModelOffer,
+    pub state: ModelState,
+}
+```
+
+One offered model and where it stands on this node.
+
+**Fields**
+
+- `model_id`: The model id (`bekko-a8m`).
+- `offer`: The offer from the plugin package: label, sizes, pin.
+- `state`: Where the model stands on this node.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### ModelWant
+
+```rust
+pub struct ModelWant {
+    pub plugin_instance_id: String,
+    pub plugin_key: String,
+    pub plugin_id: String,
+    pub serves: Vec<AiTask>,
+    pub offers: ModelOffers,
+    pub chosen: Option<String>,
+    pub data_dir: PathBuf,
+    pub memory_ceiling_bytes: u64,
+}
+```
+
+What one deployed model plugin should have, as the reconciler saw it at
+the last spawn.
+
+**Fields**
+
+- `plugin_instance_id`: The deployed plugin instance.
+- `plugin_key`: Canonical plugin key of the plugin.
+- `plugin_id`: The plugin's id (`plugin.toml` `id`), which model names start with.
+- `serves`: Tasks the plugin's models perform; the chosen model becomes the
+  library's model for each.
+- `offers`: The models the package offers.
+- `chosen`: The instance's `model` setting, when set.
+- `data_dir`: The plugin's data directory (its `HOME`).
+- `memory_ceiling_bytes`: Memory the plugin's jail lets it use, in bytes.
+
+Implements: `Clone`, `Debug`
+
+### PluginModels
+
+```rust
+pub struct PluginModels {
+    pub plugin_instance_id: String,
+    pub plugin_key: String,
+    pub chosen: String,
+    pub memory_ceiling_bytes: u64,
+    pub models: Vec<ModelStatus>,
+}
+```
+
+The models of one deployed model plugin on this node.
+
+**Fields**
+
+- `plugin_instance_id`: The deployed plugin instance.
+- `plugin_key`: Canonical plugin key of the plugin.
+- `chosen`: The model the instance's setting chose (the package's default when
+  the setting names no offered model).
+- `memory_ceiling_bytes`: Memory the plugin's jail lets it use, in bytes. A model that needs
+  more cannot run on this node.
+- `models`: Every offered model, ascending by model id.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ### OnDemandIntegration
 
@@ -5242,6 +5421,36 @@ When installing moves the active pointer.
 - `Never`: Never; install only.
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
+### ModelState
+
+```rust
+pub enum ModelState {
+    NotInstalled,
+    Checking,
+    Downloading { received_bytes: u64, total_bytes: u64 },
+    Waiting { detail: String },
+    DownloadsOff,
+    Installed,
+}
+```
+
+Where one model stands on this node.
+
+**Variants**
+
+- `NotInstalled`: Not on this node and not wanted: another model is chosen.
+- `Checking`: Chosen, and the host has not looked at the files yet.
+- `Downloading`: Chosen and being downloaded.
+  - `received_bytes`: Bytes on disk so far.
+  - `total_bytes`: Bytes of the whole model.
+- `Waiting`: Chosen, and the last download failed; the host tries again.
+  - `detail`: Why the last download failed, without addresses or tokens.
+- `DownloadsOff`: Chosen but not on this node, and this node does not download
+  models (`plugins.models.download = false`).
+- `Installed`: Every file is on this node and matches the pin.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ### RemoteApprovalError
 
@@ -8249,6 +8458,23 @@ pub const KV_GRANT_BINDING: &str = "plugin_kv";
 ```
 
 Grant token that authorizes every `[[kv_namespaces]]` row of a plugin.
+
+### MODELS_DIR
+
+```rust
+pub const MODELS_DIR: &str = "models";
+```
+
+Directory in a model plugin's data directory that holds one directory
+per installed model.
+
+### MODEL_SETTING_KEY
+
+```rust
+pub const MODEL_SETTING_KEY: &str = "model";
+```
+
+Key of the instance setting that names the chosen model.
 
 ### TRIGGER_IDLE_TIMEOUT
 

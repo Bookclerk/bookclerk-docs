@@ -141,6 +141,12 @@ Status `200`: The settings.
         "listing_error": "the listing missed 412 of 1832 known files; removals were not applied",
         "objects": 1832
       },
+      "models": {
+        "setting": "model",
+        "chosen": "bekko-a8m",
+        "memory_ceiling_bytes": 536870912,
+        "models": []
+      },
       "present_on": [
         "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a"
       ]
@@ -645,6 +651,125 @@ Schema:
                     "description": "Files the destination held after the last listing or feed page.",
                     "example": 1832,
                     "minimum": 0
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "models": {
+            "oneOf": [
+              {
+                "type": "object",
+                "description": "The models a model plugin offers and where each stands on this\nnode; absent for other plugins and while the plugin is not deployed\nhere.",
+                "required": [
+                  "setting",
+                  "chosen",
+                  "memory_ceiling_bytes",
+                  "models"
+                ],
+                "properties": {
+                  "setting": {
+                    "type": "string",
+                    "description": "Key of the instance setting that chooses the model.",
+                    "example": "model"
+                  },
+                  "chosen": {
+                    "type": "string",
+                    "description": "The model the setting names now (the package's default when it\nnames none).",
+                    "example": "bekko-a8m"
+                  },
+                  "memory_ceiling_bytes": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "Memory the plugin may use on this node, in bytes.",
+                    "example": 536870912,
+                    "minimum": 0
+                  },
+                  "models": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "description": "One model a model plugin offers.",
+                      "required": [
+                        "id",
+                        "label",
+                        "summary",
+                        "download_bytes",
+                        "memory_bytes",
+                        "fits",
+                        "state"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "The model id: the value the choosing setting takes.",
+                          "example": "bekko-a8m"
+                        },
+                        "label": {
+                          "type": "string",
+                          "description": "Name shown in the picker.",
+                          "example": "Bekko (fast)"
+                        },
+                        "summary": {
+                          "type": "string",
+                          "description": "One sentence on what the model is good for.",
+                          "example": "Small and quick; good results in the seven supported languages."
+                        },
+                        "download_bytes": {
+                          "type": "integer",
+                          "format": "int64",
+                          "description": "Bytes downloaded and kept on disk.",
+                          "example": 140609206,
+                          "minimum": 0
+                        },
+                        "memory_bytes": {
+                          "type": "integer",
+                          "format": "int64",
+                          "description": "Memory the plugin needs while the model is loaded, in bytes.",
+                          "example": 230686720,
+                          "minimum": 0
+                        },
+                        "fits": {
+                          "type": "boolean",
+                          "description": "False when the model needs more memory than the plugin may use on\nthis node; the picker does not offer it.",
+                          "example": true
+                        },
+                        "state": {
+                          "type": "string",
+                          "description": "Where the model stands on this node.",
+                          "enum": [
+                            "not_installed",
+                            "checking",
+                            "downloading",
+                            "waiting",
+                            "downloads_off",
+                            "installed"
+                          ]
+                        },
+                        "received_bytes": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "format": "int64",
+                          "description": "Bytes on disk so far, while `state` is `downloading`.",
+                          "example": 52428800,
+                          "minimum": 0
+                        },
+                        "detail": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "Why the last download failed, while `state` is `waiting`.",
+                          "example": "the registry answered 503"
+                        }
+                      }
+                    },
+                    "description": "Every offered model, ascending by id."
                   }
                 }
               },
@@ -1002,6 +1127,12 @@ Status `200`: The settings after the change.
         "listing_error": "the listing missed 412 of 1832 known files; removals were not applied",
         "objects": 1832
       },
+      "models": {
+        "setting": "model",
+        "chosen": "bekko-a8m",
+        "memory_ceiling_bytes": 536870912,
+        "models": []
+      },
       "present_on": [
         "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a"
       ]
@@ -1506,6 +1637,125 @@ Schema:
                     "description": "Files the destination held after the last listing or feed page.",
                     "example": 1832,
                     "minimum": 0
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "models": {
+            "oneOf": [
+              {
+                "type": "object",
+                "description": "The models a model plugin offers and where each stands on this\nnode; absent for other plugins and while the plugin is not deployed\nhere.",
+                "required": [
+                  "setting",
+                  "chosen",
+                  "memory_ceiling_bytes",
+                  "models"
+                ],
+                "properties": {
+                  "setting": {
+                    "type": "string",
+                    "description": "Key of the instance setting that chooses the model.",
+                    "example": "model"
+                  },
+                  "chosen": {
+                    "type": "string",
+                    "description": "The model the setting names now (the package's default when it\nnames none).",
+                    "example": "bekko-a8m"
+                  },
+                  "memory_ceiling_bytes": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "Memory the plugin may use on this node, in bytes.",
+                    "example": 536870912,
+                    "minimum": 0
+                  },
+                  "models": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "description": "One model a model plugin offers.",
+                      "required": [
+                        "id",
+                        "label",
+                        "summary",
+                        "download_bytes",
+                        "memory_bytes",
+                        "fits",
+                        "state"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "The model id: the value the choosing setting takes.",
+                          "example": "bekko-a8m"
+                        },
+                        "label": {
+                          "type": "string",
+                          "description": "Name shown in the picker.",
+                          "example": "Bekko (fast)"
+                        },
+                        "summary": {
+                          "type": "string",
+                          "description": "One sentence on what the model is good for.",
+                          "example": "Small and quick; good results in the seven supported languages."
+                        },
+                        "download_bytes": {
+                          "type": "integer",
+                          "format": "int64",
+                          "description": "Bytes downloaded and kept on disk.",
+                          "example": 140609206,
+                          "minimum": 0
+                        },
+                        "memory_bytes": {
+                          "type": "integer",
+                          "format": "int64",
+                          "description": "Memory the plugin needs while the model is loaded, in bytes.",
+                          "example": 230686720,
+                          "minimum": 0
+                        },
+                        "fits": {
+                          "type": "boolean",
+                          "description": "False when the model needs more memory than the plugin may use on\nthis node; the picker does not offer it.",
+                          "example": true
+                        },
+                        "state": {
+                          "type": "string",
+                          "description": "Where the model stands on this node.",
+                          "enum": [
+                            "not_installed",
+                            "checking",
+                            "downloading",
+                            "waiting",
+                            "downloads_off",
+                            "installed"
+                          ]
+                        },
+                        "received_bytes": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "format": "int64",
+                          "description": "Bytes on disk so far, while `state` is `downloading`.",
+                          "example": 52428800,
+                          "minimum": 0
+                        },
+                        "detail": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "Why the last download failed, while `state` is `waiting`.",
+                          "example": "the registry answered 503"
+                        }
+                      }
+                    },
+                    "description": "Every offered model, ascending by id."
                   }
                 }
               },
