@@ -2380,6 +2380,19 @@ Where this install keeps its key.
 
 Type: one of `file`, `password_file`, `keychain`, `systemd_creds`
 
+## MeaningState
+
+Whether a way of reading the library by meaning can be used now.
+
+Type: one of `ready`, `no_model`, `embedding`
+
+## MeaningStatus
+
+Answer of `GET /api/library/works/meaning`.
+
+- `search` *[`MeaningState`](#meaningstate)*, **required** — Whether `search=meaning` answers on this node.
+- `similar` *[`MeaningState`](#meaningstate)*, **required** — Whether `GET /api/library/works/{id}/similar` lists works.
+
 ## MediaCapabilitiesJson
 
 The codecs, containers and encodings this build's media worker handles.
@@ -4866,6 +4879,13 @@ One OIDC identity provider offered on the sign-in page.
 - `id` *string*, **required** — Provider id from `[auth.oidc.providers]`, used in `/api/auth/oidc/{id}/start`.
 - `name` *string*, **required** — Button label.
 - `preset` *string or null* — Known social preset the client may style (`google`, `github`, …), when the provider matches one.
+
+## SimilarWorks
+
+Answer of `GET /api/library/works/{id}/similar`.
+
+- `state` *[`MeaningState`](#meaningstate)*, **required** — `ready` when `works` was looked up; otherwise why it is empty.
+- `works` *array of [`WorkSummaryJson`](#worksummaryjson)*, **required** — The held works most like the one asked about, most alike first. Empty when the work has no vector yet.
 
 ## SourceConfigOptionInfo
 

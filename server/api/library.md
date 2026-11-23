@@ -24117,6 +24117,7 @@ match come best first; pass `next_cursor` back with the same `q`.
 ### Parameters
 
 - `q` (query) *string* — Search text (Lucene-style); matches titles, authors, narrators, series and store ids. Works then come best match first and `sort` is not used.
+- `search` (query) *one of `words`, `meaning`* — How `q` is matched (default `words`). `meaning` needs the library's embedding model on the node that answers and the library embedded with it (`GET /api/library/works/meaning` says whether it is ready); `q` is then plain text, not a Lucene query.
 - `sort` (query) *one of `title`, `author`, `added`, `series`, `purchased`, `length`* — Order of the page (default `title`).
 - `media_kind` (query) *one of `audio`, `ebook`, `print`* — Only works with an edition on this carrier.
 - `kind` (query) *one of `book`, `podcast`* — Only works of this kind.
@@ -24576,6 +24577,757 @@ Schema:
       }
     }
   ]
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `GET /api/library/works/meaning`
+
+Says whether search by meaning and similar works are ready.
+
+A client asks before it offers either. `search` is about the node
+that answers: it needs the library's embedding model there.
+
+**Access:** The operator, or any library session, including a library card (refused with 403 `transport_insecure` off loopback without TLS, or `clerk_sign_in_unavailable` where remote installs are not served).
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clerkToken`
+
+### Responses
+
+- `200` — What is ready. Body: [`MeaningStatus`](schemas.md#meaningstatus) (`application/json`)
+  - `search` *[`MeaningState`](schemas.md#meaningstate)*, **required** — Whether `search=meaning` answers on this node.
+  - `similar` *[`MeaningState`](schemas.md#meaningstate)*, **required** — Whether `GET /api/library/works/{id}/similar` lists works.
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `clerk_sign_in_unavailable`. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `500` — The library could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/library/works/meaning' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/library/works/meaning' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/library/works/meaning",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/library/works/meaning", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/library/works/meaning")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: What is ready.
+
+```json
+{
+  "search": "ready",
+  "similar": "ready"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Answer of `GET /api/library/works/meaning`.",
+  "required": [
+    "search",
+    "similar"
+  ],
+  "properties": {
+    "search": {
+      "type": "string",
+      "description": "Whether `search=meaning` answers on this node.",
+      "enum": [
+        "ready",
+        "no_model",
+        "embedding"
+      ]
+    },
+    "similar": {
+      "type": "string",
+      "description": "Whether `GET /api/library/works/{id}/similar` lists works.",
+      "enum": [
+        "ready",
+        "no_model",
+        "embedding"
+      ]
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `clerk_sign_in_unavailable`.
+
+```json
+{
+  "error": "clerk_sign_in_unavailable",
+  "message": "This library does not accept clerks on this address.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `500`: The library could not be read.
+
+```json
+{
+  "error": "the library could not be read"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `GET /api/library/works/{id}/similar`
+
+Lists the held works most like one work.
+
+Likeness is how close the works' descriptions are in meaning, as the
+library's embedding model reads them. The caller sees only works
+inside their own scope.
+
+**Access:** The operator, or any library session, including a library card (refused with 403 `transport_insecure` off loopback without TLS, or `clerk_sign_in_unavailable` where remote installs are not served).
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clerkToken`
+
+### Parameters
+
+- `id` (path) *string*, **required** — Work id (a podcast's show).
+- `limit` (query) *integer* — Most works to list, clamped to 1–40 (default 12).
+
+### Responses
+
+- `200` — The similar works, or why there are none. Body: [`SimilarWorks`](schemas.md#similarworks) (`application/json`)
+  - `state` *[`MeaningState`](schemas.md#meaningstate)*, **required** — `ready` when `works` was looked up; otherwise why it is empty.
+  - `works` *array of [`WorkSummaryJson`](schemas.md#worksummaryjson)*, **required** — The held works most like the one asked about, most alike first. Empty when the work has no vector yet.
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `clerk_sign_in_unavailable`. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `404` — No such work. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The library could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/library/works/<id>/similar' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/library/works/<id>/similar' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/library/works/<id>/similar",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/library/works/<id>/similar", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/library/works/<id>/similar")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The similar works, or why there are none.
+
+```json
+{
+  "state": "ready",
+  "works": [
+    {
+      "id": "0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b",
+      "kind": "book",
+      "title": "The Left Hand of Darkness",
+      "authors": "Ursula K. Le Guin",
+      "series": "Hainish Cycle",
+      "series_position": "4",
+      "cover_edition_id": "7c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f",
+      "cover_path": "/api/covers/eyJ1IjoiaHR0cHM6Ly9pbWFnZXMuZXhhbXBsZS5jb20vYy5qcGcifQ",
+      "media_kinds": [
+        "audio"
+      ],
+      "acquire_status": "not_acquired",
+      "edition_count": 2,
+      "holding_count": 3,
+      "added_at": "2026-11-14T09:30:00.000000Z",
+      "length_minutes": 1212,
+      "purchased_at": "2024-03-02T18:04:11Z"
+    }
+  ]
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Answer of `GET /api/library/works/{id}/similar`.",
+  "required": [
+    "state",
+    "works"
+  ],
+  "properties": {
+    "state": {
+      "type": "string",
+      "description": "`ready` when `works` was looked up; otherwise why it is empty.",
+      "enum": [
+        "ready",
+        "no_model",
+        "embedding"
+      ]
+    },
+    "works": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One work in a page of `GET /api/library/works`.",
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "media_kinds",
+          "acquire_status",
+          "edition_count",
+          "holding_count",
+          "added_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Work id.",
+            "example": "0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b"
+          },
+          "kind": {
+            "type": "string",
+            "description": "Book or podcast.",
+            "enum": [
+              "book",
+              "podcast"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "description": "Display title.",
+            "example": "The Left Hand of Darkness"
+          },
+          "authors": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Authors (hosts for a podcast), joined for display.",
+            "example": "Ursula K. Le Guin"
+          },
+          "series": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "First series the work belongs to.",
+            "example": "Hainish Cycle"
+          },
+          "series_position": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Position in `series`, as the store gave it.",
+            "example": "4"
+          },
+          "cover_edition_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The edition whose cover the list shows.",
+            "example": "7c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f"
+          },
+          "cover_path": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Same-origin path of that cover, when it has one.",
+            "example": "/api/covers/eyJ1IjoiaHR0cHM6Ly9pbWFnZXMuZXhhbXBsZS5jb20vYy5qcGcifQ"
+          },
+          "media_kinds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Carrier of an edition (`editions.media_kind`).",
+              "enum": [
+                "audio",
+                "ebook",
+                "print"
+              ]
+            },
+            "description": "Carriers of the work's editions."
+          },
+          "acquire_status": {
+            "type": "string",
+            "description": "The furthest acquire state any edition reached.",
+            "enum": [
+              "not_acquired",
+              "queued",
+              "downloading",
+              "acquired",
+              "error"
+            ]
+          },
+          "edition_count": {
+            "type": "integer",
+            "format": "int64",
+            "description": "How many editions the work has.",
+            "example": 2,
+            "minimum": 0
+          },
+          "holding_count": {
+            "type": "integer",
+            "format": "int64",
+            "description": "How many holdings the work's listings have.",
+            "example": 3,
+            "minimum": 0
+          },
+          "added_at": {
+            "type": "string",
+            "description": "RFC 3339 time of the newest holding.",
+            "example": "2026-11-14T09:30:00.000000Z"
+          },
+          "length_minutes": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Runtime in minutes of the longest held edition, when known.",
+            "example": 1212,
+            "minimum": 0
+          },
+          "purchased_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "RFC 3339 time of the newest purchase a store reported.",
+            "example": "2024-03-02T18:04:11Z"
+          }
+        }
+      },
+      "description": "The held works most like the one asked about, most alike first.\nEmpty when the work has no vector yet."
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `clerk_sign_in_unavailable`.
+
+```json
+{
+  "error": "clerk_sign_in_unavailable",
+  "message": "This library does not accept clerks on this address.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `404`: No such work.
+
+```json
+{
+  "error": "work 0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `500`: The library could not be read.
+
+```json
+{
+  "error": "the library could not be read"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
 }
 ```
 

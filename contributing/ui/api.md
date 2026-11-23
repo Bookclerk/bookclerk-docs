@@ -2655,6 +2655,30 @@ The listing's store page, when known.
 
 ***
 
+### MeaningStatus
+
+What `GET /api/library/works/meaning` reports.
+
+#### Properties
+
+##### search
+
+```ts
+search: MeaningState;
+```
+
+Whether a works search with `search: "meaning"` answers.
+
+##### similar
+
+```ts
+similar: MeaningState;
+```
+
+Whether [fetchSimilarWorks](#fetchsimilarworks) lists works.
+
+***
+
 ### NodeCapabilities
 
 What the caller may do on the nodes it was sent.
@@ -6184,6 +6208,30 @@ label: string;
 
 ***
 
+### SimilarWorks
+
+What `GET /api/library/works/{id}/similar` reports.
+
+#### Properties
+
+##### state
+
+```ts
+state: MeaningState;
+```
+
+`ready` when `works` was looked up; otherwise why it is empty.
+
+##### works
+
+```ts
+works: WorkSummary[];
+```
+
+The held works most like the one asked about, most alike first.
+
+***
+
 ### StatusResponse
 
 Aggregate library counters from `/api/status`.
@@ -7162,6 +7210,14 @@ q?: string;
 
 Search text; matches come best first and `sort` is ignored.
 
+##### search?
+
+```ts
+search?: WorkSearchMode;
+```
+
+How `q` is matched; `words` when omitted. Only sent with `q`.
+
 ##### sort?
 
 ```ts
@@ -7754,6 +7810,18 @@ One value in a plugin instance document.
 
 ***
 
+### MeaningState
+
+```ts
+type MeaningState = "ready" | "no_model" | "embedding";
+```
+
+Whether a way of reading the library by meaning can be used: it
+answers, no embedding model is there for it, or the library is still
+being embedded with the model.
+
+***
+
 ### MediaKind
 
 ```ts
@@ -8117,6 +8185,17 @@ type WorkKind = "book" | "podcast";
 ```
 
 What a work is: a book, or a podcast (its show).
+
+***
+
+### WorkSearchMode
+
+```ts
+type WorkSearchMode = "words" | "meaning";
+```
+
+How a works search reads `q`: by its words, or by what it means (which
+needs the library's embedding model; see [fetchMeaningStatus](#fetchmeaningstatus)).
 
 ***
 
@@ -9049,6 +9128,23 @@ Library summary, visible nodes, and the caller's capabilities.
 
 ***
 
+### fetchMeaningStatus()
+
+```ts
+function fetchMeaningStatus(): Promise<MeaningStatus>;
+```
+
+Asks whether the library can be searched by meaning and whether similar
+works can be listed.
+
+#### Returns
+
+`Promise`\<[`MeaningStatus`](#meaningstatus)\>
+
+The state of each.
+
+***
+
 ### fetchMfaPolicy()
 
 ```ts
@@ -9287,6 +9383,30 @@ Public sign-in picker (operator-token availability, SSO, integration logins).
 \}\>
 
 Whether SPA operator-token login is offered, plus IdP and integration buttons.
+
+***
+
+### fetchSimilarWorks()
+
+```ts
+function fetchSimilarWorks(id, limit?): Promise<SimilarWorks>;
+```
+
+Fetches the held works most like one work, by what their descriptions
+mean.
+
+#### Parameters
+
+| Parameter | Type | Default value | Description |
+| ------ | ------ | ------ | ------ |
+| `id` | `string` | `undefined` | Work id. |
+| `limit?` | `number` | `12` | Most works to list (the daemon caps it at 40). |
+
+#### Returns
+
+`Promise`\<[`SimilarWorks`](#similarworks)\>
+
+The works, or the reason there are none.
 
 ***
 

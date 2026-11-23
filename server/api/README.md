@@ -201,6 +201,8 @@ Books in the library, scans and acquires.
 | [`POST /api/config/join/capacity`](library.md#post-apiconfigjoincapacity) | `POST /api/config/join/capacity`: Settings → Library's job cap for one library this install is a branch of. The operator or an Owner (verified from the stored role); anyone else gets 403. The running link's share changes at once: its claims stop at the new share and its next heartbeat reports the library the new part of the machine. Jobs it already runs finish. |
 | [`DELETE /api/config/node-credentials/{node_id}`](library.md#delete-apiconfignode-credentialsnode_id) | `DELETE /api/config/node-credentials/{node_id}`: revoke an enrolled host's credential so it can no longer connect. |
 | [`GET /api/library/works`](library.md#get-apilibraryworks) | Lists the library's works, one page at a time. |
+| [`GET /api/library/works/meaning`](library.md#get-apilibraryworksmeaning) | Says whether search by meaning and similar works are ready. |
+| [`GET /api/library/works/{id}/similar`](library.md#get-apilibraryworksidsimilar) | Lists the held works most like one work. |
 | [`GET /api/library/works/{id}`](library.md#get-apilibraryworksid) | Reads one work with its editions, listings, holdings and the caller's own state. |
 | [`PUT /api/library/works/{id}/state`](library.md#put-apilibraryworksidstate) | Changes the caller's own state for a work: finished, ratings and tags. |
 | [`GET /api/library/works/facets/{facet}`](library.md#get-apilibraryworksfacetsfacet) | Lists the values a facet has across the library's held works, with how many works have each, for the library page's filter menus. `tag` lists the caller's own tags (none for an operator token). |

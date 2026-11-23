@@ -12885,6 +12885,23 @@ limits, so a space of long vectors is still read.
 
 Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
 
+#### LibraryStore::work_vectors_in
+
+```rust
+pub async fn work_vectors_in(&self, space: &VectorSpace) -> Result<Vec<(String, Vec<u8>)>>
+```
+
+Every work vector of one space, as `(work id, little-endian `f32`
+bytes)` in work id order.
+
+Read in keyset pages that narrow until each reply fits the
+adapter's limits. The whole space is returned at once: a node's
+search index holds it in memory anyway.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
 #### LibraryStore::work_vector_spaces
 
 ```rust
@@ -13892,6 +13909,16 @@ pub fn with_plan_limits(
 ```
 
 Records negotiated statement / result / payload caps from connect.
+
+#### LibraryStore::same_store
+
+```rust
+pub fn same_store(&self, other: &Self) -> bool
+```
+
+Whether `other` is this store or a clone of it: the same opened
+database, not merely an equal one. A cache built from one store
+uses it to tell that the daemon now reads another.
 
 #### LibraryStore::with_db_capabilities
 

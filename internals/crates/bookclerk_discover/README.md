@@ -64,6 +64,7 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`catalog_search`](#catalog_search) | function | Search every configured storefront catalog and merge by work identity. |
 | [`catalog_search_page`](#catalog_search_page) | function | Paged multi-store catalog browse (filters + sort + cursor). |
 | [`catalog_search_with_field`](#catalog_search_with_field) | function | Like `catalog_search`, optionally scoping storefront queries to a facet (author / narrator / series / genre). When `language` is set it is applied as a hard include filter (unknown/missing language still passes). |
+| [`bytes_to_vector`](#bytes_to_vector) | function | Decode little-endian f32 blob. |
 | [`embed_dirty_works`](#embed_dirty_works) | function | Embed works whose text hash changed (or are missing) in the embedder's space, and drop the vectors of works that no longer exist. |
 | [`embed_text`](#embed_text) | function | The text embedded for a book: each known field on its own line. |
 | [`is_stand_in`](#is_stand_in) | function | Whether `space` is the stand-in's: hash vectors that carry no meaning. |
@@ -73,6 +74,7 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`stand_in_space`](#stand_in_space) | function | The stand-in's vector space. |
 | [`text_for_work`](#text_for_work) | function | Build the text blob embedded for a work. |
 | [`text_vectors`](#text_vectors) | function | The vectors of `texts` in `space`, keyed by the SHA-256 of each text. |
+| [`vector_to_bytes`](#vector_to_bytes) | function | Encode f32 slice as little-endian bytes. |
 | [`candidate_map_key`](#candidate_map_key) | function | Stable HashMap key for a storefront candidate (hard id, soft title+author, or source:product). |
 | [`hard_work_key`](#hard_work_key) | function | Hard bibliographic key: canonical ISBN first, then ASIN. |
 | [`identities_match`](#identities_match) | function | Whether two bibliographic identities refer to the same work. |
@@ -2073,6 +2075,22 @@ On success, the inner `Vec<CatalogSearchHit>` value.
 
 Returns an error when the underlying I/O, parse, network, or store operation fails.
 
+### bytes_to_vector
+
+```rust
+pub fn bytes_to_vector(bytes: &[u8]) -> Vec<f32>
+```
+
+Decode little-endian f32 blob.
+
+#### Arguments
+
+* `bytes` - Little-endian f32 blob previously produced by [`vector_to_bytes`](#vector_to_bytes).
+
+#### Returns
+
+Collected results (may be empty).
+
 ### embed_dirty_works
 
 ```rust
@@ -2249,6 +2267,22 @@ ranking of the same text, for anyone, reads it.
 
 Returns a library error. An embedder failure is not an error: the
 texts it left stay without a vector, and it is logged.
+
+### vector_to_bytes
+
+```rust
+pub fn vector_to_bytes(v: &[f32]) -> Vec<u8>
+```
+
+Encode f32 slice as little-endian bytes.
+
+#### Arguments
+
+* `v` - Float vector to encode.
+
+#### Returns
+
+Collected results (may be empty).
 
 ### candidate_map_key
 
