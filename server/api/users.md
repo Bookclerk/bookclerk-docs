@@ -1903,6 +1903,7 @@ follow.
 
 - `200` — The default scope. Body: [`DefaultScopeJson`](schemas.md#defaultscopejson) (`application/json`)
   - `scope` *[`PatronScope`](schemas.md#patronscope)*, **required** — The scope patrons without their own follow.
+  - `version` *[`ScopeVersion`](schemas.md#scopeversion)*, **required** — The version of the default, which a write sends back as `expected_version`.
 - `401` — The caller is not signed in. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `403` — The caller is not an Owner or Administrator. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
@@ -1969,7 +1970,8 @@ Status `200`: The default scope.
       }
     ],
     "explicit": "allow"
-  }
+  },
+  "version": "3f2a9c41d07e5b18a6c2f09e4d71b3a5"
 }
 ```
 
@@ -1980,7 +1982,8 @@ Schema:
   "type": "object",
   "description": "The library's default scope as the scope routes report it.",
   "required": [
-    "scope"
+    "scope",
+    "version"
   ],
   "properties": {
     "scope": {
@@ -2039,6 +2042,11 @@ Schema:
         }
       },
       "additionalProperties": false
+    },
+    "version": {
+      "type": "string",
+      "description": "The version of the default, which a write sends back as\n`expected_version`.",
+      "example": "3f2a9c41d07e5b18a6c2f09e4d71b3a5"
     }
   }
 }
@@ -2180,8 +2188,10 @@ A `text/plain` body: a string.
 
 ## `PUT /api/users/default-scope`
 
-Replaces the library's default scope. Every patron without their own
-scope follows the change at once.
+Replaces the library's default scope, if it is still at the
+`expected_version` the caller read; otherwise nothing is written and the
+answer is 409. Every patron without their own scope follows the change
+at once.
 
 **Access:** No auth layer. Routes that need a caller say so in `security`; the handler checks it.
 
@@ -2189,22 +2199,23 @@ scope follows the change at once.
 
 ### Request body
 
-`application/json`: [`PatronScope`](schemas.md#patronscope)
+`application/json`: [`PutDefaultScope`](schemas.md#putdefaultscope)
 
-- `rules` *array of [`ScopeRule`](schemas.md#scoperule)* — Visibility rules, at most 16 and 1,024 bytes as JSON. Empty means every book is visible. At most 16 items.
-- `explicit` *[`ExplicitContent`](schemas.md#explicitcontent)* — Whether books marked explicit are visible; left out means `allow`.
+- `scope` *[`PatronScope`](schemas.md#patronscope)*, **required** — The new default scope.
+- `expected_version` *string*, **required** — The `version` the caller read the default at; the write is refused with a conflict when the default has changed since.
 
 ### Responses
 
 - `200` — The default scope after the change. Body: [`DefaultScopeJson`](schemas.md#defaultscopejson) (`application/json`)
   - `scope` *[`PatronScope`](schemas.md#patronscope)*, **required** — The scope patrons without their own follow.
+  - `version` *[`ScopeVersion`](schemas.md#scopeversion)*, **required** — The version of the default, which a write sends back as `expected_version`.
 - `400` — The scope is invalid. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`); string (`text/plain`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `401` — The caller is not signed in. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `403` — The caller is not an Owner or Administrator. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `409` — The default kept changing underneath the write; retry. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+- `409` — The default changed since `expected_version` was read; nothing was written. Read it again. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `415` — The request did not declare a JSON body. Body: string (`text/plain`)
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
@@ -2223,7 +2234,7 @@ $ curl 'http://127.0.0.1:8787/api/users/default-scope' \
     -X PUT \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
-    -d '{}'
+    -d '{"scope": {}, "expected_version": "3f2a9c41d07e5b18a6c2f09e4d71b3a5"}'
 ```
 
 ```powershell
@@ -2231,7 +2242,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/users/default-scope' `
     -Method Put `
     -Headers @{ Authorization = 'Bearer <operatorToken>' } `
     -ContentType 'application/json' `
-    -Body '{}'
+    -Body '{"scope": {}, "expected_version": "3f2a9c41d07e5b18a6c2f09e4d71b3a5"}'
 ```
 
 ```python
@@ -2240,7 +2251,7 @@ import requests
 response = requests.put(
     "http://127.0.0.1:8787/api/users/default-scope",
     headers={"Authorization": "Bearer <operatorToken>"},
-    json={},
+    json={"scope": {}, "expected_version": "3f2a9c41d07e5b18a6c2f09e4d71b3a5"},
 )
 print(response.status_code, response.text)
 ```
@@ -2249,7 +2260,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/users/default-scope", {
   method: "PUT",
   headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
-  body: JSON.stringify({}),
+  body: JSON.stringify({"scope": {}, "expected_version": "3f2a9c41d07e5b18a6c2f09e4d71b3a5"}),
 });
 console.log(response.status, await response.text());
 ```
@@ -2259,7 +2270,7 @@ let client = reqwest::Client::new();
 let response = client
     .put("http://127.0.0.1:8787/api/users/default-scope")
     .header("Authorization", "Bearer <operatorToken>")
-    .json(&serde_json::json!({}))
+    .json(&serde_json::json!({"scope": {}, "expected_version": "3f2a9c41d07e5b18a6c2f09e4d71b3a5"}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -2280,7 +2291,8 @@ Status `200`: The default scope after the change.
       }
     ],
     "explicit": "allow"
-  }
+  },
+  "version": "3f2a9c41d07e5b18a6c2f09e4d71b3a5"
 }
 ```
 
@@ -2291,7 +2303,8 @@ Schema:
   "type": "object",
   "description": "The library's default scope as the scope routes report it.",
   "required": [
-    "scope"
+    "scope",
+    "version"
   ],
   "properties": {
     "scope": {
@@ -2350,6 +2363,11 @@ Schema:
         }
       },
       "additionalProperties": false
+    },
+    "version": {
+      "type": "string",
+      "description": "The version of the default, which a write sends back as\n`expected_version`.",
+      "example": "3f2a9c41d07e5b18a6c2f09e4d71b3a5"
     }
   }
 }
@@ -2436,11 +2454,11 @@ Schema:
 }
 ```
 
-Status `409`: The default kept changing underneath the write; retry.
+Status `409`: The default changed since `expected_version` was read; nothing was written. Read it again.
 
 ```json
 {
-  "error": "core.patron_scope kept changing; retry"
+  "error": "the default scope changed since it was read; read it again"
 }
 ```
 
@@ -2476,7 +2494,7 @@ A `text/plain` body: a string.
 Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
 
 ```text
-Failed to deserialize the JSON body into the target type: rules: invalid type: integer `1`, expected a sequence at line 1 column 10
+Failed to deserialize the JSON body into the target type: missing field `scope` at line 1 column 2
 ```
 
 Schema:
@@ -2582,6 +2600,7 @@ Reads which part of the library a patron sees.
   - `scope` *[`PatronScope`](schemas.md#patronscope)*, **required** — The scope that applies to them: their own, or the library's default.
   - `own` *boolean*, **required** — True when an Administrator gave them this scope; false when they follow the library's default.
   - `applies` *boolean*, **required** — Whether the scope applies to the user's role: false for an Owner or Administrator, who always see the whole library.
+  - `version` *[`ScopeVersion`](schemas.md#scopeversion)*, **required** — The version of the patron's scope, which a write sends back as `expected_version`. It changes only with the patron's own record, not with the library's default.
 - `401` — The caller is not signed in. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `403` — The caller may not manage this user. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
@@ -2653,7 +2672,8 @@ Status `200`: The patron's scope.
     "explicit": "allow"
   },
   "own": false,
-  "applies": true
+  "applies": true,
+  "version": "3f2a9c41d07e5b18a6c2f09e4d71b3a5"
 }
 ```
 
@@ -2667,7 +2687,8 @@ Schema:
     "user_id",
     "scope",
     "own",
-    "applies"
+    "applies",
+    "version"
   ],
   "properties": {
     "user_id": {
@@ -2742,6 +2763,11 @@ Schema:
       "type": "boolean",
       "description": "Whether the scope applies to the user's role: false for an Owner or\nAdministrator, who always see the whole library.",
       "example": true
+    },
+    "version": {
+      "type": "string",
+      "description": "The version of the patron's scope, which a write sends back as\n`expected_version`. It changes only with the patron's own record,\nnot with the library's default.",
+      "example": "3f2a9c41d07e5b18a6c2f09e4d71b3a5"
     }
   }
 }
@@ -2911,7 +2937,10 @@ A `text/plain` body: a string.
 ## `PUT /api/users/{id}/scope`
 
 Gives a patron their own scope, or returns them to the library's
-default with `"scope": null`.
+default with `"scope": null`, if their scope is still at the
+`expected_version` the caller read; otherwise nothing is written and
+the answer is 409, so two Administrators editing one patron never undo
+each other unseen.
 
 Nobody sets their own scope. Owners and Administrators always see the
 whole library, so a scope stored for one only applies if their role
@@ -2930,6 +2959,7 @@ changes to Member.
 `application/json`: [`PutUserScope`](schemas.md#putuserscope)
 
 - `scope` *[`PatronScope`](schemas.md#patronscope) or null* — The patron's own scope, or `null` to return them to the library's default.
+- `expected_version` *string*, **required** — The `version` the caller read the patron's scope at; the write is refused with a conflict when the scope has changed since.
 
 ### Responses
 
@@ -2938,6 +2968,7 @@ changes to Member.
   - `scope` *[`PatronScope`](schemas.md#patronscope)*, **required** — The scope that applies to them: their own, or the library's default.
   - `own` *boolean*, **required** — True when an Administrator gave them this scope; false when they follow the library's default.
   - `applies` *boolean*, **required** — Whether the scope applies to the user's role: false for an Owner or Administrator, who always see the whole library.
+  - `version` *[`ScopeVersion`](schemas.md#scopeversion)*, **required** — The version of the patron's scope, which a write sends back as `expected_version`. It changes only with the patron's own record, not with the library's default.
 - `400` — The scope is invalid. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`); string (`text/plain`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `401` — The caller is not signed in. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
@@ -2945,6 +2976,8 @@ changes to Member.
 - `403` — The caller may not manage this user, or tried to set their own scope. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `404` — No such user. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `409` — The patron's scope changed since `expected_version` was read; nothing was written. Read it again. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `415` — The request did not declare a JSON body. Body: string (`text/plain`)
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
@@ -2963,7 +2996,7 @@ $ curl 'http://127.0.0.1:8787/api/users/<id>/scope' \
     -X PUT \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
-    -d '{}'
+    -d '{"expected_version": "3f2a9c41d07e5b18a6c2f09e4d71b3a5"}'
 ```
 
 ```powershell
@@ -2971,7 +3004,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/users/<id>/scope' `
     -Method Put `
     -Headers @{ Authorization = 'Bearer <operatorToken>' } `
     -ContentType 'application/json' `
-    -Body '{}'
+    -Body '{"expected_version": "3f2a9c41d07e5b18a6c2f09e4d71b3a5"}'
 ```
 
 ```python
@@ -2980,7 +3013,7 @@ import requests
 response = requests.put(
     "http://127.0.0.1:8787/api/users/<id>/scope",
     headers={"Authorization": "Bearer <operatorToken>"},
-    json={},
+    json={"expected_version": "3f2a9c41d07e5b18a6c2f09e4d71b3a5"},
 )
 print(response.status_code, response.text)
 ```
@@ -2989,7 +3022,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/users/<id>/scope", {
   method: "PUT",
   headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
-  body: JSON.stringify({}),
+  body: JSON.stringify({"expected_version": "3f2a9c41d07e5b18a6c2f09e4d71b3a5"}),
 });
 console.log(response.status, await response.text());
 ```
@@ -2999,7 +3032,7 @@ let client = reqwest::Client::new();
 let response = client
     .put("http://127.0.0.1:8787/api/users/<id>/scope")
     .header("Authorization", "Bearer <operatorToken>")
-    .json(&serde_json::json!({}))
+    .json(&serde_json::json!({"expected_version": "3f2a9c41d07e5b18a6c2f09e4d71b3a5"}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -3023,7 +3056,8 @@ Status `200`: The patron's scope after the change.
     "explicit": "allow"
   },
   "own": false,
-  "applies": true
+  "applies": true,
+  "version": "3f2a9c41d07e5b18a6c2f09e4d71b3a5"
 }
 ```
 
@@ -3037,7 +3071,8 @@ Schema:
     "user_id",
     "scope",
     "own",
-    "applies"
+    "applies",
+    "version"
   ],
   "properties": {
     "user_id": {
@@ -3112,6 +3147,11 @@ Schema:
       "type": "boolean",
       "description": "Whether the scope applies to the user's role: false for an Owner or\nAdministrator, who always see the whole library.",
       "example": true
+    },
+    "version": {
+      "type": "string",
+      "description": "The version of the patron's scope, which a write sends back as\n`expected_version`. It changes only with the patron's own record,\nnot with the library's default.",
+      "example": "3f2a9c41d07e5b18a6c2f09e4d71b3a5"
     }
   }
 }
@@ -3225,6 +3265,33 @@ Schema:
 }
 ```
 
+Status `409`: The patron's scope changed since `expected_version` was read; nothing was written. Read it again.
+
+```json
+{
+  "error": "the scope of user 7 changed since it was read; read it again"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
 Status `415`: The request did not declare a JSON body.
 
 ```text
@@ -3238,7 +3305,7 @@ A `text/plain` body: a string.
 Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
 
 ```text
-Failed to deserialize the JSON body into the target type: invalid type: null, expected struct PutUserScope at line 1 column 4
+Failed to deserialize the JSON body into the target type: missing field `expected_version` at line 1 column 2
 ```
 
 Schema:
@@ -3591,10 +3658,11 @@ Schema:
 
 A `text/plain` body: a string.
 
-## `PUT /api/users/default-controls`
+## `PATCH /api/users/default-controls`
 
-Replaces the library's default member controls. Every Member follows
-the change at once, except in the controls set for them alone;
+Changes the library's default for the controls named in `changes`;
+controls left out keep their stored value. Every Member follows the
+change at once, except in the controls set for them alone;
 Administrators do not follow the default.
 
 **Access:** No auth layer. Routes that need a caller say so in `security`; the handler checks it.
@@ -3603,14 +3671,9 @@ Administrators do not follow the default.
 
 ### Request body
 
-`application/json`: [`MemberControls`](schemas.md#membercontrols)
+`application/json`: [`PatchDefaultControls`](schemas.md#patchdefaultcontrols)
 
-- `link_accounts` *boolean* — May connect store accounts ([`MemberControl::LinkAccounts`]).
-- `download` *boolean* — May take copies of the library's files ([`MemberControl::Download`]).
-- `edit_metadata` *boolean* — May change metadata ([`MemberControl::EditMetadata`]).
-- `upload` *boolean* — May upload books ([`MemberControl::Upload`]); off unless set.
-- `request_books` *boolean* — May ask branches for books ([`MemberControl::RequestBooks`]).
-- `see_prices` *boolean* — May see prices and store links ([`MemberControl::SeePrices`]).
+- `changes` *[`ControlOverrides`](schemas.md#controloverrides)*, **required** — The new default of each control to change; a control left out (or `null`) keeps its stored value.
 
 ### Responses
 
@@ -3638,36 +3701,36 @@ Administrators do not follow the default.
 
 ```console
 $ curl 'http://127.0.0.1:8787/api/users/default-controls' \
-    -X PUT \
+    -X PATCH \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
-    -d '{}'
+    -d '{"changes": {}}'
 ```
 
 ```powershell
 Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/users/default-controls' `
-    -Method Put `
+    -Method Patch `
     -Headers @{ Authorization = 'Bearer <operatorToken>' } `
     -ContentType 'application/json' `
-    -Body '{}'
+    -Body '{"changes": {}}'
 ```
 
 ```python
 import requests
 
-response = requests.put(
+response = requests.patch(
     "http://127.0.0.1:8787/api/users/default-controls",
     headers={"Authorization": "Bearer <operatorToken>"},
-    json={},
+    json={"changes": {}},
 )
 print(response.status_code, response.text)
 ```
 
 ```javascript
 const response = await fetch("http://127.0.0.1:8787/api/users/default-controls", {
-  method: "PUT",
+  method: "PATCH",
   headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
-  body: JSON.stringify({}),
+  body: JSON.stringify({"changes": {}}),
 });
 console.log(response.status, await response.text());
 ```
@@ -3675,9 +3738,9 @@ console.log(response.status, await response.text());
 ```rust
 let client = reqwest::Client::new();
 let response = client
-    .put("http://127.0.0.1:8787/api/users/default-controls")
+    .patch("http://127.0.0.1:8787/api/users/default-controls")
     .header("Authorization", "Bearer <operatorToken>")
-    .json(&serde_json::json!({}))
+    .json(&serde_json::json!({"changes": {}}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -3872,7 +3935,7 @@ A `text/plain` body: a string.
 Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
 
 ```text
-Failed to deserialize the JSON body into the target type: link_accounts: invalid type: integer `1`, expected a boolean at line 1 column 18
+Failed to deserialize the JSON body into the target type: missing field `changes` at line 1 column 2
 ```
 
 Schema:
@@ -4395,11 +4458,12 @@ Schema:
 
 A `text/plain` body: a string.
 
-## `PUT /api/users/{id}/controls`
+## `PATCH /api/users/{id}/controls`
 
-Sets the controls that differ for one patron; every other control
-follows the library's default for a Member and is allowed for an
-Administrator.
+Changes the controls named in `changes` for one patron: `on` or `off`
+for them alone, or `default` to follow the library's default again
+(for an Administrator: allowed). Controls left out keep what they had,
+so two Administrators changing different controls keep both changes.
 
 Nobody sets their own. An Owner may always do everything, so
 overrides stored for one only apply if their role changes. An
@@ -4416,9 +4480,9 @@ only an Owner or the operator sets those.
 
 ### Request body
 
-`application/json`: [`PutUserControls`](schemas.md#putusercontrols)
+`application/json`: [`PatchUserControls`](schemas.md#patchusercontrols)
 
-- `overrides` *[`ControlOverrides`](schemas.md#controloverrides)*, **required** — The controls set for this patron alone; an absent or `null` control follows the library's default for a Member and is allowed for an Administrator, so `{}` clears every override.
+- `changes` *[`ControlChanges`](schemas.md#controlchanges)*, **required** — The controls to change for this patron and how; a control left out (or `null`) keeps what it had.
 
 ### Responses
 
@@ -4437,7 +4501,7 @@ only an Owner or the operator sets those.
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `404` — No such user. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `409` — The user's role changed since the caller was authorized for them; nothing was written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+- `409` — The user's role changed since the caller was authorized for them, or their controls kept changing underneath the write; nothing was written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `415` — The request did not declare a JSON body. Body: string (`text/plain`)
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
@@ -4453,36 +4517,36 @@ only an Owner or the operator sets those.
 
 ```console
 $ curl 'http://127.0.0.1:8787/api/users/<id>/controls' \
-    -X PUT \
+    -X PATCH \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
-    -d '{"overrides": {}}'
+    -d '{"changes": {}}'
 ```
 
 ```powershell
 Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/users/<id>/controls' `
-    -Method Put `
+    -Method Patch `
     -Headers @{ Authorization = 'Bearer <operatorToken>' } `
     -ContentType 'application/json' `
-    -Body '{"overrides": {}}'
+    -Body '{"changes": {}}'
 ```
 
 ```python
 import requests
 
-response = requests.put(
+response = requests.patch(
     "http://127.0.0.1:8787/api/users/<id>/controls",
     headers={"Authorization": "Bearer <operatorToken>"},
-    json={"overrides": {}},
+    json={"changes": {}},
 )
 print(response.status_code, response.text)
 ```
 
 ```javascript
 const response = await fetch("http://127.0.0.1:8787/api/users/<id>/controls", {
-  method: "PUT",
+  method: "PATCH",
   headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
-  body: JSON.stringify({"overrides": {}}),
+  body: JSON.stringify({"changes": {}}),
 });
 console.log(response.status, await response.text());
 ```
@@ -4490,9 +4554,9 @@ console.log(response.status, await response.text());
 ```rust
 let client = reqwest::Client::new();
 let response = client
-    .put("http://127.0.0.1:8787/api/users/<id>/controls")
+    .patch("http://127.0.0.1:8787/api/users/<id>/controls")
     .header("Authorization", "Bearer <operatorToken>")
-    .json(&serde_json::json!({"overrides": {}}))
+    .json(&serde_json::json!({"changes": {}}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -4806,11 +4870,11 @@ Schema:
 }
 ```
 
-Status `409`: The user's role changed since the caller was authorized for them; nothing was written.
+Status `409`: The user's role changed since the caller was authorized for them, or their controls kept changing underneath the write; nothing was written.
 
 ```json
 {
-  "error": "user 7 became administrator while their controls were being set; read them again"
+  "error": "user 7 is no longer member as their controls were read; read them again"
 }
 ```
 
@@ -4846,7 +4910,7 @@ A `text/plain` body: a string.
 Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
 
 ```text
-Failed to deserialize the JSON body into the target type: missing field `overrides` at line 1 column 2
+Failed to deserialize the JSON body into the target type: missing field `changes` at line 1 column 2
 ```
 
 Schema:

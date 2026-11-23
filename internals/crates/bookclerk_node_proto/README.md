@@ -172,12 +172,15 @@ bytes.
 | [`UploadRange`](#uploadrange) | enum | What a `Content-Range` on an upload `PUT` asks for. |
 | [`account_bundle_aad`](#account_bundle_aad) | function | Associated data of the account bundle for `node_id` of `library_id`: the domain tag, then each field as a 4-byte big-endian length and its bytes. |
 | [`account_offer_aad`](#account_offer_aad) | function | Associated data of an account offer from `node_id` to its library `library_id`: `ACCOUNT_OFFER_AAD_DOMAIN`, then the two ids as in `account_bundle_aad`. |
+| [`account_reconcile_aad`](#account_reconcile_aad) | function | Associated data of a library's sign-in answering a keeper's first push from `node_id`: `ACCOUNT_RECONCILE_AAD_DOMAIN`, then the two ids as in `account_bundle_aad`. |
 | [`check_account_bundle`](#check_account_bundle) | function | Checks `bundle` against every rule `parse_account_bundle` applies. |
 | [`open_account_bundle`](#open_account_bundle) | function | Opens a bundle made by `seal_account_bundle` with the joining node's box secret, for the library and node ids the redeem answered. |
 | [`open_account_offer`](#open_account_offer) | function | Opens an offer made by `seal_account_offer` with the library's owner box secret, for the library id and the node id of the authenticated connection it arrived on. |
+| [`open_account_reconcile`](#open_account_reconcile) | function | Opens a library's sign-in made by `seal_account_reconcile` with the branch's box secret, for the library it joined and its own node id. |
 | [`parse_account_bundle`](#parse_account_bundle) | function | Parses the opened bytes of an account bundle for `node_id` of `library_id` and checks it (`check_account_bundle`). Sans-IO: the branch runs it on what `open` returns, and the fuzz target runs it on arbitrary bytes. |
 | [`seal_account_bundle`](#seal_account_bundle) | function | Seals `bundle` to the joining node's box key `recipient`, as base64url text for the redeem answer. |
 | [`seal_account_offer`](#seal_account_offer) | function | Seals a branch's `bundle` to its library's owner box key `recipient` (`crate::Body::Welcome`), for `crate::Body::AccountsAdd`. The box is bound with `account_offer_aad`, so a joining bundle never opens as an offer, nor the other way round. |
+| [`seal_account_reconcile`](#seal_account_reconcile) | function | Seals a library's own sign-in of one account (`bundle`) to the keeping branch's box key `recipient`, for the `sealed` of an `crate::Body::AccountsUpdated` with `crate::KeeperOutcome::Reconcile`. Bound with `account_reconcile_aad`. |
 | [`is_ancestry`](#is_ancestry) | function | True when every id in `ancestry` is a plain library id and there are at most `MAX_ANCESTRY`. |
 | [`is_library_id`](#is_library_id) | function | True for a plain library id in an ancestry. |
 | [`is_marketplace`](#is_marketplace) | function | True for a marketplace: empty, or up to `MAX_MARKETPLACE_BYTES` lowercase ASCII letters and digits. |
@@ -259,6 +262,7 @@ bytes.
 | [`ACCOUNT_BUNDLE_AAD_DOMAIN`](#account_bundle_aad_domain) | constant | Domain tag that starts the associated data of an account bundle. |
 | [`ACCOUNT_BUNDLE_VERSION`](#account_bundle_version) | constant | Version of an `AccountBundle`. |
 | [`ACCOUNT_OFFER_AAD_DOMAIN`](#account_offer_aad_domain) | constant | Domain tag that starts the associated data of an account offer: a branch's `AccountBundle` sent up to its library (`crate::Body::AccountsAdd`). A distinct tag keeps a bundle sealed in one direction from opening as the other. |
+| [`ACCOUNT_RECONCILE_AAD_DOMAIN`](#account_reconcile_aad_domain) | constant | Domain of the associated data a library's own sign-in is sealed with when it answers a keeper's first push with `crate::KeeperOutcome::Reconcile` (`seal_account_reconcile`), so it never opens as a joining bundle or an offer. |
 | [`MAX_ACCOUNT_BUNDLE_BYTES`](#max_account_bundle_bytes) | constant | Largest opened bundle accepted, in bytes. A bundle at every limit above would be far larger; this keeps the redeem answer small. |
 | [`MAX_ACCOUNT_SECRETS`](#max_account_secrets) | constant | Most secrets one carried account holds. |
 | [`MAX_BUNDLE_ACCOUNTS`](#max_bundle_accounts) | constant | Most accounts one bundle carries. |
@@ -2342,8 +2346,8 @@ pub enum Body {
     AccountsAdd { sealed: String },
     AccountsAdded { added: u64, already_here: u64, taken: u64, failed: u64, not_allowed: bool },
     AccountsRemove { plugin_key: String, account_id: String },
-    AccountsUpdate { sealed: String, revision: i64 },
-    AccountsUpdated { outcome: KeeperOutcome },
+    AccountsUpdate { sealed: String, revision: i64, keeps_own: bool },
+    AccountsUpdated { outcome: KeeperOutcome, sealed: Option<String> },
     CatalogQuestions {  },
     CatalogAsk { works: Vec<LookupWork> },
     CatalogFound { answers: Vec<LookupAnswer>, missing: Vec<String> },
@@ -2694,8 +2698,17 @@ What a frame says, tagged by `type`.
   [`Body::AccountsUpdated`](#body) or `error`.
   - `sealed`: The sealed one-account bundle, base64url without padding.
   - `revision`: The keeper's revision of the sign-in.
+  - `keeps_own`: True when the branch was answered [`KeeperOutcome::Reconcile`](#keeperoutcome)
+    for this account and keeps its own sign-in, which is newer than
+    the one the library sent it: the library then applies the push
+    rather than answering with its own sign-in again. Left out when
+    false.
 - `AccountsUpdated`: Library → branch: what became of an [`Body::AccountsUpdate`](#body).
   - `outcome`: What the library did with the sign-in.
+  - `sealed`: With [`KeeperOutcome::Reconcile`](#keeperoutcome) only: the library's own
+    sign-in of the account, a one-account [`crate::AccountBundle`](#accountbundle)
+    sealed to the branch's box key
+    ([`crate::seal_account_reconcile`](#seal_account_reconcile)), base64url without padding.
 - `CatalogQuestions`: Branch → library: send the catalog questions waiting for this
   branch (see [`crate::LookupWork`](#lookupwork)). Answered with
   [`Body::CatalogAsk`](#body), or `error {code: "refused"}` when the node is
@@ -2814,6 +2827,7 @@ pub enum KeeperOutcome {
     Applied,
     Stale,
     NotShared,
+    Reconcile,
 }
 ```
 
@@ -2826,6 +2840,11 @@ What a library did with a keeper's [`Body::AccountsUpdate`](#body).
   branch; nothing changed.
 - `NotShared`: The account is not the branch owner's here, or not shared with
   this branch; nothing changed. The keeper stops pushing it here.
+- `Reconcile`: The branch's first push of the account, and the library refreshed
+  its own sign-in after it sent the account to the branch: nothing
+  changed, and the answer carries the library's sign-in. The branch
+  takes it when its own copy is still the one the library sent, and
+  otherwise pushes its own again with `keeps_own`.
 
 Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -3186,6 +3205,16 @@ Associated data of an account offer from `node_id` to its library
 `library_id`: [`ACCOUNT_OFFER_AAD_DOMAIN`](#account_offer_aad_domain), then the two ids as in
 [`account_bundle_aad`](#account_bundle_aad).
 
+### account_reconcile_aad
+
+```rust
+pub fn account_reconcile_aad(library_id: &str, node_id: &str) -> Vec<u8>
+```
+
+Associated data of a library's sign-in answering a keeper's first push
+from `node_id`: [`ACCOUNT_RECONCILE_AAD_DOMAIN`](#account_reconcile_aad_domain), then the two ids as in
+[`account_bundle_aad`](#account_bundle_aad).
+
 ### check_account_bundle
 
 ```rust
@@ -3238,6 +3267,24 @@ pub fn open_account_offer(
 Opens an offer made by [`seal_account_offer`](#seal_account_offer) with the library's owner
 box secret, for the library id and the node id of the authenticated
 connection it arrived on.
+
+#### Errors
+
+As [`open_account_bundle`](#open_account_bundle).
+
+### open_account_reconcile
+
+```rust
+pub fn open_account_reconcile(
+    recipient_secret: &[u8; 32],
+    library_id: &str,
+    node_id: &str,
+    sealed: &str,
+) -> Result<AccountBundle, SealError>
+```
+
+Opens a library's sign-in made by [`seal_account_reconcile`](#seal_account_reconcile) with the
+branch's box secret, for the library it joined and its own node id.
 
 #### Errors
 
@@ -3297,6 +3344,26 @@ Seals a branch's `bundle` to its library's owner box key `recipient`
 ([`crate::Body::Welcome`](#body)), for [`crate::Body::AccountsAdd`](#body). The box is
 bound with [`account_offer_aad`](#account_offer_aad), so a joining bundle never opens as an
 offer, nor the other way round.
+
+#### Errors
+
+As [`seal_account_bundle`](#seal_account_bundle).
+
+### seal_account_reconcile
+
+```rust
+pub fn seal_account_reconcile(
+    recipient: &[u8],
+    ephemeral_secret: &[u8; 32],
+    bundle: &AccountBundle,
+) -> Result<String, SealError>
+```
+
+Seals a library's own sign-in of one account (`bundle`) to the keeping
+branch's box key `recipient`, for the `sealed` of an
+[`crate::Body::AccountsUpdated`](#body) with
+[`crate::KeeperOutcome::Reconcile`](#keeperoutcome). Bound with
+[`account_reconcile_aad`](#account_reconcile_aad).
 
 #### Errors
 
@@ -4451,6 +4518,17 @@ Domain tag that starts the associated data of an account offer: a
 branch's [`AccountBundle`](#accountbundle) sent up to its library
 ([`crate::Body::AccountsAdd`](#body)). A distinct tag keeps a bundle sealed in
 one direction from opening as the other.
+
+### ACCOUNT_RECONCILE_AAD_DOMAIN
+
+```rust
+pub const ACCOUNT_RECONCILE_AAD_DOMAIN: &[u8] = b"bookclerk-node.v1 account-reconcile";
+```
+
+Domain of the associated data a library's own sign-in is sealed with
+when it answers a keeper's first push with
+[`crate::KeeperOutcome::Reconcile`](#keeperoutcome) ([`seal_account_reconcile`](#seal_account_reconcile)), so it
+never opens as a joining bundle or an offer.
 
 ### MAX_ACCOUNT_BUNDLE_BYTES
 

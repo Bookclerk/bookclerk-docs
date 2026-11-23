@@ -75,6 +75,7 @@ job runs its guest are the daemon's.
 | [`HostClientConfig`](#hostclientconfig) | struct | What one client connects with. |
 | [`HostClientHandle`](#hostclienthandle) | struct | Watches a running client. |
 | [`OfferedAccounts`](#offeredaccounts) | struct | What the library kept of an `HostClientHandle::offer_accounts`. |
+| [`SignInPushed`](#signinpushed) | struct | The library's answer to a pushed sign-in (`HostClientHandle::push_sign_in`). |
 | [`LocalFileSource`](#localfilesource) | struct | A file on this install's disk as an `UploadSource`. |
 | [`OwnerEndpoint`](#ownerendpoint) | struct | Where and how to reach one owner. |
 | [`TlsProbe`](#tlsprobe) | struct | What a first TLS handshake showed of an owner's certificate, before any pin is known (`OwnerEndpoint::probe_json`). |
@@ -731,17 +732,28 @@ pub async fn push_sign_in(
     &self,
     account: CarriedAccount,
     revision: i64,
-) -> Result<KeeperOutcome, OwnerCallError>
+    keeps_own: bool,
+) -> Result<SignInPushed, OwnerCallError>
 ```
 
 Pushes the newest sign-in of one single-keeper store account this
 branch keeps up to the library (`accounts.update`), sealed like
-[`Self::offer_accounts`](#hostclienthandleoffer_accounts), at the keeper's `revision`.
+[`Self::offer_accounts`](#hostclienthandleoffer_accounts), at the keeper's `revision`. `keeps_own`
+says the branch keeps this sign-in over the library's after a
+`KeeperOutcome::Reconcile`.
+
+##### Returns
+
+What the library did, and with `KeeperOutcome::Reconcile` the
+library's own sign-in of the same account, opened with this node's
+box key.
 
 ##### Errors
 
 Returns [`OwnerCallError::Refused`](#ownercallerror) when the library refuses it, or
-[`OwnerCallError::Unavailable`](#ownercallerror) when no connection answers.
+[`OwnerCallError::Unavailable`](#ownercallerror) when no connection answers or the
+answer is malformed (a `reconcile` without a sign-in of exactly
+this account that opens here, or a sign-in with another outcome).
 
 #### HostClientHandle::withdraw_account
 
@@ -1050,6 +1062,25 @@ What the library kept of an [`HostClientHandle::offer_accounts`](#hostclienthand
 - `not_allowed`: The library's operator does not let the person connect accounts.
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
+### SignInPushed
+
+```rust
+pub struct SignInPushed {
+    pub outcome: KeeperOutcome,
+    pub library_sign_in: Option<CarriedAccount>,
+}
+```
+
+The library's answer to a pushed sign-in ([`HostClientHandle::push_sign_in`](#hostclienthandlepush_sign_in)).
+
+**Fields**
+
+- `outcome`: What the library did with the sign-in.
+- `library_sign_in`: With `KeeperOutcome::Reconcile` only: the library's own sign-in
+  of the same account.
+
+Implements: `Debug`
 
 ### LocalFileSource
 

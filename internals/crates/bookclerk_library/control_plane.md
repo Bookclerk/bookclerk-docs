@@ -119,9 +119,11 @@ See `docs/adr/control-plane.md`.
 | [`TakenCopy`](#takencopy) | struct | A book of this install whose files came from a library it joined, by its store identity here. |
 | [`LiveRevision`](#liverevision) | struct | One topic's revision: a counter that every write to the topic's table moves forward by at least one. |
 | [`AssignedControls`](#assignedcontrols) | struct | A user's controls: the library's default, their overrides, and what applies to them. |
+| [`ControlChanges`](#controlchanges) | struct | Changes to some of one patron's overrides: a choice for each named control; a control left out (or `null`) keeps what it had, so two Administrators editing different controls do not undo each other. |
 | [`ControlOverrides`](#controloverrides) | struct | One patron's overrides: a value for some controls; the rest (an absent or `null` field) follow the library's default for a Member and are allowed for an Administrator. |
 | [`MemberControls`](#membercontrols) | struct | A value for each control: the library's default, or what applies to one user. |
-| [`PutUserControls`](#putusercontrols) | struct | `PUT /api/users/{id}/controls` body. |
+| [`PatchDefaultControls`](#patchdefaultcontrols) | struct | `PATCH /api/users/default-controls` body. |
+| [`PatchUserControls`](#patchusercontrols) | struct | `PATCH /api/users/{id}/controls` body. |
 | [`CacheUsage`](#cacheusage) | struct | What a node's image caches hold, as its daemon reports them. |
 | [`GuestReservation`](#guestreservation) | struct | CPU and memory one guest may use at most: its grant's ceilings after the node's `[plugins.jail]` limits. |
 | [`NodeHeartbeat`](#nodeheartbeat) | struct | One heartbeat's measurements, before budget and accounting are applied. |
@@ -130,8 +132,10 @@ See `docs/adr/control-plane.md`.
 | [`OutputSettingsV1`](#outputsettingsv1) | struct | Typed `core.output` document, schema version 1. |
 | [`AssignedScope`](#assignedscope) | struct | A Member's scope and where it came from. |
 | [`PatronScope`](#patronscope) | struct | Which part of the library a patron sees. |
+| [`PutDefaultScope`](#putdefaultscope) | struct | `PUT /api/users/default-scope` body. |
 | [`PutUserScope`](#putuserscope) | struct | `PUT /api/users/{id}/scope` body. |
 | [`ScopeRule`](#scoperule) | struct | One rule of a scope: a field, one value of it, and its effect. |
+| [`ScopeVersion`](#scopeversion) | struct | Opaque version of a scope as one read saw it, which a write names so that it goes through only while the scope is still what was read. |
 | [`NewPendingJoin`](#newpendingjoin) | struct | What a joining daemon records when it starts a sign-in. |
 | [`PendingJoin`](#pendingjoin) | struct | A pending join as stored (no secrets). |
 | [`TakenJoin`](#takenjoin) | struct | A consumed pending join with its secrets. `Debug` prints no secret. |
@@ -215,6 +219,7 @@ See `docs/adr/control-plane.md`.
 | [`KeeperUpdate`](#keeperupdate) | enum | What `apply_keeper_update` did. |
 | [`LinkImportOutcome`](#linkimportoutcome) | enum | What `import_link_title` did. |
 | [`LiveTopic`](#livetopic) | enum | A topic of the live socket. |
+| [`ControlChoice`](#controlchoice) | enum | What a change does to one control of one patron. |
 | [`MemberControl`](#membercontrol) | enum | One thing a patron may be allowed or refused. |
 | [`NodeMessage`](#nodemessage) | enum | One message on a `node.<node_id>` queue. The body is the JSON of this enum (`{"type": "deployment.changed", ...}`). |
 | [`OutputReplace`](#outputreplace) | enum | Outcome of `replace_output`. |
@@ -452,13 +457,16 @@ See `docs/adr/control-plane.md`.
 | [`job_source_plugin_key`](#job_source_plugin_key) | function | The one plugin whose source guest runs `job`, or `None` when the job alone does not name exactly one. |
 | [`node_can_run_job`](#node_can_run_job) | function | True when `node_id` can run a job that requires `requires`. |
 | [`resolve_job_requirements`](#resolve_job_requirements) | function | The instances a new job must find on its claiming node. |
+| [`adopt_library_sign_in`](#adopt_library_sign_in) | function | Takes the library's sign-in of an account it answered a first push with (`keeper_reconcile`) as this install's own. |
 | [`apply_keeper_update`](#apply_keeper_update) | function | Applies a keeper branch's push of one account's newest sign-in. |
 | [`confirmed_keeping_branch`](#confirmed_keeping_branch) | function | The branch that has taken over this account's sign-in for this library: its `keeping_branch`, once that branch has pushed a sign-in here (`accounts.update`). Until then the library still keeps the account itself (saves its own refreshes and takes write-backs), so a branch that was sent the account but could not keep it never leaves it unrefreshed. |
+| [`keeper_reconcile`](#keeper_reconcile) | function | The library's own sign-in to answer a keeper branch's push with instead of applying it (`KeeperUpdate`'s first-push race, issue 964). |
 | [`keeping_branch`](#keeping_branch) | function | The branch that keeps this account for this library: the node of its earliest-recorded share with a branch, or `None` when no branch holds it (this library keeps it). |
 | [`keeps_for_link`](#keeps_for_link) | function | True when this install keeps the account for the library it joined as `library_id` (it holds a share with that library). |
 | [`kept_shares`](#kept_shares) | function | Every account this install shares with a library it joined, each library once, with the revision last pushed there. |
 | [`record_pushed_revision`](#record_pushed_revision) | function | Records that the keeper sent `revision` of the account to the library `library_id` (whether it applied it or already had it), for the sign-in whose fingerprint is `observed` (`SignIn::fingerprint`). Never lowers the recorded revision. |
 | [`sign_in_revision`](#sign_in_revision) | function | The keeper's view of an account's sign-in: when its newest secret was written here and a fingerprint of all of them, or `None` when it has no secret. |
+| [`still_as_received`](#still_as_received) | function | True when this install's copy of an account it received from the library `library_id` is still the one it was sent: none of its secrets was written after the account last arrived from there. |
 | [`acquire_lease`](#acquire_lease) | function | Acquires or renews `name` for `holder` for `ttl`. |
 | [`acquire_lease_on`](#acquire_lease_on) | function | `acquire_lease` on a bare connection (schema migration runs before a `LibraryStore` exists). |
 | [`list_leases`](#list_leases) | function | Every lease row, held or expired, by name. |
@@ -495,12 +503,15 @@ See `docs/adr/control-plane.md`.
 | [`changed_topics`](#changed_topics) | function | The topics whose revision differs between `before` and `after`. |
 | [`live_revisions`](#live_revisions) | function | Reads every topic's revision: one batch of one-row reads of `live_topic_revisions`, one per topic, so it fits an adapter that returns a single row per statement. |
 | [`assigned_member_controls`](#assigned_member_controls) | function | The controls of `user`: the library's default, their overrides, and what applies to them. |
+| [`change_default_member_controls`](#change_default_member_controls) | function | Changes only the named default controls under compare-and-swap: each attempt applies `changes` to the stored default it read, so a concurrent edit of another control is kept rather than overwritten. |
+| [`change_member_control_overrides`](#change_member_control_overrides) | function | Changes only the named overrides of `user_id`, keeping every other override as stored (`change_member_control_overrides_for`). |
+| [`change_member_control_overrides_for`](#change_member_control_overrides_for) | function | Changes only the named overrides of `user`, as the caller read them when it checked that the actor may manage them. |
 | [`default_member_controls`](#default_member_controls) | function | The library's default member controls: the stored document, or every control allowed. |
 | [`effective_controls`](#effective_controls) | function | What applies to `user` given the library's default and their overrides: nothing for a user who is not active, everything for an active Owner, the overrides over "everything allowed" for an active Administrator, and the overrides over the default for an active Member. |
 | [`load_default_member_controls`](#load_default_member_controls) | function | Loads the library's default member controls document. |
 | [`member_control_overrides`](#member_control_overrides) | function | The overrides stored for `user_id` (none when there is no row). |
-| [`parse_member_controls`](#parse_member_controls) | function | Parses the body of `PUT /api/users/default-controls` from its raw bytes, sans IO, the way the route reads it. |
-| [`parse_user_controls_request`](#parse_user_controls_request) | function | Parses the body of `PUT /api/users/{id}/controls` from its raw bytes, sans IO, the way the route reads it. |
+| [`parse_default_controls_patch`](#parse_default_controls_patch) | function | Parses the body of `PATCH /api/users/default-controls` from its raw bytes, sans IO, the way the route reads it. |
+| [`parse_user_controls_patch`](#parse_user_controls_patch) | function | Parses the body of `PATCH /api/users/{id}/controls` from its raw bytes, sans IO, the way the route reads it. |
 | [`role_follows_default_controls`](#role_follows_default_controls) | function | Whether a role follows the library's default controls: Members do. An Administrator may do everything except the controls set for them alone, so a default meant for patrons never limits staff. |
 | [`role_has_controls`](#role_has_controls) | function | Whether member controls ever limit a role: Members and Administrators can be limited; Owners never are. |
 | [`set_default_member_controls`](#set_default_member_controls) | function | Replaces the library's default member controls under compare-and-swap, creating the document when absent and retrying a few times on a concurrent edit. |
@@ -533,8 +544,10 @@ See `docs/adr/control-plane.md`.
 | [`default_patron_scope`](#default_patron_scope) | function | The library's default scope: the stored document, or no restriction. |
 | [`default_work_scope`](#default_work_scope) | function | The page index filter for a caller who is not a library user, such as a session whose identity is linked to nobody: the library default, with no store accounts of their own. `None` when the default hides nothing. |
 | [`load_default_patron_scope`](#load_default_patron_scope) | function | Loads the library's default scope document. |
-| [`parse_patron_scope`](#parse_patron_scope) | function | Parses the body of `PUT /api/users/default-scope` from its raw bytes, sans IO, the way the route reads it: JSON into `PatronScope`, then trimmed (`PatronScope::normalized`) and checked (`PatronScope::validate`) as `set_default_patron_scope` does. |
+| [`parse_default_scope_request`](#parse_default_scope_request) | function | Parses the body of `PUT /api/users/default-scope` from its raw bytes, sans IO, the way the route reads it: JSON into `PutDefaultScope`, then the scope trimmed (`PatronScope::normalized`) and checked (`PatronScope::validate`) as `set_default_patron_scope` does. |
 | [`parse_user_scope_request`](#parse_user_scope_request) | function | Parses the body of `PUT /api/users/{id}/scope` from its raw bytes, sans IO, the way the route reads it: JSON into `PutUserScope`, then the scope (when one is given) trimmed and checked as `set_patron_scope` does. |
+| [`replace_default_patron_scope`](#replace_default_patron_scope) | function | Replaces the library's default scope, only while it is still at `expected` (the version the caller read it at). |
+| [`replace_patron_scope`](#replace_patron_scope) | function | Gives a user their own scope, or with `None` returns them to the library's default, only while their scope is still at `expected` (the version the caller read it at). |
 | [`role_is_scoped`](#role_is_scoped) | function | Whether a role is ever scoped: Members are patrons, while Owners and Administrators always see the whole library. |
 | [`scope_for_user`](#scope_for_user) | function | The scope that applies to `user`: `None` for an Owner or Administrator, who see everything, and the assigned scope for a Member. |
 | [`set_default_patron_scope`](#set_default_patron_scope) | function | Replaces the library's default scope under compare-and-swap, creating the document when absent and retrying a few times on a concurrent edit. |
@@ -4020,6 +4033,66 @@ applies to them.
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
+### ControlChanges
+
+```rust
+pub struct ControlChanges {
+    pub link_accounts: Option<ControlChoice>,
+    pub download: Option<ControlChoice>,
+    pub edit_metadata: Option<ControlChoice>,
+    pub upload: Option<ControlChoice>,
+    pub request_books: Option<ControlChoice>,
+    pub see_prices: Option<ControlChoice>,
+}
+```
+
+Changes to some of one patron's overrides: a choice for each named
+control; a control left out (or `null`) keeps what it had, so two
+Administrators editing different controls do not undo each other.
+
+**Fields**
+
+- `link_accounts`: Change to [`MemberControl::LinkAccounts`](#membercontrol).
+- `download`: Change to [`MemberControl::Download`](#membercontrol).
+- `edit_metadata`: Change to [`MemberControl::EditMetadata`](#membercontrol).
+- `upload`: Change to [`MemberControl::Upload`](#membercontrol).
+- `request_books`: Change to [`MemberControl::RequestBooks`](#membercontrol).
+- `see_prices`: Change to [`MemberControl::SeePrices`](#membercontrol).
+
+#### ControlChanges::get
+
+```rust
+pub fn get(&self, control: MemberControl) -> Option<ControlChoice>
+```
+
+The change to `control`, if any.
+
+#### ControlChanges::set
+
+```rust
+pub fn set(&mut self, control: MemberControl, choice: Option<ControlChoice>)
+```
+
+Sets or clears (`None`) the change to `control`.
+
+#### ControlChanges::with
+
+```rust
+pub fn with(self, control: MemberControl, choice: ControlChoice) -> Self
+```
+
+These changes with `control` set to `choice`.
+
+#### ControlChanges::apply
+
+```rust
+pub fn apply(&self, overrides: ControlOverrides) -> ControlOverrides
+```
+
+`overrides` with these changes applied.
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
+
 ### ControlOverrides
 
 ```rust
@@ -4078,6 +4151,14 @@ pub fn apply(&self, defaults: MemberControls) -> MemberControls
 
 `defaults` with these overrides applied.
 
+#### ControlOverrides::with
+
+```rust
+pub fn with(self, control: MemberControl, value: bool) -> Self
+```
+
+These overrides with `control` set to `value`.
+
 Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### MemberControls
@@ -4131,21 +4212,37 @@ Sets `control` to `value`.
 
 Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
-### PutUserControls
+### PatchDefaultControls
 
 ```rust
-pub struct PutUserControls {
-    pub overrides: ControlOverrides,
+pub struct PatchDefaultControls {
+    pub changes: ControlOverrides,
 }
 ```
 
-`PUT /api/users/{id}/controls` body.
+`PATCH /api/users/default-controls` body.
 
 **Fields**
 
-- `overrides`: The controls set for this patron alone; an absent or `null`
-  control follows the library's default for a Member and is allowed
-  for an Administrator, so `{}` clears every override.
+- `changes`: The new default of each control to change; a control left out (or
+  `null`) keeps its stored value.
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
+
+### PatchUserControls
+
+```rust
+pub struct PatchUserControls {
+    pub changes: ControlChanges,
+}
+```
+
+`PATCH /api/users/{id}/controls` body.
+
+**Fields**
+
+- `changes`: The controls to change for this patron and how; a control left out
+  (or `null`) keeps what it had.
 
 Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
@@ -4586,6 +4683,7 @@ Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `E
 pub struct AssignedScope {
     pub scope: PatronScope,
     pub own: bool,
+    pub version: ScopeVersion,
 }
 ```
 
@@ -4596,6 +4694,10 @@ A Member's scope and where it came from.
 - `scope`: The scope that applies.
 - `own`: True when an Administrator gave the patron this scope; false when the
   patron follows the library's default.
+- `version`: The version of the patron's scope, which a write names in
+  `expected_version` ([`replace_patron_scope`](#replace_patron_scope)). It covers only the
+  patron's own record: a patron who follows the default keeps one
+  version whatever the default says.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
@@ -4668,11 +4770,31 @@ The scope with each value trimmed, as it is stored.
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
+### PutDefaultScope
+
+```rust
+pub struct PutDefaultScope {
+    pub scope: PatronScope,
+    pub expected_version: ScopeVersion,
+}
+```
+
+`PUT /api/users/default-scope` body.
+
+**Fields**
+
+- `scope`: The new default scope.
+- `expected_version`: The `version` the caller read the default at; the write is refused
+  with a conflict when the default has changed since.
+
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `ToSchema`
+
 ### PutUserScope
 
 ```rust
 pub struct PutUserScope {
     pub scope: Option<PatronScope>,
+    pub expected_version: ScopeVersion,
 }
 ```
 
@@ -4682,6 +4804,8 @@ pub struct PutUserScope {
 
 - `scope`: The patron's own scope, or `null` to return them to the library's
   default.
+- `expected_version`: The `version` the caller read the patron's scope at; the write is
+  refused with a conflict when the scope has changed since.
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `ToSchema`
 
@@ -4705,6 +4829,67 @@ One rule of a scope: a field, one value of it, and its effect.
 - `effect`: Include or exclude.
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
+
+### ScopeVersion
+
+```rust
+pub struct ScopeVersion(/* private */);
+```
+
+Opaque version of a scope as one read saw it, which a write names so
+that it goes through only while the scope is still what was read.
+
+The token is 32 lowercase hex digits taken from a SHA-256 over what the
+scope is: for a patron, whether they have their own scope and, if so,
+its stored JSON; for the library's default, its JSON. Equal content
+gives an equal version, so a scope changed and changed back does not
+refuse a write made from the first reading, which would leave the same
+result.
+
+#### ScopeVersion::LEN
+
+```rust
+pub const LEN: usize = 32
+```
+
+Length of a version token, in hex digits.
+
+#### ScopeVersion::of_default
+
+```rust
+pub fn of_default(scope: &PatronScope) -> Result<Self>
+```
+
+The version of the library's default scope `scope`, as
+`GET /api/users/default-scope` reports it.
+
+##### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) if the scope cannot be written as
+JSON.
+
+#### ScopeVersion::parse
+
+```rust
+pub fn parse(raw: &str) -> Result<Self>
+```
+
+Reads a token as a client sent it.
+
+##### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) for anything but
+[`Self::LEN`](#scopeversionlen) lowercase hex digits.
+
+#### ScopeVersion::as_str
+
+```rust
+pub fn as_str(&self) -> &str
+```
+
+The token as sent on the wire.
+
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Display`, `Eq`, `Hash`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### NewPendingJoin
 
@@ -7428,6 +7613,51 @@ carry no change stamp; their writes bump on a probe or outright
 instead.
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`
+
+### ControlChoice
+
+```rust
+pub enum ControlChoice {
+    On,
+    Off,
+    Default,
+}
+```
+
+What a change does to one control of one patron.
+
+**Variants**
+
+- `On`: Allow the control for this patron, whatever the default says.
+- `Off`: Refuse the control for this patron, whatever the default says.
+- `Default`: Follow the library's default again (for an Administrator: allowed).
+
+#### ControlChoice::value
+
+```rust
+pub fn value(self) -> Option<bool>
+```
+
+The stored override: `Some(true)`, `Some(false)`, or `None` to
+follow the default.
+
+#### ControlChoice::of
+
+```rust
+pub fn of(value: Option<bool>) -> Self
+```
+
+The choice that stores `value`.
+
+#### ControlChoice::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+The wire spelling (`on`, `off`, `default`).
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### MemberControl
 
@@ -12164,6 +12394,35 @@ deployed node-bound output.
 Returns [`LibraryError::Conflict`](README.md#libraryerror) when the required instances have no
 common deployment node, or an error when a read fails.
 
+### adopt_library_sign_in
+
+```rust
+pub async fn adopt_library_sign_in(
+    store: &LibraryStore,
+    library_id: &str,
+    account: &CarriedAccount,
+) -> Result<bool>
+```
+
+Takes the library's sign-in of an account it answered a first push
+with ([`keeper_reconcile`](#keeper_reconcile)) as this install's own.
+
+One atomic batch writes each of the library's secrets (re-sealed with
+this install's key), every statement applied only while the account is
+still shared with the library `library_id` and none of its secrets here
+was written after the account last arrived from there, other than by
+this batch. So a sign-in or refresh made here meanwhile is kept, and
+the caller pushes it instead.
+
+#### Returns
+
+True when the library's sign-in was taken.
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) for an account without secrets, a
+seal error, or a read or write error.
+
 ### apply_keeper_update
 
 ```rust
@@ -12209,6 +12468,41 @@ was sent the account but could not keep it never leaves it unrefreshed.
 #### Errors
 
 Returns the read error.
+
+### keeper_reconcile
+
+```rust
+pub async fn keeper_reconcile(
+    store: &LibraryStore,
+    user_id: i64,
+    node_id: &str,
+    account: &CarriedAccount,
+) -> Result<Option<CarriedAccount>>
+```
+
+The library's own sign-in to answer a keeper branch's push with instead
+of applying it ([`KeeperUpdate`](#keeperupdate)'s first-push race, issue 964).
+
+Until a branch's first push of an account is applied, the library keeps
+the account itself and saves its own refreshes. A first push made from
+the copy the library sent (or a refresh of it) would then replace a
+newer refresh the library saved since. So the first push is answered
+with the library's sign-in when all of these hold: no push from the
+branch was applied yet, the library's secrets were written after it
+last sent the account to the branch, and the pushed secrets differ from
+the library's. The branch takes the library's sign-in when its own copy
+is still the one it was sent ([`still_as_received`](#still_as_received)), and pushes it
+back, which then matches and is applied; otherwise it pushes its own
+again marked as kept on purpose, which is applied.
+
+#### Returns
+
+The library's copy of the account to send back, or `None` to apply the
+push as usual.
+
+#### Errors
+
+Returns a read or unseal error.
 
 ### keeping_branch
 
@@ -12298,6 +12592,26 @@ secret.
 #### Errors
 
 Returns the read error, or [`LibraryError::Invalid`](README.md#libraryerror) for a stored time
+that does not parse.
+
+### still_as_received
+
+```rust
+pub async fn still_as_received(
+    store: &LibraryStore,
+    plugin_key: &str,
+    account_id: &str,
+    library_id: &str,
+) -> Result<bool>
+```
+
+True when this install's copy of an account it received from the
+library `library_id` is still the one it was sent: none of its secrets
+was written after the account last arrived from there.
+
+#### Errors
+
+Returns a read error, or [`LibraryError::Invalid`](README.md#libraryerror) for a stored time
 that does not parse.
 
 ### acquire_lease
@@ -13009,6 +13323,88 @@ what applies to them.
 
 Returns a read or parse error; callers fail closed on it.
 
+### change_default_member_controls
+
+```rust
+pub async fn change_default_member_controls(
+    store: &LibraryStore,
+    actor: &ConfigActor,
+    changes: &ControlOverrides,
+) -> Result<ConfigurationDocument<MemberControls>>
+```
+
+Changes only the named default controls under compare-and-swap: each
+attempt applies `changes` to the stored default it read, so a
+concurrent edit of another control is kept rather than overwritten.
+
+#### Arguments
+
+* `store` - The library database.
+* `actor` - Who is writing, for authorization and the audit log.
+* `changes` - The new value of each control to change; a control left
+  out keeps its stored value.
+
+#### Errors
+
+Returns an error when the actor may not write, or
+[`LibraryError::Conflict`](README.md#libraryerror) when the document keeps changing underneath.
+
+### change_member_control_overrides
+
+```rust
+pub async fn change_member_control_overrides(
+    store: &LibraryStore,
+    user_id: i64,
+    changes: &ControlChanges,
+) -> Result<AssignedControls>
+```
+
+Changes only the named overrides of `user_id`, keeping every other
+override as stored ([`change_member_control_overrides_for`](#change_member_control_overrides_for)).
+
+The caller has already checked that the actor may manage the user. The
+write is guarded on the role read here.
+
+#### Errors
+
+Returns [`LibraryError::NotFound`](README.md#libraryerror) for an unknown user, or the errors
+of [`change_member_control_overrides_for`](#change_member_control_overrides_for).
+
+### change_member_control_overrides_for
+
+```rust
+pub async fn change_member_control_overrides_for(
+    store: &LibraryStore,
+    user: &UserRecord,
+    changes: &ControlChanges,
+) -> Result<(UserRecord, AssignedControls)>
+```
+
+Changes only the named overrides of `user`, as the caller read them
+when it checked that the actor may manage them.
+
+Each attempt applies `changes` to the stored row it read and writes the
+result back in one atomic batch guarded on that row being unchanged and
+on the user still having the role in `user`. A concurrent edit of
+another control is therefore kept rather than overwritten, and a role
+change made after the caller authorized the write stops it. With no
+override left, the row is deleted and the user follows the library's
+default for every control again.
+
+#### Returns
+
+The user as read after the write, with the controls that apply to them
+computed from that same record.
+
+#### Errors
+
+Returns [`LibraryError::Conflict`](README.md#libraryerror) when the user did not have the role
+in `user` as the write ran (nothing was written; whether the role
+changes again afterwards does not matter) or the row keeps changing
+underneath,
+[`LibraryError::NotFound`](README.md#libraryerror) when the user is gone, or the read or write
+error.
+
 ### default_member_controls
 
 ```rust
@@ -13072,43 +13468,46 @@ The overrides stored for `user_id` (none when there is no row).
 
 Returns the read error, or an error when the stored row is invalid.
 
-### parse_member_controls
+### parse_default_controls_patch
 
 ```rust
-pub fn parse_member_controls(body: &[u8]) -> Result<MemberControls>
+pub fn parse_default_controls_patch(body: &[u8]) -> Result<ControlOverrides>
 ```
 
-Parses the body of `PUT /api/users/default-controls` from its raw
+Parses the body of `PATCH /api/users/default-controls` from its raw
 bytes, sans IO, the way the route reads it.
 
 #### Returns
 
-The new default, with an absent control allowed.
+The new value of each named control; `None` for a control the body
+leaves out or sets to `null`, which keeps its stored value.
 
 #### Errors
 
 Returns [`LibraryError::Invalid`](README.md#libraryerror) for bytes that are not one JSON
-object of known controls with boolean values and no repeated key.
+object with exactly the key `changes`, itself an object of known
+controls with boolean or `null` values, with no repeated key.
 
-### parse_user_controls_request
+### parse_user_controls_patch
 
 ```rust
-pub fn parse_user_controls_request(body: &[u8]) -> Result<ControlOverrides>
+pub fn parse_user_controls_patch(body: &[u8]) -> Result<ControlChanges>
 ```
 
-Parses the body of `PUT /api/users/{id}/controls` from its raw bytes,
+Parses the body of `PATCH /api/users/{id}/controls` from its raw bytes,
 sans IO, the way the route reads it.
 
 #### Returns
 
-The patron's overrides, with an absent or `null` control following
-the default.
+The change to each named control; `None` for a control the body leaves
+out or sets to `null`, which keeps what it had.
 
 #### Errors
 
 Returns [`LibraryError::Invalid`](README.md#libraryerror) for bytes that are not one JSON
-object with exactly the key `overrides`, itself an object of known
-controls with boolean or `null` values, with no repeated key.
+object with exactly the key `changes`, itself an object of known
+controls whose values are `"on"`, `"off"`, `"default"` or `null`, with
+no repeated key.
 
 ### role_follows_default_controls
 
@@ -13617,27 +14016,28 @@ is then [`PatronScope::unrestricted`](#patronscopeunrestricted).
 Returns the read error, or an error when the stored document is invalid
 or of an unknown schema.
 
-### parse_patron_scope
+### parse_default_scope_request
 
 ```rust
-pub fn parse_patron_scope(body: &[u8]) -> Result<PatronScope>
+pub fn parse_default_scope_request(body: &[u8]) -> Result<PutDefaultScope>
 ```
 
 Parses the body of `PUT /api/users/default-scope` from its raw bytes,
-sans IO, the way the route reads it: JSON into [`PatronScope`](#patronscope), then
-trimmed ([`PatronScope::normalized`](#patronscopenormalized)) and checked
+sans IO, the way the route reads it: JSON into [`PutDefaultScope`](#putdefaultscope),
+then the scope trimmed ([`PatronScope::normalized`](#patronscopenormalized)) and checked
 ([`PatronScope::validate`](#patronscopevalidate)) as [`set_default_patron_scope`](#set_default_patron_scope) does.
 
 #### Errors
 
-Returns [`LibraryError::Invalid`](README.md#libraryerror) for bytes that are not the scope's JSON
-shape (unknown or repeated fields, wrong types, a missing rule field) or
-a scope that fails [`PatronScope::validate`](#patronscopevalidate).
+Returns [`LibraryError::Invalid`](README.md#libraryerror) for bytes that are not the body's JSON
+shape (unknown, repeated or missing fields, wrong types, a missing rule
+field, a malformed version) or a scope that fails
+[`PatronScope::validate`](#patronscopevalidate).
 
 ### parse_user_scope_request
 
 ```rust
-pub fn parse_user_scope_request(body: &[u8]) -> Result<Option<PatronScope>>
+pub fn parse_user_scope_request(body: &[u8]) -> Result<PutUserScope>
 ```
 
 Parses the body of `PUT /api/users/{id}/scope` from its raw bytes, sans
@@ -13647,13 +14047,68 @@ does.
 
 #### Returns
 
-The patron's own scope, or `None` (`"scope": null`, or no `scope` key)
-to return them to the default.
+The body, with the patron's own scope or `None` (`"scope": null`, or no
+`scope` key) to return them to the default.
 
 #### Errors
 
 Returns [`LibraryError::Invalid`](README.md#libraryerror) for bytes that are not the body's JSON
 shape or a scope that fails [`PatronScope::validate`](#patronscopevalidate).
+
+### replace_default_patron_scope
+
+```rust
+pub async fn replace_default_patron_scope(
+    store: &LibraryStore,
+    actor: &ConfigActor,
+    scope: PatronScope,
+    expected: &ScopeVersion,
+) -> Result<ConfigurationDocument<PatronScope>>
+```
+
+Replaces the library's default scope, only while it is still at
+`expected` (the version the caller read it at).
+
+Each attempt reads the default, refuses when its version is not
+`expected`, and writes under compare-and-swap on the document's
+revision; a concurrent write between the read and the swap makes the
+next attempt see the new version and refuse.
+
+#### Errors
+
+Returns [`LibraryError::Conflict`](README.md#libraryerror) when the default is no longer at
+`expected` (nothing was written), [`LibraryError::Invalid`](README.md#libraryerror) for a scope
+that fails [`PatronScope::validate`](#patronscopevalidate), an error when the actor may not
+write, or the read or write error.
+
+### replace_patron_scope
+
+```rust
+pub async fn replace_patron_scope(
+    store: &LibraryStore,
+    user_id: i64,
+    scope: Option<PatronScope>,
+    expected: &ScopeVersion,
+) -> Result<AssignedScope>
+```
+
+Gives a user their own scope, or with `None` returns them to the
+library's default, only while their scope is still at `expected` (the
+version the caller read it at).
+
+The caller has already checked that the actor may manage the user. One
+atomic batch writes the change guarded on the stored row being the one
+`expected` names: absent for a patron who followed the default, or the
+same JSON for one who had their own scope. A change made by someone
+else since the read therefore refuses the write instead of being
+overwritten.
+
+#### Errors
+
+Returns [`LibraryError::Conflict`](README.md#libraryerror) when the scope is no longer at
+`expected` (nothing was written), [`LibraryError::NotFound`](README.md#libraryerror) for an
+unknown user, [`LibraryError::Invalid`](README.md#libraryerror) for a scope that fails
+[`PatronScope::validate`](#patronscopevalidate), or the read or write error.
 
 ### role_is_scoped
 

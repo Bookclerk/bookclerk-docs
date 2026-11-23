@@ -1009,6 +1009,25 @@ JSON body after a branch consent was answered.
 
 - `redirect` *string*, **required** — Where to send the browser: the branch's callback with a code, or with `error=access_denied`.
 
+## ControlChanges
+
+Changes to some of one patron's overrides: a choice for each named
+control; a control left out (or `null`) keeps what it had, so two
+Administrators editing different controls do not undo each other.
+
+- `link_accounts` *[`ControlChoice`](#controlchoice) or null* — Change to [`MemberControl::LinkAccounts`].
+- `download` *[`ControlChoice`](#controlchoice) or null* — Change to [`MemberControl::Download`].
+- `edit_metadata` *[`ControlChoice`](#controlchoice) or null* — Change to [`MemberControl::EditMetadata`].
+- `upload` *[`ControlChoice`](#controlchoice) or null* — Change to [`MemberControl::Upload`].
+- `request_books` *[`ControlChoice`](#controlchoice) or null* — Change to [`MemberControl::RequestBooks`].
+- `see_prices` *[`ControlChoice`](#controlchoice) or null* — Change to [`MemberControl::SeePrices`].
+
+## ControlChoice
+
+What a change does to one control of one patron.
+
+Type: one of `on`, `off`, `default`
+
 ## ControlOverrides
 
 One patron's overrides: a value for some controls; the rest (an absent
@@ -1116,6 +1135,7 @@ them.
 The library's default scope as the scope routes report it.
 
 - `scope` *[`PatronScope`](#patronscope)*, **required** — The scope patrons without their own follow.
+- `version` *[`ScopeVersion`](#scopeversion)*, **required** — The version of the default, which a write sends back as `expected_version`.
 
 ## DefaultSwitchChanges
 
@@ -3176,6 +3196,12 @@ JSON body after a password was set.
 
 - `changes` *[`DefaultSwitchChanges`](#defaultswitchchanges)*, **required** — The default switches to change and their new values. Switches it does not name keep their stored value, so two Owners editing different switches do not undo each other.
 
+## PatchDefaultControls
+
+`PATCH /api/users/default-controls` body.
+
+- `changes` *[`ControlOverrides`](#controloverrides)*, **required** — The new default of each control to change; a control left out (or `null`) keeps its stored value.
+
 ## PatchPreferencesBody
 
 Partial preferences update; omitted fields keep their stored values.
@@ -3208,6 +3234,12 @@ Body for `PATCH /api/settings`.
 `PATCH /api/users/{id}/admin-controls` body.
 
 - `changes` *[`OverrideSwitchChanges`](#overrideswitchchanges)*, **required** — The switches to change for this Administrator: `on` or `off` sets the switch for them alone, `default` follows the library's default again. Switches it does not name keep what they had, so two Owners editing different switches do not undo each other.
+
+## PatchUserControls
+
+`PATCH /api/users/{id}/controls` body.
+
+- `changes` *[`ControlChanges`](#controlchanges)*, **required** — The controls to change for this patron and how; a control left out (or `null`) keeps what it had.
 
 ## PatchUserRequest
 
@@ -4010,6 +4042,13 @@ Priced catalog matches for one title, sorted best-first.
 
 - `enrollment` *boolean*, **required** — "Let new branches join" (`core.branch_enrollment.enabled`).
 
+## PutDefaultScope
+
+`PUT /api/users/default-scope` body.
+
+- `scope` *[`PatronScope`](#patronscope)*, **required** — The new default scope.
+- `expected_version` *string*, **required** — The `version` the caller read the default at; the write is refused with a conflict when the default has changed since.
+
 ## PutEventsDomainRequest
 
 JSON body for `PUT /api/config/domains/core.events`.
@@ -4073,17 +4112,12 @@ JSON body for `PUT /api/config/domains/core.output`.
 - `constraints` *array of string* — Label constraints (`name`, `name=value`, `!name`).
 - `expected_revision` *integer (int64) or null* — Current revision to replace; omit (or 0) to create.
 
-## PutUserControls
-
-`PUT /api/users/{id}/controls` body.
-
-- `overrides` *[`ControlOverrides`](#controloverrides)*, **required** — The controls set for this patron alone; an absent or `null` control follows the library's default for a Member and is allowed for an Administrator, so `{}` clears every override.
-
 ## PutUserScope
 
 `PUT /api/users/{id}/scope` body.
 
 - `scope` *[`PatronScope`](#patronscope) or null* — The patron's own scope, or `null` to return them to the library's default.
+- `expected_version` *string*, **required** — The `version` the caller read the patron's scope at; the write is refused with a conflict when the scope has changed since.
 
 ## QueueDetail
 
@@ -4457,6 +4491,20 @@ One rule of a scope: a field, one value of it, and its effect.
 - `field` *[`ScopeField`](#scopefield)*, **required** — The field the rule matches.
 - `value` *string*, **required** — The value, compared without case and surrounding space (1 to 256 bytes).
 - `effect` *[`RuleEffect`](#ruleeffect)*, **required** — Include or exclude.
+
+## ScopeVersion
+
+Opaque version of a scope as one read saw it, which a write names so
+that it goes through only while the scope is still what was read.
+
+The token is 32 lowercase hex digits taken from a SHA-256 over what the
+scope is: for a patron, whether they have their own scope and, if so,
+its stored JSON; for the library's default, its JSON. Equal content
+gives an equal version, so a scope changed and changed back does not
+refuse a write made from the first reading, which would leave the same
+result.
+
+Type: string
 
 ## SearchBook
 
@@ -5416,6 +5464,7 @@ A patron's scope as the scope routes report it.
 - `scope` *[`PatronScope`](#patronscope)*, **required** — The scope that applies to them: their own, or the library's default.
 - `own` *boolean*, **required** — True when an Administrator gave them this scope; false when they follow the library's default.
 - `applies` *boolean*, **required** — Whether the scope applies to the user's role: false for an Owner or Administrator, who always see the whole library.
+- `version` *[`ScopeVersion`](#scopeversion)*, **required** — The version of the patron's scope, which a write sends back as `expected_version`. It changes only with the patron's own record, not with the library's default.
 
 ## UserSsoPictureSummary
 

@@ -864,6 +864,30 @@ True for the node serving this request.
 
 ***
 
+### DefaultScope
+
+The library's default scope as `GET`/`PUT /api/users/default-scope` report it.
+
+#### Properties
+
+##### scope
+
+```ts
+scope: PatronScope;
+```
+
+The scope patrons without their own follow.
+
+##### version
+
+```ts
+version: string;
+```
+
+The version of the default; a write sends it back as `expected_version`.
+
+***
+
 ### DiagnosticsReport
 
 One diagnostics report this install sent (`GET /api/diagnostics/reports`).
@@ -6830,6 +6854,15 @@ user_id: number;
 
 The user.
 
+##### version
+
+```ts
+version: string;
+```
+
+The version of the patron's scope; a write sends it back as
+`expected_version` and is refused (409) when the scope changed since.
+
 ***
 
 ### WorkDetail
@@ -7505,6 +7538,16 @@ type CatalogSortDir = "asc" | "desc";
 ```
 
 Ascending or descending catalog sort direction.
+
+***
+
+### ControlChoice
+
+```ts
+type ControlChoice = "on" | "off" | "default";
+```
+
+What a change does to one of a patron's controls.
 
 ***
 
@@ -9317,18 +9360,14 @@ The default.
 ### getDefaultScope()
 
 ```ts
-function getDefaultScope(): Promise<{
-  scope: PatronScope;
-}>;
+function getDefaultScope(): Promise<DefaultScope>;
 ```
 
 Reads the library's default patron scope.
 
 #### Returns
 
-`Promise`\<\{
-  `scope`: [`PatronScope`](#patronscope);
-\}\>
+`Promise`\<[`DefaultScope`](#defaultscope)\>
 
 The default.
 
@@ -9871,6 +9910,35 @@ The default after the change.
 
 ***
 
+### patchDefaultControls()
+
+```ts
+function patchDefaultControls(changes): Promise<{
+  controls: MemberControls;
+}>;
+```
+
+Changes some of the library's default member controls.
+
+Only the named controls change, so a concurrent edit of another control
+is kept.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `changes` | `Partial`\<[`MemberControls`](#membercontrols)\> | The controls to change and their new values. |
+
+#### Returns
+
+`Promise`\<\{
+  `controls`: [`MemberControls`](#membercontrols);
+\}\>
+
+The default after the change.
+
+***
+
 ### patchPreferences()
 
 ```ts
@@ -10008,6 +10076,32 @@ is kept.
 `Promise`\<[`UserAdminControls`](#useradmincontrols)\>
 
 The switches after the change.
+
+***
+
+### patchUserControls()
+
+```ts
+function patchUserControls(id, changes): Promise<UserControls>;
+```
+
+Changes some controls for one patron.
+
+Only the named controls change, so a concurrent edit of another control
+is kept.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `id` | `number` | The user. |
+| `changes` | `Partial`\<`Record`\<[`MemberControl`](#membercontrol), [`ControlChoice`](#controlchoice)\>\> | `on` or `off` for them alone, or `default` to follow the library's default. |
+
+#### Returns
+
+`Promise`\<[`UserControls`](#usercontrols)\>
+
+The controls after the change.
 
 ***
 
@@ -10252,55 +10346,31 @@ The collections as saved (names trimmed, prefixes ending in `/`).
 
 ***
 
-### putDefaultControls()
-
-```ts
-function putDefaultControls(controls): Promise<{
-  controls: MemberControls;
-}>;
-```
-
-Replaces the library's default member controls.
-
-#### Parameters
-
-| Parameter | Type | Description |
-| ------ | ------ | ------ |
-| `controls` | [`MemberControls`](#membercontrols) | The new default. |
-
-#### Returns
-
-`Promise`\<\{
-  `controls`: [`MemberControls`](#membercontrols);
-\}\>
-
-The default after the change.
-
-***
-
 ### putDefaultScope()
 
 ```ts
-function putDefaultScope(scope): Promise<{
-  scope: PatronScope;
-}>;
+function putDefaultScope(scope, expectedVersion): Promise<DefaultScope>;
 ```
 
-Replaces the library's default patron scope.
+Replaces the library's default patron scope, if it is still at
+`expectedVersion`.
 
 #### Parameters
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
 | `scope` | [`PatronScope`](#patronscope) | The new default. |
+| `expectedVersion` | `string` | The `version` the default was read at. |
 
 #### Returns
 
-`Promise`\<\{
-  `scope`: [`PatronScope`](#patronscope);
-\}\>
+`Promise`\<[`DefaultScope`](#defaultscope)\>
 
 The default after the change.
+
+#### Throws
+
+ApiError With status 409 when someone changed the default since it was read.
 
 ***
 
@@ -10532,38 +10602,18 @@ The stored placement.
 
 ***
 
-### putUserControls()
-
-```ts
-function putUserControls(id, overrides): Promise<UserControls>;
-```
-
-Sets the controls that differ for one patron; the rest follow the
-library's default.
-
-#### Parameters
-
-| Parameter | Type | Description |
-| ------ | ------ | ------ |
-| `id` | `number` | The user. |
-| `overrides` | [`ControlOverrides`](#controloverrides) | The controls set for them alone (`{}` for none). |
-
-#### Returns
-
-`Promise`\<[`UserControls`](#usercontrols)\>
-
-The controls after the change.
-
-***
-
 ### putUserScope()
 
 ```ts
-function putUserScope(id, scope): Promise<UserScope>;
+function putUserScope(
+   id, 
+   scope, 
+   expectedVersion
+): Promise<UserScope>;
 ```
 
 Gives a patron their own scope, or with `null` returns them to the
-library's default.
+library's default, if their scope is still at `expectedVersion`.
 
 #### Parameters
 
@@ -10571,12 +10621,17 @@ library's default.
 | ------ | ------ | ------ |
 | `id` | `number` | The user. |
 | `scope` | [`PatronScope`](#patronscope) \| `null` | Their own scope, or `null`. |
+| `expectedVersion` | `string` | The `version` the scope was read at. |
 
 #### Returns
 
 `Promise`\<[`UserScope`](#userscope)\>
 
 The scope after the change.
+
+#### Throws
+
+ApiError With status 409 when someone changed the scope since it was read.
 
 ***
 
