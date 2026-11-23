@@ -181,6 +181,7 @@
     "internals/crates/bookclerk_library/entities/destination_feeds",
     "internals/crates/bookclerk_library/entities/destination_objects",
     "internals/crates/bookclerk_library/entities/discover_candidates",
+    "internals/crates/bookclerk_library/entities/discover_feed_parts",
     "internals/crates/bookclerk_library/entities/discover_feeds",
     "internals/crates/bookclerk_library/entities/discover_fetches",
     "internals/crates/bookclerk_library/entities/discover_request_queue",

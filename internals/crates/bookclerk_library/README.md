@@ -8166,7 +8166,12 @@ pub async fn put_discover_feed(
 Stores (or replaces) one subject's ranked feed.
 
 One upsert writes the row without reading the old one first, so a
-stored feed too large to read back cannot block its replacement.
+stored feed too large to read back cannot block its replacement. A
+feed wider than one piece the database plugin carries (the smallest
+of its cell, statement and result limits) is cut into `discover_feed_parts` pieces under a new
+version first, in as few batches as its limits allow; the row then
+names that version, so it never names one whose pieces are not all
+in. Pieces the row no longer names are dropped afterwards.
 
 ##### Arguments
 
@@ -8189,6 +8194,11 @@ pub async fn get_discover_feed(
 ```
 
 Returns one subject's stored feed, when it has one.
+
+A feed stored in pieces is read in keyset pages sized to the
+database plugin's result limits and joined again; one whose pieces
+are not all there (a concurrent write dropped them) reads as
+no feed.
 
 ##### Errors
 
@@ -15155,7 +15165,8 @@ pub async fn list_portal_identities_for_user(
 ) -> Result<Vec<PortalIdentity>>
 ```
 
-All portal identities linked to a first-party user.
+All portal identities linked to a first-party user, read in keyset
+pages within the database plugin's result limit.
 
 ##### Errors
 
@@ -15807,7 +15818,8 @@ Returns an error when the operation fails.
 pub async fn list_account_links(&self, identity_id: i64) -> Result<Vec<AccountLinkRecord>>
 ```
 
-Lists store accounts linked to a portal identity.
+Lists store accounts linked to a portal identity, read in keyset pages
+within the database plugin's result limit.
 
 ##### Arguments
 

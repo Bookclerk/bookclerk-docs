@@ -256,7 +256,7 @@ See `docs/adr/control-plane.md`.
 | [`set_default_admin_controls`](#set_default_admin_controls) | function | Replaces the library's default Administrator switches under compare-and-swap, creating the document when absent and retrying a few times on a concurrent edit. |
 | [`load_artifact_blob`](#load_artifact_blob) | function | Reads an archive stored by `put_artifact_blob`. |
 | [`put_artifact_blob`](#put_artifact_blob) | function | Stores a small archive and returns its `blob:sha256:<hex>` URL. |
-| [`accept_catalog_batch`](#accept_catalog_batch) | function | Records one batch of `node_id`'s shared titles under `fence`, then the cursor after it. Every title is checked before any is written; a title this library already holds for the branch's owner is skipped. Each other title is resolved into the library model and held by the branch (`holding_added` when new), and the holding's share state is written in one transaction with the cursor, each statement gated on the fence still being live, the branch still sharing and its credential live. A holding is stamped with the pass under way, and with `done` (the last batch of a pass) while a pass from the start is under way, the branch's holdings the pass did not name are removed (`withdrawn`) and the pass ends; `done` on a resumed incremental pass changes nothing more. |
+| [`accept_catalog_batch`](#accept_catalog_batch) | function | Records one batch of `node_id`'s shared titles under `fence`, then the cursor after it. Every title is checked before any is written; a title this library already holds for the branch's owner is skipped. Each other title is resolved into the library model and held by the branch (`holding_added` when new), and the holding's share state is written with the cursor (in one transaction when the database plugin's statement limit allows, else in parts with the cursor last), each statement gated on the fence still being live, the branch still sharing and its credential live. A holding is stamped with the pass under way, and with `done` (the last batch of a pass) while a pass from the start is under way, the branch's holdings the pass did not name are removed (`withdrawn`) and the pass ends; `done` on a resumed incremental pass changes nothing more. |
 | [`begin_catalog`](#begin_catalog) | function | Opens (or reopens) `node_id`'s catalog sync with the settings the branch reports: records them on its node row, bumps its catalog fence (frames under an older fence are lost from now on), and answers where to resume. A change of either setting restarts the pass from the start, so titles the new setting excludes are withdrawn when the pass ends; so does a session `FULL_CATALOG_PASS_EVERY` after the last full pass. With sharing off, every title the branch shared is removed (`stopped_sharing`). |
 | [`branch_provenance`](#branch_provenance) | function | The provenance text of titles shared by `node_id`: the holder key of its node holdings. |
 | [`branch_title_counts`](#branch_title_counts) | function | `BranchTitleCounts` of `node_id`. |
@@ -8430,7 +8430,9 @@ cursor after it. Every title is checked before any is written; a title
 this library already holds for the branch's owner is skipped. Each
 other title is resolved into the library model and held by the branch
 (`holding_added` when new), and the holding's share state is written
-in one transaction with the cursor, each statement gated on the fence
+with the cursor (in one transaction when the database plugin's
+statement limit allows, else in parts with the cursor last), each
+statement gated on the fence
 still being live, the branch still sharing and its credential live. A
 holding is stamped with the pass under way, and with `done` (the last
 batch of a pass) while a pass from the start is under way, the
