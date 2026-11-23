@@ -4964,7 +4964,7 @@ Body for batched title-metadata lookups (max 24 queries).
 Title-metadata results aligned with the request; failed items are `null`.
 
 - `results` *array of [`TitleMeta`](#titlemeta) or null*, **required** — One optional metadata payload per query; enrichment errors become `None`.
-- `incomplete` *array of boolean*, **required** — Per query, in order: `true` when its `null` is a failure or a query that ran past the batch deadline, not an answer, so the client should not keep it and may ask again later.
+- `incomplete` *array of boolean*, **required** — Per query, in order: `true` when its result is not a final answer (the query failed or ran past the batch deadline, so its `null` is no answer, or a metadata provider or store failed or timed out while it resolved, so it may be missing details), so the client shows it but does not keep it and may ask again later.
 
 ## TitleMetaQuery
 

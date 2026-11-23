@@ -5800,7 +5800,7 @@ Resolves up to 24 title-metadata queries without failing the whole batch on one 
 
 - `200` — One result per query, in order. Body: [`TitleMetaBatchResponse`](schemas.md#titlemetabatchresponse) (`application/json`)
   - `results` *array of [`TitleMeta`](schemas.md#titlemeta) or null*, **required** — One optional metadata payload per query; enrichment errors become `None`.
-  - `incomplete` *array of boolean*, **required** — Per query, in order: `true` when its `null` is a failure or a query that ran past the batch deadline, not an answer, so the client should not keep it and may ask again later.
+  - `incomplete` *array of boolean*, **required** — Per query, in order: `true` when its result is not a final answer (the query failed or ran past the batch deadline, so its `null` is no answer, or a metadata provider or store failed or timed out while it resolved, so it may be missing details), so the client shows it but does not keep it and may ask again later.
 - `400` — The query is malformed or too large. As `text/plain`, when the body is not syntactically valid JSON. Body: string (`text/plain`)
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
@@ -6203,7 +6203,7 @@ Schema:
       "items": {
         "type": "boolean"
       },
-      "description": "Per query, in order: `true` when its `null` is a failure or a query\nthat ran past the batch deadline, not an answer, so the client should\nnot keep it and may ask again later.",
+      "description": "Per query, in order: `true` when its result is not a final answer\n(the query failed or ran past the batch deadline, so its `null` is\nno answer, or a metadata provider or store failed or timed out while\nit resolved, so it may be missing details), so the client shows it\nbut does not keep it and may ask again later.",
       "example": [
         false,
         true

@@ -25,12 +25,15 @@ plain audio that lacks Audible brand intro/outro.
 | [`ProvidedRecord`](#providedrecord) | struct | One record and the provider plugin that returned it. |
 | [`ProviderFailure`](#providerfailure) | struct | A provider call that failed, so its records are missing from the answer. |
 | [`EnrichError`](#enricherror) | enum | Errors from public-catalog enrichment and match scoring. |
+| [`ProviderCoverage`](#providercoverage) | enum | Whether every metadata provider asked during a lookup answered. |
 | [`apply_enrichment_to_edition`](#apply_enrichment_to_edition) | function | Apply a confident Audible catalog match to a held edition. |
 | [`confidence_percent_to_fraction`](#confidence_percent_to_fraction) | function | Convert a 0–100 percent threshold to a 0.0–1.0 fraction. |
 | [`enrich_editions_from_audible`](#enrich_editions_from_audible) | function | Match held editions that have no ASIN to the Audible catalog through the deployed metadata providers, and record each confident match. |
 | [`enrichment_for_asin`](#enrichment_for_asin) | function | Provider metadata for a known ASIN (no confidence scoring). |
+| [`enrichment_for_asin_checked`](#enrichment_for_asin_checked) | function | `enrichment_for_asin`, also saying whether every provider answered. |
 | [`enrichment_from_record`](#enrichment_from_record) | function | Maps a provider record into enrichment fields. |
 | [`lookup_by_metadata`](#lookup_by_metadata) | function | Look up the best Audible match for the given query metadata. |
+| [`lookup_by_metadata_checked`](#lookup_by_metadata_checked) | function | `lookup_by_metadata`, also saying whether every provider answered. |
 | [`lookup_by_metadata_with_client`](#lookup_by_metadata_with_client) | function | Catalog search + provider lookup against an already-built HTTP client. |
 | [`calculate_match_confidence`](#calculate_match_confidence) | function | Calculate match confidence in `[0.0, 1.0]`. |
 | [`canonicalize_isbn`](#canonicalize_isbn) | function | Normalize then convert ISBN-10 → ISBN-13 (`978…`) when possible. |
@@ -355,6 +358,14 @@ pub fn incomplete(&self) -> bool
 
 True when at least one provider failed.
 
+#### MetadataAnswer::coverage
+
+```rust
+pub fn coverage(&self) -> ProviderCoverage
+```
+
+Whether every provider answered this call (see [`ProviderCoverage`](#providercoverage)).
+
 Implements: `Clone`, `Debug`, `Default`, `PartialEq`
 
 ### NoMetadataProviders
@@ -444,6 +455,46 @@ Errors from public-catalog enrichment and match scoring.
 - `Library`: Error propagated from [`bookclerk_library`](../bookclerk_library/README.md).
 
 Implements: `Debug`, `Display`, `Error`, `From<CatalogError>`, `From<Error>`, `From<LibraryError>`
+
+### ProviderCoverage
+
+```rust
+pub enum ProviderCoverage {
+    Complete,
+    Partial,
+}
+```
+
+Whether every metadata provider asked during a lookup answered.
+
+A caller that remembers an answer for a long time (a "nothing found" or
+a sparse record) should do so only when the coverage is
+[`Complete`](#providercoverage): a provider that failed may
+have had a better record, and asking again later may find it.
+
+**Variants**
+
+- `Complete`: Every provider asked answered (with a record or with none).
+- `Partial`: At least one provider call failed, so its records are missing.
+
+#### ProviderCoverage::and
+
+```rust
+pub fn and(self, other: Self) -> Self
+```
+
+The coverage of two steps together: complete only when both are.
+
+##### Arguments
+
+* `other` - The coverage of the other step.
+
+##### Returns
+
+[`ProviderCoverage::Complete`](#providercoverage) when both are complete, otherwise
+[`ProviderCoverage::Partial`](#providercoverage).
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
 ## Functions
 
@@ -563,6 +614,30 @@ The first provider record that carries a title wins.
 The record's fields, or `None` when the ASIN is malformed or no provider
 has a record. A provider failure is logged and treated as no record.
 
+### enrichment_for_asin_checked
+
+```rust
+pub async fn enrichment_for_asin_checked(
+    providers: &dyn MetadataProviders,
+    asin: &str,
+    region: &str,
+) -> (Option<Enrichment>, ProviderCoverage)
+```
+
+[`enrichment_for_asin`](#enrichment_for_asin), also saying whether every provider answered.
+
+#### Arguments
+
+* `providers` - Deployed metadata providers.
+* `asin` - Audible / Amazon ASIN.
+* `region` - Marketplace / region code (`us`, `uk`, …).
+
+#### Returns
+
+The record's fields (or `None`), and [`ProviderCoverage::Partial`](#providercoverage) when
+a provider call failed. A malformed ASIN is `None` with complete
+coverage: no provider is asked and asking again changes nothing.
+
 ### enrichment_from_record
 
 ```rust
@@ -608,6 +683,36 @@ record for any candidate.
 #### Returns
 
 The highest-scoring candidate at or above `min_confidence`.
+
+#### Errors
+
+Returns an error when the HTTP client cannot be built or a catalog search fails.
+
+### lookup_by_metadata_checked
+
+```rust
+pub async fn lookup_by_metadata_checked(
+    providers: &dyn MetadataProviders,
+    query: &MatchQuery<'_>,
+    region: &str,
+    min_confidence: f64,
+) -> Result<(Option<ScoredMatch>, ProviderCoverage)>
+```
+
+[`lookup_by_metadata`](#lookup_by_metadata), also saying whether every provider answered.
+
+#### Arguments
+
+* `providers` - Deployed metadata providers asked for each candidate.
+* `query` - Title, author, ISBN and runtime of the row to match.
+* `region` - Marketplace / region code (`us`, `uk`, …).
+* `min_confidence` - Minimum match confidence in `[0.0, 1.0]` to apply enrichment.
+
+#### Returns
+
+The highest-scoring candidate at or above `min_confidence`, and
+[`ProviderCoverage::Partial`](#providercoverage) when a provider call failed for any
+candidate (that provider may have had a better record).
 
 #### Errors
 

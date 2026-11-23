@@ -44,6 +44,7 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`ShelfTaste`](#shelftaste) | struct | Taste context used to title and fill personalized shelves. |
 | [`FillStoreLookups`](#fillstorelookups) | struct | What a store declared about catalog-detail lookups, as a title-meta fill plan reads it. |
 | [`TitleMeta`](#titlemeta) | struct | Bibliographic fields suitable for an Audible-style detail panel. |
+| [`TitleMetaAnswer`](#titlemetaanswer) | struct | A title-meta answer and whether it is final. |
 | [`TitleMetaQuery`](#titlemetaquery) | struct | Query for public title metadata (Audnexus / Audible catalog). |
 | [`TitleReview`](#titlereview) | struct | One Audible customer review for the title detail panel. |
 | [`TitleReviewsPage`](#titlereviewspage) | struct | One page of title reviews for infinite scroll. |
@@ -51,6 +52,7 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`PooledEdition`](#poolededition) | struct | One store edition a wish names, as placed in the shared pool. |
 | [`FeedState`](#feedstate) | enum | How current a stored Discover feed is. |
 | [`FillLookup`](#filllookup) | enum | One storefront catalog-detail lookup a title-meta fill can make. |
+| [`Settlement`](#settlement) | enum | Whether a title-meta answer is final or may change when asked again. |
 | [`TitleMetaQueryProblem`](#titlemetaqueryproblem) | enum | Why a title-meta query was refused before any lookup ran. |
 | [`join_branch_availability`](#join_branch_availability) | function | Sets `available_through` on every card of `feed`. |
 | [`join_search_branch_availability`](#join_search_branch_availability) | function | Sets `available_through` on every hit of a catalog search page. |
@@ -104,6 +106,7 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`check_title_meta_query`](#check_title_meta_query) | function | Checks a title-meta query from a client before it is resolved. |
 | [`plan_title_meta_fill`](#plan_title_meta_fill) | function | Plans the catalog-detail lookups that can fill `query`, in the order to try them. |
 | [`resolve_title_meta`](#resolve_title_meta) | function | Resolve public metadata for a title detail dialog. |
+| [`resolve_title_meta_answer`](#resolve_title_meta_answer) | function | Resolve public metadata for a title, saying whether the answer is final. |
 | [`resolve_title_meta_batch`](#resolve_title_meta_batch) | function | Resolve many title-meta queries with bounded concurrency (order preserved). |
 | [`resolve_title_reviews`](#resolve_title_reviews) | function | Resolve one page of Audible customer reviews for infinite scroll. |
 | [`resolve_title_sample`](#resolve_title_sample) | function | The public audio sample a storefront offers for a title, for the "Play sample" control of a title's details. |
@@ -131,6 +134,7 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`SERIES_CAP`](#series_cap) | constant | Most titles of one series on a shelf that is not about series, so one long series cannot crowd the others out. |
 | [`TITLE_META_BATCH_DEADLINE`](#title_meta_batch_deadline) | constant | Longest a title-meta batch waits before answering with what resolved. |
 | [`TITLE_META_MAX_STORE_EDITIONS`](#title_meta_max_store_editions) | constant | Most store editions one title-meta query may name; the API rejects more (keep `TitleMetaQuery::store_editions`'s doc in step). |
+| [`TITLE_META_RETRY_TTL`](#title_meta_retry_ttl) | constant | How long an unsettled title-meta answer is remembered before the providers and stores are asked again. |
 | [`MAX_WISH_EDITIONS`](#max_wish_editions) | constant | Most store editions looked up for one wish. A wish names a few; the cap bounds what a crafted request can make the server fetch. |
 
 ## Re-exports
@@ -1457,6 +1461,24 @@ Bibliographic fields suitable for an Audible-style detail panel.
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
+### TitleMetaAnswer
+
+```rust
+pub struct TitleMetaAnswer {
+    pub meta: Option<TitleMeta>,
+    pub settlement: Settlement,
+}
+```
+
+A title-meta answer and whether it is final.
+
+**Fields**
+
+- `meta`: The metadata, or `None` when nothing matched.
+- `settlement`: Whether asking again could find more (see [`Settlement`](#settlement)).
+
+Implements: `Clone`, `Debug`
+
 ### TitleMetaQuery
 
 ```rust
@@ -1650,6 +1672,44 @@ pub fn key(&self) -> &str
 The id this lookup asks the store for (a product id or an ISBN).
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### Settlement
+
+```rust
+pub enum Settlement {
+    Settled,
+    Unsettled,
+}
+```
+
+Whether a title-meta answer is final or may change when asked again.
+
+**Variants**
+
+- `Settled`: Every metadata provider and every planned store answered (or the
+  first store in order had a record), so a miss or a sparse record is
+  the real answer; cached for six hours.
+- `Unsettled`: A provider or store call failed, the store fill ran out of time, or
+  the rating fetch failed; the answer may be missing a record, so it
+  is remembered only for [`TITLE_META_RETRY_TTL`](#title_meta_retry_ttl).
+
+#### Settlement::and
+
+```rust
+pub fn and(self, other: Self) -> Self
+```
+
+Both steps together: settled only when both are.
+
+##### Arguments
+
+* `other` - The other step's settlement.
+
+##### Returns
+
+[`Settlement::Settled`](#settlement) when both are settled.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<ProviderCoverage>`, `PartialEq`
 
 ### TitleMetaQueryProblem
 
@@ -2907,11 +2967,43 @@ declared `detailByIsbn`.
 
 #### Returns
 
-On success, the inner `Option<TitleMeta>` value.
+On success, the inner `Option<TitleMeta>` value (see
+[`resolve_title_meta_answer`](#resolve_title_meta_answer) for how long it is cached).
 
 #### Errors
 
 Returns an error when the underlying I/O, parse, network, or store operation fails.
+
+### resolve_title_meta_answer
+
+```rust
+pub async fn resolve_title_meta_answer(
+    query: &TitleMetaQuery,
+    providers: Arc<dyn MetadataProviders>,
+    sources: Option<&SourceRegistry>,
+) -> TitleMetaAnswer
+```
+
+Resolve public metadata for a title, saying whether the answer is final.
+
+A settled answer (every provider and planned store answered) is cached
+for six hours, a miss included. An unsettled one (a provider or store
+failed, the store fill timed out, the rating fetch failed, or the
+resolve errored) is still returned but cached only for
+[`TITLE_META_RETRY_TTL`](#title_meta_retry_ttl), so a transient failure is retried soon
+instead of hiding the title's details for hours.
+
+#### Arguments
+
+* `query` - The title to describe.
+* `providers` - Deployed metadata providers asked for records.
+* `sources` - The deployed storefronts, for gap-filling from their
+  catalogs.
+
+#### Returns
+
+The metadata (or `None`) and its [`Settlement`](#settlement); a failed resolve is an
+unsettled `None`.
 
 ### resolve_title_meta_batch
 
@@ -2921,7 +3013,7 @@ pub async fn resolve_title_meta_batch(
     max_concurrent: usize,
     providers: Arc<dyn MetadataProviders>,
     sources: Option<&SourceRegistry>,
-) -> Vec<Result<Option<TitleMeta>, DiscoverError>>
+) -> Vec<Result<TitleMetaAnswer, DiscoverError>>
 ```
 
 Resolve many title-meta queries with bounded concurrency (order preserved).
@@ -2940,8 +3032,9 @@ of a group). The batch answers within [`TITLE_META_BATCH_DEADLINE`](#title_meta_
 
 #### Returns
 
-One result per query, in order. A query that failed, was cancelled or
-did not finish by the deadline is an error.
+One answer per query, in order, each with its [`Settlement`](#settlement). A query
+that failed, was cancelled or did not finish by the deadline is an
+error.
 
 ### resolve_title_reviews
 
@@ -3256,7 +3349,8 @@ Longest a title-meta batch waits before answering with what resolved.
 
 A query still working then answers as failed (the route shows no
 metadata for it, and the browser asks again later), and keeps running in
-the background so its answer is cached for that next ask.
+the background so its answer is cached for that next ask (briefly, when
+it ends unsettled; see [`Settlement`](#settlement)).
 
 ### TITLE_META_MAX_STORE_EDITIONS
 
@@ -3266,6 +3360,20 @@ pub const TITLE_META_MAX_STORE_EDITIONS: usize = 16;
 
 Most store editions one title-meta query may name; the API rejects more
 (keep [`TitleMetaQuery::store_editions`](#titlemetaquery)'s doc in step).
+
+### TITLE_META_RETRY_TTL
+
+```rust
+pub const TITLE_META_RETRY_TTL: Duration = _;
+```
+
+How long an unsettled title-meta answer is remembered before the
+providers and stores are asked again.
+
+Short, so a failed or slow store or provider is retried within a minute,
+yet long enough that a title asked about repeatedly (each card of a
+shelf, the dialog, a batch's late query) costs a failing store at most
+one call a minute.
 
 ### MAX_WISH_EDITIONS
 
