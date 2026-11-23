@@ -1158,8 +1158,7 @@ Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 ```rust
 pub struct ForwardableBranchKey {
     pub id: String,
-    pub store: String,
-    pub product_id: String,
+    pub reference: CatalogRef,
     pub updated_at: String,
     pub delivered: bool,
 }
@@ -1174,8 +1173,8 @@ title is loaded only when it is needed, by [`forwardable_branch_title`](#forward
 **Fields**
 
 - `id`: The node holding's id; the keyset cursor of the page reader.
-- `store`: Store id (`audible`, `libro`, ...).
-- `product_id`: Store product id.
+- `reference`: The title as the branch named it: store id (`audible`, `libro`,
+  ...), product id and marketplace.
 - `updated_at`: RFC 3339 last change, as stored.
 - `delivered`: The files of the current manifest arrived here, so the title may be
   passed on. Rows without it are returned so a page's length still
@@ -8821,8 +8820,7 @@ pub async fn grant_catalog_upload(
     node_id: &str,
     fence: i64,
     receiving_node_id: &str,
-    store_id: &str,
-    product_id: &str,
+    reference: &CatalogRef,
     files: &[UploadFile],
     destinations: &[String],
 ) -> Result<UploadGrant>

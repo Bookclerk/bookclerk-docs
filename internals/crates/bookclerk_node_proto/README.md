@@ -97,7 +97,7 @@ bytes.
 | [`CarriedSecret`](#carriedsecret) | struct | One secret of a `CarriedAccount`: an `encrypted_secrets` row of the account, by kind and name. |
 | [`CatalogFile`](#catalogfile) | struct | One file of a `CatalogTitle`. |
 | [`CatalogMetadata`](#catalogmetadata) | struct | Bibliographic metadata of a `CatalogTitle`. |
-| [`CatalogRef`](#catalogref) | struct | A title named by store and product id. |
+| [`CatalogRef`](#catalogref) | struct | A title named by store, product id and marketplace: the identity of a `CatalogTitle` on both ends of a catalog sync. |
 | [`CatalogTitle`](#catalogtitle) | struct | One title, as a branch shares it. |
 | [`ClerkAuthorizeParams`](#clerkauthorizeparams) | struct | The authorization request a clerk consent is for (the query `/oidc/authorize` forwards to the library's `/clerk/approve` page). |
 | [`ClerkTokenAnswer`](#clerktokenanswer) | struct | `POST /api/clerk/v1/token` answer. |
@@ -518,15 +518,34 @@ Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, 
 pub struct CatalogRef {
     pub store: String,
     pub product_id: String,
+    pub marketplace: String,
 }
 ```
 
-A title named by store and product id.
+A title named by store, product id and marketplace: the identity of a
+[`CatalogTitle`](#catalogtitle) on both ends of a catalog sync.
+
+One store product may be sold in several marketplaces (an ASIN on
+Audible US and on Audible UK), and each is a title of its own, so the
+marketplace is part of the identity.
 
 **Fields**
 
 - `store`: Store id.
 - `product_id`: Product id.
+- `marketplace`: Lower-cased marketplace, as the title names it ([`is_marketplace`](#is_marketplace));
+  empty when the store has none. Left out of the frame when empty.
+
+#### CatalogRef::is_well_formed
+
+```rust
+pub fn is_well_formed(&self) -> bool
+```
+
+True when every part is well formed: a store id ([`is_store_id`](#is_store_id)), a
+product id ([`is_product_id`](#is_product_id)) and a marketplace
+([`is_marketplace`](#is_marketplace)). A receiver refuses a reference that is not, so
+the parts it stores together never run into one another.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`
 
@@ -2342,7 +2361,7 @@ pub enum Body {
     CatalogSession { fence: i64, cursor: String, ancestry: Vec<String>, destinations: Vec<String>, wanted: Vec<CatalogRef>, members_books: bool },
     CatalogSync { fence: i64, batch: u64, cursor: String, done: bool, titles: Vec<CatalogTitle> },
     CatalogAccepted { batch: u64, upserted: u64, skipped: u64, wanted: Vec<CatalogRef> },
-    CatalogUpload { fence: i64, store: String, product_id: String, files: Vec<UploadFile> },
+    CatalogUpload { fence: i64, store: String, product_id: String, marketplace: String, files: Vec<UploadFile> },
     AccountsAdd { sealed: String },
     AccountsAdded { added: u64, already_here: u64, taken: u64, failed: u64, not_allowed: bool },
     AccountsRemove { plugin_key: String, account_id: String },
@@ -2662,6 +2681,8 @@ What a frame says, tagged by `type`.
   - `fence`: The catalog fence.
   - `store`: Store id of the title.
   - `product_id`: Product id of the title.
+  - `marketplace`: Marketplace of the title ([`crate::CatalogRef::marketplace`](#catalogref));
+    empty, and left out of the frame, when the store has none.
   - `files`: The title's files, in upload order, each copied to every
     destination of the session under its manifest key.
 - `AccountsAdd`: Branch → library: add the branch person's store connections to this

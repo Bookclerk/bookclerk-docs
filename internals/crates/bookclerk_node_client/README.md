@@ -111,6 +111,7 @@ job runs its guest are the daemon's.
 | [`check_join_ancestry`](#check_join_ancestry) | function | Reads the library's `info` over `endpoint` and refuses a library whose ancestry names this install's own library id (A ← B ← A). Answers its ancestry, to record on the link. |
 | [`join_library`](#join_library) | function | Enrolls this install into the library named by `link`. |
 | [`refuse_cycle`](#refuse_cycle) | function | Refuses `ancestry` when it names this install's own library id, is malformed, or would take this library's ancestry past what one can name (`join_overflows_ancestry`). |
+| [`refuse_loop`](#refuse_loop) | function | Refuses `ancestry` when it names this install's own library id or is malformed, without the depth check of `refuse_cycle`. |
 | [`apply_shared_branch_bootstrap`](#apply_shared_branch_bootstrap) | function | Writes `bootstrap` as this install's own bootstrap under `files_dir`: |
 | [`bootstrap_database_kind`](#bootstrap_database_kind) | function | The `[database].plugin` a shared branch's bootstrap configures. |
 | [`checked_d1_api_base`](#checked_d1_api_base) | function | Checks the D1 API origin a library's bootstrap names, and returns it normalized. Every D1 query carries the joining server's own API token to that origin, so a shared branch may only be pointed at Cloudflare's API over HTTPS. The library checks its own origin the same way before it offers a shared branch join, so a library on another D1 endpoint cannot take shared branches. |
@@ -2479,6 +2480,28 @@ malformed, or would take this library's ancestry past what one can name
 
 Returns [`JoinError::Cycle`](#joinerror), [`JoinError::AncestryTooDeep`](#joinerror) or
 [`JoinError::Record`](#joinerror).
+
+### refuse_loop
+
+```rust
+pub async fn refuse_loop(
+    store: &LibraryStore,
+    ancestry: &[String],
+) -> Result<(), JoinError>
+```
+
+Refuses `ancestry` when it names this install's own library id or is
+malformed, without the depth check of [`refuse_cycle`](#refuse_cycle).
+
+For the join steps that come before the operator's choice between a
+branch and a shared branch, and for a shared branch join: a shared
+branch shares its library's database and ancestry, so it adds no depth
+to the tree, and a branch join is checked in full when its code is
+redeemed ([`crate::redeem_branch_code`](#redeem_branch_code)).
+
+#### Errors
+
+Returns [`JoinError::Cycle`](#joinerror) or [`JoinError::Record`](#joinerror).
 
 ### apply_shared_branch_bootstrap
 

@@ -5631,7 +5631,7 @@ A `text/plain` body: a string.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `409` — Joining would make a loop (`join_cycle`, `ancestry_too_deep`), or the library's address is not the one given (`origin_mismatch`, with the address to use in `origin`). Body: [`JoinConflict`](schemas.md#joinconflict) (`application/json`)
+- `409` — Joining would make a loop (`join_cycle`), or the library's address is not the one given (`origin_mismatch`, with the address to use in `origin`). How deep the library sits is checked once the join's kind is chosen, at `start` and when the code is redeemed. Body: [`JoinConflict`](schemas.md#joinconflict) (`application/json`)
 - `415` — The request did not declare a JSON body. Body: string (`text/plain`)
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The library database could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
@@ -5898,12 +5898,12 @@ Schema:
 }
 ```
 
-Status `409`: Joining would make a loop (`join_cycle`, `ancestry_too_deep`), or the library's address is not the one given (`origin_mismatch`, with the address to use in `origin`).
+Status `409`: Joining would make a loop (`join_cycle`), or the library's address is not the one given (`origin_mismatch`, with the address to use in `origin`). How deep the library sits is checked once the join's kind is chosen, at `start` and when the code is redeemed.
 
 ```json
 {
-  "detail": "that library sits too deep in its tree of libraries; joining it could hide a loop",
-  "error": "ancestry_too_deep"
+  "detail": "that library is this library or one of its own branches; joining it would make a loop",
+  "error": "join_cycle"
 }
 ```
 
@@ -6091,7 +6091,7 @@ A `text/plain` body: a string.
 - `404` — With `from_card`: this install holds no active library card for that library (`not_found`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
   - `error` *string*, **required** — Stable machine slug clients branch on.
   - `detail` *string*, **required** — What went wrong, for the person reading the answer.
-- `409` — The library's fingerprint is not confirmed, or changed since the card signed in (`fingerprint_unconfirmed`), this install holds data of its own for a shared branch join (`not_empty`), joining would make a loop (`join_cycle`, `ancestry_too_deep`), or the library's address is not the one given, or no longer the card's library (`origin_mismatch`). Body: [`JoinConflict`](schemas.md#joinconflict) (`application/json`)
+- `409` — The library's fingerprint is not confirmed, or changed since the card signed in (`fingerprint_unconfirmed`), this install holds data of its own for a shared branch join (`not_empty`), joining would make a loop (`join_cycle`) or, for a branch (not a shared branch, which adds no depth), make the tree too deep (`ancestry_too_deep`), or the library's address is not the one given, or no longer the card's library (`origin_mismatch`). Body: [`JoinConflict`](schemas.md#joinconflict) (`application/json`)
 - `415` — The request did not declare a JSON body. Body: string (`text/plain`)
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The library database could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
@@ -6458,7 +6458,7 @@ Schema:
 }
 ```
 
-Status `409`: The library's fingerprint is not confirmed, or changed since the card signed in (`fingerprint_unconfirmed`), this install holds data of its own for a shared branch join (`not_empty`), joining would make a loop (`join_cycle`, `ancestry_too_deep`), or the library's address is not the one given, or no longer the card's library (`origin_mismatch`).
+Status `409`: The library's fingerprint is not confirmed, or changed since the card signed in (`fingerprint_unconfirmed`), this install holds data of its own for a shared branch join (`not_empty`), joining would make a loop (`join_cycle`) or, for a branch (not a shared branch, which adds no depth), make the tree too deep (`ancestry_too_deep`), or the library's address is not the one given, or no longer the card's library (`origin_mismatch`).
 
 ```json
 {
