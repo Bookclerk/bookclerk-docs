@@ -28,6 +28,7 @@ Fetch domain grants do **not** imply TCP. Native manifests must declare
 | [`Response`](#response) | struct | Origin response. |
 | [`ByteStream`](#bytestream) | struct | `Stream` of body chunks from `Response::bytes_stream`. |
 | [`connect_tls`](#connect_tls) | function | CONNECT then rustls to `address` (HTTPS origins). |
+| [`start_tls`](#start_tls) | function | Upgrades a stream to TLS for a protocol that is not HTTP: SMTP after `STARTTLS` or on an implicit-TLS port, IMAP, LDAP and the like. |
 | [`HttpResult`](#httpresult) | type alias | Result alias for guest HTTP. |
 
 ## Re-exports
@@ -564,6 +565,28 @@ CONNECT then rustls to `address` (HTTPS origins).
 #### Errors
 
 Returns when the proxy is missing, CONNECT is denied, or TLS fails.
+
+### start_tls
+
+```rust
+pub async fn start_tls<S>(hostname: &str, stream: S) -> Result<TlsStream<S>>
+where
+    S: AsyncRead + AsyncWrite + Unpin,
+```
+
+Upgrades a stream to TLS for a protocol that is not HTTP: SMTP after
+`STARTTLS` or on an implicit-TLS port, IMAP, LDAP and the like.
+
+Pass the stream from [`crate::net::PluginSocket::into_stream`](../net.md#pluginsocketinto_stream) (after a
+`connect` with [`SecureTransport::StartTls`](../net.md#securetransport) once the server agreed to
+the upgrade, or straight away for TLS from the first byte). The server's
+certificate is verified for `hostname` against Mozilla's root
+certificates, as for HTTPS, and no ALPN protocol is offered.
+
+#### Errors
+
+Returns when `hostname` is not a valid TLS server name or the handshake
+fails (including a certificate that does not verify).
 
 ## Type aliases
 

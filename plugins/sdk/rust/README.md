@@ -65,6 +65,15 @@ opens mediated TCP sockets, the equivalent of Workers `connect()`, and
 the `http` feature puts an HTTPS client on top. Only hosts the plugin's
 `[capabilities.network]` grants name are reachable.
 
+A protocol that starts in the clear and upgrades (SMTP's `STARTTLS`) or
+speaks TLS without HTTP takes the socket with `Socket::into_stream` and
+calls `http::start_tls(hostname, stream)`, which checks the server's
+certificate against the Mozilla roots. A destination the operator types
+into a `network = "tcp"` setting arrives in `Bindings::network`
+(`NetworkGrant`, with a `SettingGrantState` of approved, pending, unset or
+invalid for each setting); the first-party email notifier reads its mail
+server that way.
+
 ### Large downloads
 
 A storefront that writes a title into the `fetchTitle` work folder should
@@ -587,6 +596,11 @@ submodules unless you need module-level docs.
 - [`bookclerk_plugin_abi::MAX_AI_LANGUAGES`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_ai_languages)
 - [`bookclerk_plugin_abi::MAX_AI_MODELS`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_ai_models)
 - [`bookclerk_plugin_abi::MAX_AI_MODEL_NAME_BYTES`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_ai_model_name_bytes)
+- [`bookclerk_plugin_abi::NetworkGrant`](../../../internals/crates/bookclerk_plugin_abi/network_grant.md#networkgrant)
+- [`bookclerk_plugin_abi::SettingGrantState`](../../../internals/crates/bookclerk_plugin_abi/network_grant.md#settinggrantstate)
+- [`bookclerk_plugin_abi::SettingNetwork`](../../../internals/crates/bookclerk_plugin_abi/settings_schema.md#settingnetwork)
+- [`bookclerk_plugin_abi::SettingNetworkGrant`](../../../internals/crates/bookclerk_plugin_abi/network_grant.md#settingnetworkgrant)
+- [`bookclerk_plugin_abi::MAX_NETWORK_GRANT_ENTRIES`](../../../internals/crates/bookclerk_plugin_abi/network_grant.md#max_network_grant_entries)
 - [`bookclerk_plugin_abi::WebhookAckRequest`](../../../internals/crates/bookclerk_plugin_abi/generated.md#webhookackrequest)
 - [`bookclerk_plugin_abi::WebhookDelivered`](../../../internals/crates/bookclerk_plugin_abi/generated.md#webhookdelivered)
 - [`bookclerk_plugin_abi::WebhookDelivery`](../../../internals/crates/bookclerk_plugin_abi/generated.md#webhookdelivery)

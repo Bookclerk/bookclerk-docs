@@ -153,10 +153,11 @@ pub async fn start_tls(&mut self) -> Result<()>
 
 Start TLS on a `starttls` socket.
 
-The proxy is byte-transparent, so TLS is end-to-end. Wrap
-[`Self::into_stream`](#pluginsocketinto_stream) with `tokio-rustls` (same pattern as workerd
-`socket.startTls()` after `secureTransport: "starttls"`). Pathname
-sockets may use [`Self::into_split`](#pluginsocketinto_split). Mux links have no TCP fallback.
+The proxy is byte-transparent, so TLS is end-to-end. Pass
+[`Self::into_stream`](#pluginsocketinto_stream) to `bookclerk_plugin_sdk::http::start_tls` (the
+`http` feature), which verifies the certificate and offers no ALPN.
+Pathname sockets may use [`Self::into_split`](#pluginsocketinto_split). Mux links have no TCP
+fallback.
 
 ##### Errors
 
