@@ -10704,7 +10704,8 @@ Initial attachment, at most `maxSocketAttachmentBytes`.
 autoResponses: SocketAutoResponse[];
 ```
 
-Heartbeats the broker answers, at most `maxSocketAutoResponses`.
+Heartbeats the broker answers, at most `maxSocketAutoResponses`; none on
+`tls://`.
 
 ##### headers
 
@@ -10712,7 +10713,7 @@ Heartbeats the broker answers, at most `maxSocketAutoResponses`.
 headers: SocketHeader[];
 ```
 
-Extra request headers, at most `maxSocketHeaders`.
+Extra request headers, at most `maxSocketHeaders`; none on `tls://`.
 
 ##### protocols
 
@@ -10720,7 +10721,19 @@ Extra request headers, at most `maxSocketHeaders`.
 protocols: string[];
 ```
 
-Requested subprotocols, at most `maxSocketHeaders`.
+Requested subprotocols, at most `maxSocketHeaders`; on a `tls://`
+stream, the ALPN protocol ids to offer (visible ASCII, 1 to 255 bytes).
+
+##### trustAnchors
+
+```ts
+trustAnchors: Uint8Array<ArrayBufferLike>[];
+```
+
+`tls://` only: DER root certificates, at most `maxSocketTrustAnchors` of
+at most `maxSocketTrustAnchorBytes` each, that the server's chain must
+end in instead of Mozilla's roots, for a service that signs its own
+(an ngrok or Cloudflare Tunnel agent endpoint). Empty uses Mozilla's.
 
 ##### url
 
@@ -10728,8 +10741,10 @@ Requested subprotocols, at most `maxSocketHeaders`.
 url: string;
 ```
 
-`wss://` or `ws://` URL, at most `maxSocketUrlBytes`. The host must be on
-the plugin's network grant.
+`wss://` or `ws://` URL, at most `maxSocketUrlBytes`, or
+`tls://host:port` for a raw TLS byte stream (port required, nothing
+after it). The host must be on the plugin's network grant; a `tls://`
+stream needs a `tcp` grant for that host and port.
 
 ***
 
@@ -10825,7 +10840,8 @@ Current attachment.
 protocol?: string;
 ```
 
-Subprotocol the server chose; empty when none.
+Subprotocol the server chose (on `tls://`, the negotiated ALPN id);
+empty when none.
 Omitted when absent (wire zero value).
 
 ##### socket
@@ -13083,7 +13099,8 @@ type SocketFrame =
 };
 ```
 
-One WebSocket message.
+One WebSocket message, or one chunk of a `tls://` stream (always
+`binary`).
 
 ***
 

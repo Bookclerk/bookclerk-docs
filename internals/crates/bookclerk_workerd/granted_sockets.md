@@ -57,6 +57,7 @@ pub struct RouteConnect {
     pub headers: Vec<SocketHeader>,
     pub auto_responses: Vec<RouteAutoResponse>,
     pub attachment: Vec<u8>,
+    pub trust_anchors: Vec<String>,
 }
 ```
 
@@ -64,11 +65,13 @@ pub struct RouteConnect {
 
 **Fields**
 
-- `url`: `wss://` or `ws://` URL on the plugin's network grant.
+- `url`: `wss://`, `ws://` or `tls://host:port` URL on the plugin's network
+  grant.
 - `protocols`: Requested subprotocols.
 - `headers`: Extra request headers. Values may be credentials.
 - `auto_responses`: Heartbeats the broker answers without waking the guest.
 - `attachment`: Initial attachment, base64.
+- `trust_anchors`: `tls://` only: DER root certificates, each base64.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 

@@ -1260,6 +1260,26 @@ Most request headers, and separately subprotocols, on one `Sockets.connect`.
 
 ***
 
+### MAX\_SOCKET\_TRUST\_ANCHOR\_BYTES
+
+```ts
+const MAX_SOCKET_TRUST_ANCHOR_BYTES: 8192;
+```
+
+Largest DER certificate in `SocketConnectRequest.trustAnchors`, in bytes.
+
+***
+
+### MAX\_SOCKET\_TRUST\_ANCHORS
+
+```ts
+const MAX_SOCKET_TRUST_ANCHORS: 4;
+```
+
+Most trust anchors one `tls://` `Sockets.connect` may supply.
+
+***
+
 ### MAX\_SOCKET\_URL\_BYTES
 
 ```ts

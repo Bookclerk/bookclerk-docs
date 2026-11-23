@@ -97,6 +97,18 @@ pub fn get_attachment(self) -> Result<Reader<'a>>
 pub fn has_attachment(&self) -> bool
 ```
 
+#### Reader::get_trust_anchors
+
+```rust
+pub fn get_trust_anchors(self) -> Result<Reader<'a>>
+```
+
+#### Reader::has_trust_anchors
+
+```rust
+pub fn has_trust_anchors(&self) -> bool
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -249,6 +261,30 @@ pub fn init_attachment(self, size: u32) -> Builder<'a>
 
 ```rust
 pub fn has_attachment(&self) -> bool
+```
+
+#### Builder::get_trust_anchors
+
+```rust
+pub fn get_trust_anchors(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_trust_anchors
+
+```rust
+pub fn set_trust_anchors(&mut self, value: Reader<'_>) -> Result<()>
+```
+
+#### Builder::init_trust_anchors
+
+```rust
+pub fn init_trust_anchors(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_trust_anchors
+
+```rust
+pub fn has_trust_anchors(&self) -> bool
 ```
 
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`

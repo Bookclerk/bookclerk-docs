@@ -334,6 +334,8 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`MAX_SOCKET_AUTO_RESPONSE_BYTES`](#max_socket_auto_response_bytes) | constant | Largest heartbeat request or response frame, in bytes. |
 | [`MAX_SOCKET_FRAME_BYTES`](#max_socket_frame_bytes) | constant | Largest WebSocket message `Sockets.send` accepts or `SocketHandler.message` delivers, in bytes. |
 | [`MAX_SOCKET_HEADERS`](#max_socket_headers) | constant | Most request headers, and separately subprotocols, on one `Sockets.connect`. |
+| [`MAX_SOCKET_TRUST_ANCHORS`](#max_socket_trust_anchors) | constant | Most trust anchors one `tls://` `Sockets.connect` may supply. |
+| [`MAX_SOCKET_TRUST_ANCHOR_BYTES`](#max_socket_trust_anchor_bytes) | constant | Largest DER certificate a `tls://` `Sockets.connect` may supply as a trust anchor, in bytes. |
 | [`MAX_SOCKET_URL_BYTES`](#max_socket_url_bytes) | constant | Longest `Sockets.connect` URL, in bytes. |
 | [`MAX_STREAM_WINDOW_BYTES`](#max_stream_window_bytes) | constant | Maximum bytes returned by one `ByteSource.pull` (flow-control window). |
 | [`MAX_WEBHOOK_BODY_BYTES`](#max_webhook_body_bytes) | constant | Largest stored webhook request body, in bytes (1 MiB). |
@@ -9036,6 +9038,23 @@ pub const MAX_SOCKET_HEADERS: u32 = crate::plugin_capnp::MAX_SOCKET_HEADERS;
 
 Most request headers, and separately subprotocols, on one
 `Sockets.connect`.
+
+### MAX_SOCKET_TRUST_ANCHORS
+
+```rust
+pub const MAX_SOCKET_TRUST_ANCHORS: u32 = crate::plugin_capnp::MAX_SOCKET_TRUST_ANCHORS;
+```
+
+Most trust anchors one `tls://` `Sockets.connect` may supply.
+
+### MAX_SOCKET_TRUST_ANCHOR_BYTES
+
+```rust
+pub const MAX_SOCKET_TRUST_ANCHOR_BYTES: u32 = crate::plugin_capnp::MAX_SOCKET_TRUST_ANCHOR_BYTES;
+```
+
+Largest DER certificate a `tls://` `Sockets.connect` may supply as a trust
+anchor, in bytes.
 
 ### MAX_SOCKET_URL_BYTES
 

@@ -87,6 +87,8 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | [`MAX_ORIGIN_SOCKETS_PER_INSTANCE`](#max_origin_sockets_per_instance) | constant |  |
 | [`MAX_SOCKET_AUTO_RESPONSES`](#max_socket_auto_responses) | constant |  |
 | [`MAX_SOCKET_AUTO_RESPONSE_BYTES`](#max_socket_auto_response_bytes) | constant |  |
+| [`MAX_SOCKET_TRUST_ANCHORS`](#max_socket_trust_anchors) | constant |  |
+| [`MAX_SOCKET_TRUST_ANCHOR_BYTES`](#max_socket_trust_anchor_bytes) | constant |  |
 | [`MAX_SOCKET_URL_BYTES`](#max_socket_url_bytes) | constant |  |
 | [`MAX_SOCKET_HEADERS`](#max_socket_headers) | constant |  |
 | [`MAX_ORIGIN_HEADERS`](#max_origin_headers) | constant |  |
@@ -1221,6 +1223,18 @@ pub const MAX_SOCKET_AUTO_RESPONSES: u32 = 4;
 
 ```rust
 pub const MAX_SOCKET_AUTO_RESPONSE_BYTES: u32 = 256;
+```
+
+### MAX_SOCKET_TRUST_ANCHORS
+
+```rust
+pub const MAX_SOCKET_TRUST_ANCHORS: u32 = 4;
+```
+
+### MAX_SOCKET_TRUST_ANCHOR_BYTES
+
+```rust
+pub const MAX_SOCKET_TRUST_ANCHOR_BYTES: u32 = 8192;
 ```
 
 ### MAX_SOCKET_URL_BYTES

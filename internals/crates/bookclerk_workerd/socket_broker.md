@@ -1,7 +1,7 @@
 # bookclerk_workerd::socket_broker
 
-The socket broker: holds a plugin instance's WebSockets while its guest
-sleeps.
+The socket broker: holds a plugin instance's WebSockets and raw TLS
+streams while its guest sleeps.
 
 The host starts `bookclerk-workerd` in broker mode
 ([`SOCKET_BROKER_ENV`](#socket_broker_env)) inside the plugin's jail, under the plugin's
@@ -15,6 +15,11 @@ manner of hibernatable Workers WebSockets:
   ([`target_granted`](#target_granted)), and the broker connects only to resolved
   addresses the policy allows, with no redirects;
 - `wss://` uses rustls on the hosts' one provider with Mozilla's roots;
+- a `tls://host:port` stream needs a TCP grant for its host and port,
+  offers the guest's ALPN ids, checks the server against the guest's own
+  trust anchors when it sends any (else Mozilla's roots), and carries bytes: each read becomes a
+  binary message and each binary frame the guest sends is written as is;
+  the peer ending the stream is a clean close (1000);
 - heartbeat frames the guest declared at connect are answered here and
   never wake the guest ([`SocketTable::inbound`](socket_table.md#sockettableinbound));
 - other messages queue per socket and reach the host one at a time; the
@@ -118,7 +123,8 @@ A WebSocket starts as an HTTP request, so a `fetch` domain grant that
 grants the target's port covers it (an entry with no port grants 80 and
 443, as for `fetch`); a TCP grant for the host and port covers it too, since that grant
 already lets the plugin open the same connection and speak the protocol
-itself. Either way the addresses are checked afterwards.
+itself. A `tls://` stream is raw TCP, so only a TCP grant covers it.
+Either way the addresses are checked afterwards.
 
 ### serve_stdio
 
