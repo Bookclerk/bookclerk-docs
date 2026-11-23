@@ -39,6 +39,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`DeploymentRuntime`](#deploymentruntime) | trait | Install health and spawn for one deployment row. |
 | [`RefreshedCredentialSink`](#refreshedcredentialsink) | trait | Receives the credentials a guest refreshed while it used credentials an library handed with a job (`ScanPage.refreshedCredentials`, `PlainFetch.refreshedCredentials`), already checked against the ABI bounds. The daemon writes them back to the owner under the job's fence. |
 | [`IngressHost`](#ingresshost) | trait | What the daemon supplies to run the library's ingress. |
+| [`LibraryOrigin`](#libraryorigin) | trait | The library as the daemon serves it to a relay plugin: plain requests (`Origin::fetch`) and WebSocket upgrades (`LibraryOrigin::upgrade`). |
 | [`SocketSink`](#socketsink) | trait | Where a plugin instance's socket events go: its guest's `socketHandler`. |
 | [`CallbackProxy`](#callbackproxy) | struct | Active host callback proxy for one OAuth session. |
 | [`GrantedEventConsumer`](#grantedeventconsumer) | struct | One approved event-consumer subscription (structural authority). |
@@ -69,6 +70,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`HostControlPlane`](#hostcontrolplane) | struct | Open control plane for this process. |
 | [`NodeEnrollment`](#nodeenrollment) | struct | Result of `enroll_node`: the bootstrap half of a host control plane. |
 | [`PresentDeployment`](#presentdeployment) | struct | A deployment the database wants present on this node, joined with the instance row and the local install it will run. |
+| [`BrokeredOrigin`](#brokeredorigin) | struct | The `ORIGIN` binding a relay plugin's session hands out: the library, with accepted upgrades made sockets of the instance's broker. |
 | [`AddedVersion`](#addedversion) | struct | What `add_package_version` recorded. |
 | [`InstallRequest`](#installrequest) | struct | An operator's `install`: what `bookclerk plugins install` and `POST /api/config/plugin-versions` both install. |
 | [`InstalledVersion`](#installedversion) | struct | What `install_version` did. |
@@ -94,6 +96,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`InstanceSettingStatuses`](#instancesettingstatuses) | struct | The network-setting statuses of one plugin instance. |
 | [`SettingGrantStatus`](#settinggrantstatus) | struct | One network setting, the destination its value names, and its state. |
 | [`BrokerSockets`](#brokersockets) | struct | The `SOCKETS` binding a guest session hands out: the instance's broker. |
+| [`LocalSocket`](#localsocket) | struct | A WebSocket into the library that the host holds for a plugin instance: an `Origin.connect` the library accepted. |
 | [`SocketBroker`](#socketbroker) | struct | The host's handle on one plugin instance's socket broker. |
 | [`SpawnPlan`](#spawnplan) | struct | Everything the spawn path needs to start one guest. |
 | [`WorkerdFrontDoor`](#workerdfrontdoor) | struct | Resolved `bookclerk-workerd` launcher and the pinned `workerd` beside it. |
@@ -104,9 +107,12 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`PluginError`](#pluginerror) | enum | Failures from discovery, RPC, consent, or plugin adapters. |
 | [`DestinationSession`](#destinationsession) | enum | A deployed destination's guest, as handed to a job that calls the guest's entrypoints directly. |
 | [`StorageRole`](#storagerole) | enum | What the host does with a deployed storage instance. |
+| [`OriginUpgrade`](#originupgrade) | enum | The library's answer to one WebSocket upgrade a relay plugin carries. |
 | [`Activate`](#activate) | enum | When installing moves the active pointer. |
 | [`RemoteApprovalError`](#remoteapprovalerror) | enum | Why `approve_remote_request` refused, by cause, so a caller (the operator API) can tell "review again" from "fix the input" from "retry later". |
 | [`RemoteConsentState`](#remoteconsentstate) | enum | How this host stands on one owner plugin's request. |
+| [`LocalInbound`](#localinbound) | enum | What the library's side of a `LocalSocket` delivers. |
+| [`LocalOutbound`](#localoutbound) | enum | What the guest asks of the library's side of a `LocalSocket`. |
 | [`SocketEvent`](#socketevent) | enum | What a socket delivered: a message, or its close. |
 | [`GuestRuntimeKind`](#guestruntimekind) | enum | Process tree the jail will contain, as reported in `crate::ExecutorIdentity`. |
 | [`SpawnTransport`](#spawntransport) | enum | Which transport a spawn uses to reach the guest. |
@@ -680,7 +686,7 @@ pub trait IngressHost: Send + Sync {
         Self: 'async_trait,
         'life0: 'async_trait,
         'life1: 'async_trait,;
-    fn origin(&self) -> Arc<dyn Origin + Send + Sync>;
+    fn origin(&self) -> Arc<dyn LibraryOrigin>;
     fn started<'life0, 'life1, 'async_trait>(
         &'life0 self,
         plugin_instance_id: &'life1 str,
@@ -727,7 +733,7 @@ ingress, no Owner yet, or the settings could not be read.
 #### IngressHost::origin
 
 ```rust
-fn origin(&self) -> Arc<dyn Origin + Send + Sync>
+fn origin(&self) -> Arc<dyn LibraryOrigin>
 ```
 
 The library as relay plugins reach it (`ORIGIN`).
@@ -767,6 +773,46 @@ where
 ```
 
 `plugin_instance_id` stopped serving: retired, replaced, or refused.
+
+### LibraryOrigin
+
+```rust
+pub trait LibraryOrigin: Origin + Send + Sync {
+    fn upgrade<'life0, 'async_trait>(
+        &'life0 self,
+        request: CheckedOriginRequest,
+    ) -> Pin<Box<dyn Future<Output = AbiResult<OriginUpgrade>> + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
+}
+```
+
+The library as the daemon serves it to a relay plugin: plain requests
+(`Origin::fetch`) and WebSocket upgrades ([`LibraryOrigin::upgrade`](#libraryoriginupgrade)).
+
+The host wraps it with the instance's socket broker
+([`BrokeredOrigin`](#brokeredorigin)) to serve the plugin's `Origin.connect`, so the
+daemon never sees socket ids.
+
+#### LibraryOrigin::upgrade
+
+```rust
+fn upgrade<'life0, 'async_trait>(
+    &'life0 self,
+    request: CheckedOriginRequest,
+) -> Pin<Box<dyn Future<Output = AbiResult<OriginUpgrade>> + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Opens a WebSocket to the library for one checked upgrade request.
+
+##### Errors
+
+`invalid_params` for a request the router cannot take;
+`unavailable` while the library cannot serve.
 
 ### SocketSink
 
@@ -2597,6 +2643,27 @@ instance row and the local install it will run.
 
 Implements: `Clone`, `Debug`
 
+### BrokeredOrigin
+
+```rust
+pub struct BrokeredOrigin {
+    /* private fields */
+}
+```
+
+The `ORIGIN` binding a relay plugin's session hands out: the library,
+with accepted upgrades made sockets of the instance's broker.
+
+#### BrokeredOrigin::new
+
+```rust
+pub fn new(library: Arc<dyn LibraryOrigin>, sockets: Option<SocketBroker>) -> Self
+```
+
+The binding for `library`, putting upgrades on `sockets`.
+
+Implements: `Origin`
+
 ### AddedVersion
 
 ```rust
@@ -4423,7 +4490,7 @@ pub struct SessionServices {
     pub deployed_endpoint: Option<Option<String>>,
     pub sockets: Option<SocketBroker>,
     pub ai: Option<Arc<AiRouter>>,
-    pub origin: Option<Arc<dyn Origin + Send + Sync>>,
+    pub origin: Option<Arc<dyn LibraryOrigin>>,
     pub webhooks: Option<PluginInstanceId>,
 }
 ```
@@ -4573,6 +4640,34 @@ The binding for `broker`.
 
 Implements: `Sockets`
 
+### LocalSocket
+
+```rust
+pub struct LocalSocket {
+    pub runtime: Handle,
+    pub url: String,
+    pub protocol: Option<String>,
+    pub outbound: Sender<LocalOutbound>,
+    pub inbound: Receiver<LocalInbound>,
+}
+```
+
+A WebSocket into the library that the host holds for a plugin instance:
+an `Origin.connect` the library accepted.
+
+The library's side runs on `runtime` and talks to the host through the
+two channels. Dropping `outbound` (the instance is retired) tells it to
+close the socket; it reports every close on `inbound` once, last.
+
+**Fields**
+
+- `runtime`: Runtime the host's delivery task runs on; it outlives the guest's
+  sessions, so a sleeping guest keeps the socket.
+- `url`: URL the guest sees for the socket, without credentials.
+- `protocol`: Subprotocol the library chose; `None` when none.
+- `outbound`: Messages and the close for the library.
+- `inbound`: Messages and the close from the library.
+
 ### SocketBroker
 
 ```rust
@@ -4617,7 +4712,36 @@ instance's proxy alive.
 pub fn open_sockets(&self) -> Vec<String>
 ```
 
-Ids of the sockets the host believes open, oldest id first.
+Ids of the sockets the host believes open: broker sockets oldest
+id first, then local ones.
+
+#### SocketBroker::adopt_local
+
+```rust
+pub fn adopt_local(
+    &self,
+    socket: LocalSocket,
+    attachment: Vec<u8>,
+) -> AbiResult<SocketInfo>
+```
+
+Makes a WebSocket into the library a socket of this instance and
+starts delivering what arrives on it.
+
+##### Arguments
+
+* `socket` - The library's side.
+* `attachment` - The guest's initial attachment.
+
+##### Returns
+
+The socket as the guest sees it.
+
+##### Errors
+
+`payload_too_large` for an oversized attachment; `limit_exceeded`
+when the instance holds its most origin sockets. The socket is closed
+either way.
 
 #### SocketBroker::connect
 
@@ -5083,6 +5207,22 @@ deployed (`bookclerk_library::control_plane::set_intake`).
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
+### OriginUpgrade
+
+```rust
+pub enum OriginUpgrade {
+    Accepted(LocalSocket),
+    Refused(OriginRefusal),
+}
+```
+
+The library's answer to one WebSocket upgrade a relay plugin carries.
+
+**Variants**
+
+- `Accepted`: The library accepted: its side of the socket.
+- `Refused`: The library answered without upgrading.
+
 ### Activate
 
 ```rust
@@ -5168,6 +5308,47 @@ pub fn as_str(&self) -> &'static str
 ```
 
 Stable text for observations and listings.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### LocalInbound
+
+```rust
+pub enum LocalInbound {
+    Frame(SocketFrame),
+    Closed { code: u16, reason: Option<String>, clean: bool },
+}
+```
+
+What the library's side of a [`LocalSocket`](#localsocket) delivers.
+
+**Variants**
+
+- `Frame`: One message from the library.
+- `Closed`: The socket ended; nothing more arrives on it.
+  - `code`: WebSocket close code; 1006 when it dropped without one.
+  - `reason`: Close reason the library sent; `None` when none.
+  - `clean`: Whether the close handshake completed.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### LocalOutbound
+
+```rust
+pub enum LocalOutbound {
+    Frame(SocketFrame),
+    Close { code: u16, reason: String },
+}
+```
+
+What the guest asks of the library's side of a [`LocalSocket`](#localsocket).
+
+**Variants**
+
+- `Frame`: Send one message to the library.
+- `Close`: Close the socket with this code (already checked) and reason.
+  - `code`: WebSocket close code.
+  - `reason`: Close reason, at most 123 bytes.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 

@@ -136,7 +136,9 @@ which slices the store's own pages into replies the host accepts; see
 [Paged scans](../../abi.md#paged-scans).
 A relay [`[ingress]`](../../manifest.md#ingress-public-address) plugin also
 gets `ORIGIN` while it is the active ingress; `ORIGIN.fetch(request, {
-clientAddress })` hands one request to the library (see
+clientAddress })` hands one request to the library, and
+`ORIGIN.connect(request, { clientAddress, attachment })` opens a
+WebSocket to it for an upgrade (see
 [Public addresses](../../abi.md#public-addresses-ingress)).
 Generate the `Env` type from `plugin.toml`:
 
@@ -179,6 +181,11 @@ attachment is JSON of at most 2 KiB, kept for the socket's life, so the
 handler doesn't depend on memory a restart would lose. Without a
 `webSocketMessage` handler the host is told the plugin has none; without
 `webSocketClose`, closes are ignored.
+
+`SOCKETS.getWebSocket(id)` makes a handle for a socket whose id the plugin
+kept (in another socket's attachment, say) without asking the host. It
+can `send` and `close`; it carries no URL, subprotocol or attachment, and
+sending on a socket that has closed fails with `not_found`.
 
 A remote library whose message announced a new user returns
 `{ pollEvents: true }` from `webSocketMessage`, and the host calls
@@ -812,6 +819,41 @@ address the plugin reports.
 
 #### Methods
 
+##### connect()
+
+```ts
+connect(request, options?): Promise<OriginConnectResult>;
+```
+
+Opens a WebSocket to the library for one upgrade the provider delivered.
+
+Send `request` as the client sent it: the handshake fields
+(`upgrade`, `connection`, `sec-websocket-key`, ...) are dropped and
+the host makes its own; the requested subprotocols and cookies pass.
+An accepted socket belongs to the instance, outlives this invocation
+and needs `[sockets]`: its messages arrive on `webSocketMessage` and
+its close on `webSocketClose`, like any socket from `SOCKETS.connect`.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `request` | `Request` | The upgrade request the provider delivered (a `GET`). |
+| `options?` | [`OriginConnectOptions`](#originconnectoptions) | The client address and the socket's attachment. |
+
+###### Returns
+
+`Promise`\<[`OriginConnectResult`](#originconnectresult)\>
+
+The socket, or the library's response when it did not
+  upgrade.
+
+###### Throws
+
+`invalid_params` for a request the host refuses;
+  `forbidden` without `[sockets]`; `limit_exceeded` when the instance
+  holds its most sockets; `unavailable` when the library cannot serve.
+
 ##### fetch()
 
 ```ts
@@ -846,9 +888,49 @@ The library's response; its body streams.
 
 ***
 
+### OriginConnectOptions
+
+Options for one [OriginBinding.connect](#connect).
+
+#### Extends
+
+- [`OriginFetchOptions`](#originfetchoptions)
+
+#### Properties
+
+##### attachment?
+
+```ts
+attachment?: unknown;
+```
+
+The socket's initial attachment (any JSON value), as on
+`SOCKETS.connect`: a relay keeps here what pairs the socket with its
+provider's side.
+
+##### clientAddress?
+
+```ts
+clientAddress?: string;
+```
+
+IP address of the client from the provider's own connection metadata
+(for example `cf-connecting-ip` on a Cloudflare relay). Omit it when the
+provider gives none; never take it from a header the client controls.
+
+###### Inherited from
+
+[`OriginFetchOptions`](#originfetchoptions).[`clientAddress`](#clientaddress-1)
+
+***
+
 ### OriginFetchOptions
 
 Options for one [OriginBinding.fetch](#fetch).
+
+#### Extended by
+
+- [`OriginConnectOptions`](#originconnectoptions)
 
 #### Properties
 
@@ -870,6 +952,27 @@ The adapter's origin grant, as the author isolate reaches it. Never
 throws: every failure comes back as `err`.
 
 #### Methods
+
+##### connect()
+
+```ts
+connect(head, attachment): Promise<OriginConnectTransportReply>;
+```
+
+Hand one WebSocket upgrade to the library.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `head` | [`OriginRequest`](generated.md#originrequest) | A `GET` with the client's subprotocols, cookies and client address; no connection fields. |
+| `attachment` | `string` | The socket's initial attachment, base64. |
+
+###### Returns
+
+`Promise`\<[`OriginConnectTransportReply`](#originconnecttransportreply)\>
+
+The route's answer or a typed failure.
 
 ##### fetch()
 
@@ -1029,6 +1132,71 @@ Fetches one store page.
 `Promise`\<[`StorePage`](#storepage)\>
 
 That store page.
+
+***
+
+### OriginConnectResult
+
+```ts
+type OriginConnectResult = 
+  | {
+  socket: HostWebSocket;
+}
+  | {
+  response: Response;
+};
+```
+
+What [OriginBinding.connect](#connect) answers.
+
+#### Union Members
+
+##### Type Literal
+
+```ts
+{
+  socket: HostWebSocket;
+}
+```
+
+| Name | Type | Description |
+| ------ | ------ | ------ |
+| `socket` | [`HostWebSocket`](env.md#hostwebsocket) | The library accepted: the socket, one of the instance's `SOCKETS`. |
+
+***
+
+##### Type Literal
+
+```ts
+{
+  response: Response;
+}
+```
+
+| Name | Type | Description |
+| ------ | ------ | ------ |
+| `response` | `Response` | The library answered without upgrading (`401`, `403`, `404`, ...). |
+
+***
+
+### OriginConnectTransportReply
+
+```ts
+type OriginConnectTransportReply = 
+  | {
+  ok: Record<string, unknown>;
+}
+  | {
+  err: {
+     code: string;
+     message: string;
+  };
+};
+```
+
+One upgrade answer as the transport hands it over: the route's JSON
+(`{"socket": {...}}` or `{"refused": {...}}`, bytes in base64), or a
+typed failure.
 
 ***
 
@@ -3720,6 +3888,18 @@ Re-exports [Origin](generated.md#origin-3)
 
 ***
 
+### OriginConnected
+
+Re-exports [OriginConnected](generated.md#originconnected)
+
+***
+
+### OriginConnectReply
+
+Re-exports [OriginConnectReply](generated.md#originconnectreply)
+
+***
+
 ### OriginFetchReply
 
 Re-exports [OriginFetchReply](generated.md#originfetchreply)
@@ -3729,6 +3909,12 @@ Re-exports [OriginFetchReply](generated.md#originfetchreply)
 ### OriginHeader
 
 Re-exports [OriginHeader](generated.md#originheader)
+
+***
+
+### OriginRefusal
+
+Re-exports [OriginRefusal](generated.md#originrefusal)
 
 ***
 

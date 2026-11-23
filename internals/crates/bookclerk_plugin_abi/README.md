@@ -318,6 +318,8 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`MAX_NOTIFIER_ADDRESS_BYTES`](#max_notifier_address_bytes) | constant | Longest notifier destination address document, in UTF-8 bytes. |
 | [`MAX_ORIGIN_HEADERS`](#max_origin_headers) | constant | Most header fields on one `Origin.fetch` request, and separately on its response. |
 | [`MAX_ORIGIN_HEADER_BYTES`](#max_origin_header_bytes) | constant | Largest total UTF-8 bytes of header names and values on one `Origin.fetch` request, and separately on its response. |
+| [`MAX_ORIGIN_REFUSAL_BODY_BYTES`](#max_origin_refusal_body_bytes) | constant | Largest body of an `crate::OriginRefusal`: the library's answer to a WebSocket upgrade it did not accept. A longer body is cut to this. |
+| [`MAX_ORIGIN_SOCKETS_PER_INSTANCE`](#max_origin_sockets_per_instance) | constant | Most sockets into the library (accepted `Origin.connect` upgrades) one relay ingress instance may hold, apart from `MAX_SOCKETS_PER_INSTANCE`. |
 | [`MAX_ORIGIN_TARGET_BYTES`](#max_origin_target_bytes) | constant | Longest `OriginRequest.target` (path and query), in bytes. |
 | [`MAX_PLUGIN_MIGRATION_OPS`](#max_plugin_migration_ops) | constant | Maximum already-separated operations in one plugin-owned migration. |
 | [`MAX_PLUGIN_MIGRATION_REGISTRATION_BYTES`](#max_plugin_migration_registration_bytes) | constant | Maximum aggregate UTF-8 bytes of plugin migration ids plus SQL in one `databaseMigrations` registration (Cap'n Proto framing is not counted). |
@@ -689,6 +691,8 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`generated::SocketClosed`](generated.md#socketclosed)
 - [`generated::OriginHeader`](generated.md#originheader)
 - [`generated::OriginRequest`](generated.md#originrequest)
+- [`generated::OriginRefusal`](generated.md#originrefusal)
+- [`generated::OriginConnected`](generated.md#originconnected)
 - [`generated::IngressStarted`](generated.md#ingressstarted)
 - [`generated::WebhookUrl`](generated.md#webhookurl)
 - [`generated::WebhookPullRequest`](generated.md#webhookpullrequest)
@@ -1012,6 +1016,12 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`generated::read_origin_header`](generated.md#read_origin_header)
 - [`generated::write_origin_request`](generated.md#write_origin_request)
 - [`generated::read_origin_request`](generated.md#read_origin_request)
+- [`generated::write_origin_refusal`](generated.md#write_origin_refusal)
+- [`generated::read_origin_refusal`](generated.md#read_origin_refusal)
+- [`generated::write_origin_connected`](generated.md#write_origin_connected)
+- [`generated::read_origin_connected`](generated.md#read_origin_connected)
+- [`generated::write_origin_connect_reply`](generated.md#write_origin_connect_reply)
+- [`generated::read_origin_connect_reply`](generated.md#read_origin_connect_reply)
 - [`generated::write_ingress_started`](generated.md#write_ingress_started)
 - [`generated::read_ingress_started`](generated.md#read_ingress_started)
 - [`generated::write_ingress_start_reply`](generated.md#write_ingress_start_reply)
@@ -3411,6 +3421,14 @@ pub trait Origin {
     where
         Self: 'async_trait,
         'life0: 'async_trait,;
+    fn connect<'life0, 'async_trait>(
+        &'life0 self,
+        request: CheckedOriginRequest,
+        attachment: Vec<u8>,
+    ) -> Pin<Box<dyn Future<Output = Result<OriginConnected>> + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
 }
 ```
 
@@ -3447,6 +3465,38 @@ body streams after.
 `invalid_params` for a request refused before the library saw it;
 `unavailable` when the library cannot serve now. Any HTTP status,
 errors included, is an `Ok` answer.
+
+#### Origin::connect
+
+```rust
+fn connect<'life0, 'async_trait>(
+    &'life0 self,
+    request: CheckedOriginRequest,
+    attachment: Vec<u8>,
+) -> Pin<Box<dyn Future<Output = Result<OriginConnected>> + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Opens a WebSocket to the library for one upgrade request and makes
+it a socket of the plugin instance's `SOCKETS` binding.
+
+##### Arguments
+
+* `request` - The checked head ([`crate::origin::check_origin_connect`](origin.md#check_origin_connect)).
+* `attachment` - The socket's initial attachment.
+
+##### Returns
+
+The open socket, or the library's answer when it did not upgrade.
+
+##### Errors
+
+`invalid_params` for a request refused before the library saw it;
+`forbidden` when the instance has no `SOCKETS` binding;
+`limit_exceeded` when it holds its most sockets; `unavailable` when
+the library cannot serve now or does not carry upgrades (the default).
 
 Implemented by: `NoOrigin`, `OriginClient`
 
@@ -8849,6 +8899,24 @@ pub const MAX_ORIGIN_HEADER_BYTES: u32 = crate::plugin_capnp::MAX_ORIGIN_HEADER_
 
 Largest total UTF-8 bytes of header names and values on one
 `Origin.fetch` request, and separately on its response.
+
+### MAX_ORIGIN_REFUSAL_BODY_BYTES
+
+```rust
+pub const MAX_ORIGIN_REFUSAL_BODY_BYTES: u32 = crate::plugin_capnp::MAX_ORIGIN_REFUSAL_BODY_BYTES;
+```
+
+Largest body of an [`crate::OriginRefusal`]: the library's answer to a
+WebSocket upgrade it did not accept. A longer body is cut to this.
+
+### MAX_ORIGIN_SOCKETS_PER_INSTANCE
+
+```rust
+pub const MAX_ORIGIN_SOCKETS_PER_INSTANCE: u32 = crate::plugin_capnp::MAX_ORIGIN_SOCKETS_PER_INSTANCE;
+```
+
+Most sockets into the library (accepted `Origin.connect` upgrades) one
+relay ingress instance may hold, apart from [`MAX_SOCKETS_PER_INSTANCE`](#max_sockets_per_instance).
 
 ### MAX_ORIGIN_TARGET_BYTES
 

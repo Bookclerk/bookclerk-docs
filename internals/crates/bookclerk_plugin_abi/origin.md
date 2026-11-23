@@ -14,16 +14,21 @@ values lets the fuzz target and the unit tests drive the code the host runs.
 | [`CheckedOriginRequest`](#checkedoriginrequest) | struct | A checked `OriginRequest`: what the host dispatches into the router. |
 | [`IngressOrigin`](#ingressorigin) | struct | The public origin an ingress plugin serves: `https://` and a lowercase DNS host name, nothing else. |
 | [`OriginResponseHead`](#originresponsehead) | struct | The head of the library's response to one origin request, as the isolate bridge frames it (`encode_origin_frame`). |
+| [`OriginConnectBody`](#originconnectbody) | struct | The body of a `POST /origin/connect` on the isolate bridge: one `env.ORIGIN.connect` call. |
 | [`check_origin_request`](#check_origin_request) | function | Checks the head of one public request a relay plugin carries and keeps what the host passes on. |
+| [`check_origin_connect`](#check_origin_connect) | function | Checks the head of one WebSocket upgrade a relay plugin carries (`Origin.connect`) and keeps what the host passes on. |
+| [`check_origin_refusal`](#check_origin_refusal) | function | Checks the library's answer to an upgrade it did not accept before it goes back to a relay plugin. |
 | [`check_origin_response`](#check_origin_response) | function | Checks the head of a response the host sends back to a relay plugin. |
 | [`parse_ingress_origin`](#parse_ingress_origin) | function | Parses the public origin an ingress plugin reports from `start`. |
 | [`encode_origin_frame`](#encode_origin_frame) | function | Frames `head` for the isolate bridge: a 4-byte big-endian length, then the head as JSON. The body follows the frame on the same stream. |
 | [`split_origin_frame`](#split_origin_frame) | function | Splits a framed head off the front of `buf`. |
 | [`decode_origin_request_frame`](#decode_origin_request_frame) | function | Decodes and checks a framed request head from an isolate. |
+| [`decode_origin_connect_body`](#decode_origin_connect_body) | function | Decodes and checks a `POST /origin/connect` body from an isolate. |
 | [`decode_origin_response_frame`](#decode_origin_response_frame) | function | Decodes and checks a framed response head (the isolate side reads these; the host only writes them, so this is for tests and fuzzing). |
 | [`MAX_ORIGIN_METHOD_BYTES`](#max_origin_method_bytes) | constant | Longest request method, in bytes. |
 | [`ORIGIN_FRAME_PREFIX_BYTES`](#origin_frame_prefix_bytes) | constant | Bytes of the length prefix in front of a framed head. |
 | [`MAX_ORIGIN_FRAME_HEAD_BYTES`](#max_origin_frame_head_bytes) | constant | Largest framed head on the isolate bridge's origin route: the JSON of a head at its limits, with room for escaping every header byte and the target. |
+| [`MAX_ORIGIN_CONNECT_BODY_BYTES`](#max_origin_connect_body_bytes) | constant | Largest `POST /origin/connect` body the isolate bridge reads: a head at its framed limit and an attachment at its limit in base64. |
 
 ## Structs
 
@@ -95,6 +100,25 @@ isolate bridge frames it ([`encode_origin_frame`](#encode_origin_frame)).
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
+### OriginConnectBody
+
+```rust
+pub struct OriginConnectBody {
+    pub request: OriginRequest,
+    pub attachment: Vec<u8>,
+}
+```
+
+The body of a `POST /origin/connect` on the isolate bridge: one
+`env.ORIGIN.connect` call.
+
+**Fields**
+
+- `request`: The upgrade request's head.
+- `attachment`: The socket's initial attachment, base64 on the wire.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
 ## Functions
 
 ### check_origin_request
@@ -120,6 +144,48 @@ without `host` and forwarding fields.
 [`PluginError::invalid_params`](error.md#pluginerrorinvalid_params) when the method is not a token, the
 target is not origin form or too long, a header breaks a rule, or the
 client address is not an IP address.
+
+### check_origin_connect
+
+```rust
+pub fn check_origin_connect(request: &OriginRequest) -> Result<CheckedOriginRequest>
+```
+
+Checks the head of one WebSocket upgrade a relay plugin carries
+(`Origin.connect`) and keeps what the host passes on.
+
+The guest sends the request without its connection fields (`upgrade`
+and `connection` are hop-by-hop and refused as on `Origin.fetch`); the
+host makes its own handshake to the library.
+
+#### Arguments
+
+* `request` - The head as the guest sent it.
+
+#### Returns
+
+The request as [`check_origin_request`](#check_origin_request) keeps it, without the
+handshake fields the host writes itself.
+
+#### Errors
+
+[`PluginError::invalid_params`](error.md#pluginerrorinvalid_params) for anything [`check_origin_request`](#check_origin_request)
+refuses, and for a method other than `GET`.
+
+### check_origin_refusal
+
+```rust
+pub fn check_origin_refusal(refusal: &OriginRefusal) -> Result<()>
+```
+
+Checks the library's answer to an upgrade it did not accept before it
+goes back to a relay plugin.
+
+#### Errors
+
+[`PluginError::invalid_params`](error.md#pluginerrorinvalid_params) when the status is outside 200 to 599,
+a header breaks a rule, or the body exceeds
+[`MAX_ORIGIN_REFUSAL_BODY_BYTES`](README.md#max_origin_refusal_body_bytes).
 
 ### check_origin_response
 
@@ -204,6 +270,24 @@ Decodes and checks a framed request head from an isolate.
 `invalid_params` when the JSON is not an [`OriginRequest`](generated.md#originrequest) or the head
 fails [`check_origin_request`](#check_origin_request).
 
+### decode_origin_connect_body
+
+```rust
+pub fn decode_origin_connect_body(json: &[u8]) -> Result<(CheckedOriginRequest, Vec<u8>)>
+```
+
+Decodes and checks a `POST /origin/connect` body from an isolate.
+
+#### Returns
+
+The head as [`check_origin_connect`](#check_origin_connect) keeps it, and the attachment.
+
+#### Errors
+
+`invalid_params` when the JSON is not an [`OriginConnectBody`](#originconnectbody), the head
+fails [`check_origin_connect`](#check_origin_connect), or the attachment exceeds
+`maxSocketAttachmentBytes`.
+
 ### decode_origin_response_frame
 
 ```rust
@@ -245,3 +329,12 @@ pub const MAX_ORIGIN_FRAME_HEAD_BYTES: usize = _;
 Largest framed head on the isolate bridge's origin route: the JSON of a
 head at its limits, with room for escaping every header byte and the
 target.
+
+### MAX_ORIGIN_CONNECT_BODY_BYTES
+
+```rust
+pub const MAX_ORIGIN_CONNECT_BODY_BYTES: usize = _;
+```
+
+Largest `POST /origin/connect` body the isolate bridge reads: a head at
+its framed limit and an attachment at its limit in base64.

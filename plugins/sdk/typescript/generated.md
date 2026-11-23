@@ -8012,6 +8012,32 @@ with the client address the plugin reports.
 
 #### Methods
 
+##### connect()
+
+```ts
+connect(request, attachment): Promise<OriginConnectReply>;
+```
+
+Open a WebSocket to the library for one upgrade request the provider
+delivers. An accepted upgrade becomes a socket in the instance's
+`Bindings.sockets`: its messages arrive on `Entrypoints.socketHandler`
+and the plugin answers with `Sockets.send` and `Sockets.close`, as on
+any socket it dialed. Needs `[sockets]`. These sockets count toward
+`maxOriginSocketsPerInstance`, not `maxSocketsPerInstance`.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `request` | [`OriginRequest`](#originrequest) | A `GET` with `upgrade: websocket`. |
+| `attachment` | `Uint8Array` | Initial attachment, at most `maxSocketAttachmentBytes`. |
+
+###### Returns
+
+`Promise`\<[`OriginConnectReply`](#originconnectreply)\>
+
+[OriginConnectReply](#originconnectreply)
+
 ##### fetch()
 
 ```ts
@@ -8057,6 +8083,41 @@ value: string;
 
 Field value, visible ASCII, spaces and tabs. May carry a credential (a
 cookie, an authorization): the host never logs it.
+
+***
+
+### OriginRefusal
+
+The library's answer to an `Origin.connect` it did not upgrade: an
+ordinary response (`401`, `403`, `404`, ...) for the plugin to hand back
+to the client.
+
+#### Properties
+
+##### body
+
+```ts
+body: Uint8Array;
+```
+
+Response body, at most `maxOriginRefusalBodyBytes`.
+
+##### headers
+
+```ts
+headers: OriginHeader[];
+```
+
+Response header fields in order, at most `maxOriginHeaders` and
+`maxOriginHeaderBytes`.
+
+##### status
+
+```ts
+status: number;
+```
+
+HTTP status code, 200 to 599 and never `101`.
 
 ***
 
@@ -12668,6 +12729,42 @@ type OptionalColumnReference =
 ```
 
 Per-column `REFERENCES` slot in `CreateTableSchema`.
+
+***
+
+### OriginConnected
+
+```ts
+type OriginConnected = 
+  | {
+  kind: "socket";
+  value: SocketInfo;
+}
+  | {
+  kind: "refused";
+  value: OriginRefusal;
+};
+```
+
+Success payload of `Origin.connect`.
+
+***
+
+### OriginConnectReply
+
+```ts
+type OriginConnectReply = 
+  | {
+  kind: "ok";
+  value: OriginConnected;
+}
+  | {
+  kind: "err";
+  value: PluginError;
+};
+```
+
+Result union of `Origin.connect`.
 
 ***
 

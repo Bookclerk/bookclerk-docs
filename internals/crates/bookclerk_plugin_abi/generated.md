@@ -129,6 +129,7 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`SocketClosed`](#socketclosed) | struct | Argument of `SocketHandler.closed`. |
 | [`OriginHeader`](#originheader) | struct | One header field on an `Origin.fetch` request or response. |
 | [`OriginRequest`](#originrequest) | struct | The head of one public request a relay `ingress` plugin carries (`Origin.fetch`). Its scheme is `https` and its authority is the library's public origin; neither is the plugin's to choose. |
+| [`OriginRefusal`](#originrefusal) | struct | The library's answer to an `Origin.connect` it did not upgrade: an ordinary response (`401`, `403`, `404`, ...) for the plugin to hand back to the client. |
 | [`IngressStarted`](#ingressstarted) | struct | Success payload of `Ingress.start`. |
 | [`WebhookUrl`](#webhookurl) | struct | Success payload of `Webhooks.url`. |
 | [`WebhookPullRequest`](#webhookpullrequest) | struct | Arguments of `Webhooks.pull`. |
@@ -165,6 +166,7 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`AiTextRole`](#aitextrole) | enum | What a text is to an embedding model. Some models embed a search query differently from the documents it is matched against. |
 | [`QueueResult`](#queueresult) | enum | Per-message outcome inside a `QueueConsumer.queue` batch reply. |
 | [`SocketFrame`](#socketframe) | enum | One WebSocket message. |
+| [`OriginConnected`](#originconnected) | enum | Success payload of `Origin.connect`. |
 | [`RoundTripFailure`](#roundtripfailure) | enum | Why `roundtrip_any_message` could not show `read(write(v)) == v`. |
 | [`write_event_consumer_spec`](#write_event_consumer_spec) | function | Encode a `EventConsumerSpec` onto a Cap'n Proto builder. |
 | [`read_event_consumer_spec`](#read_event_consumer_spec) | function | Decode a `EventConsumerSpec` from a Cap'n Proto reader. |
@@ -480,6 +482,12 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`read_origin_header`](#read_origin_header) | function | Decode a `OriginHeader` from a Cap'n Proto reader. |
 | [`write_origin_request`](#write_origin_request) | function | Encode a `OriginRequest` onto a Cap'n Proto builder. |
 | [`read_origin_request`](#read_origin_request) | function | Decode a `OriginRequest` from a Cap'n Proto reader. |
+| [`write_origin_refusal`](#write_origin_refusal) | function | Encode a `OriginRefusal` onto a Cap'n Proto builder. |
+| [`read_origin_refusal`](#read_origin_refusal) | function | Decode a `OriginRefusal` from a Cap'n Proto reader. |
+| [`write_origin_connected`](#write_origin_connected) | function | Encode a `OriginConnected` union. |
+| [`read_origin_connected`](#read_origin_connected) | function | Decode a `OriginConnected` union. |
+| [`write_origin_connect_reply`](#write_origin_connect_reply) | function | Encode a `OriginConnectReply` union from a typed result. |
+| [`read_origin_connect_reply`](#read_origin_connect_reply) | function | Decode a `OriginConnectReply` union into a typed result. |
 | [`write_ingress_started`](#write_ingress_started) | function | Encode a `IngressStarted` onto a Cap'n Proto builder. |
 | [`read_ingress_started`](#read_ingress_started) | function | Decode a `IngressStarted` from a Cap'n Proto reader. |
 | [`write_ingress_start_reply`](#write_ingress_start_reply) | function | Encode a `IngressStartReply` union from a typed result. |
@@ -3517,6 +3525,29 @@ public origin; neither is the plugin's to choose.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
+### OriginRefusal
+
+```rust
+pub struct OriginRefusal {
+    pub status: u16,
+    pub headers: Vec<OriginHeader>,
+    pub body: Vec<u8>,
+}
+```
+
+The library's answer to an `Origin.connect` it did not upgrade: an
+ordinary response (`401`, `403`, `404`, ...) for the plugin to hand back
+to the client.
+
+**Fields**
+
+- `status`: HTTP status code, 200 to 599 and never `101`.
+- `headers`: Response header fields in order, at most `maxOriginHeaders` and
+  `maxOriginHeaderBytes`.
+- `body`: Response body, at most `maxOriginRefusalBodyBytes`.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
 ### IngressStarted
 
 ```rust
@@ -4757,6 +4788,26 @@ One WebSocket message.
 
 - `Text`: Text message, UTF-8.
 - `Binary`: Binary message.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### OriginConnected
+
+```rust
+pub enum OriginConnected {
+    Socket(SocketInfo),
+    Refused(OriginRefusal),
+}
+```
+
+Success payload of `Origin.connect`.
+
+**Variants**
+
+- `Socket`: The library accepted the upgrade; the socket is open in
+  `Bindings.sockets`. Its `protocol` is the subprotocol the library
+  chose.
+- `Refused`: The library answered without upgrading.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -8717,6 +8768,83 @@ Decode a [`OriginRequest`](#originrequest) from a Cap'n Proto reader.
 
 Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
 
+### write_origin_refusal
+
+```rust
+pub fn write_origin_refusal(b: Builder<'_>, v: &OriginRefusal) -> Result<()>
+```
+
+Encode a [`OriginRefusal`](#originrefusal) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_origin_refusal
+
+```rust
+pub fn read_origin_refusal(r: Reader<'_>) -> Result<OriginRefusal>
+```
+
+Decode a [`OriginRefusal`](#originrefusal) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_origin_connected
+
+```rust
+pub fn write_origin_connected(b: Builder<'_>, v: &OriginConnected) -> Result<()>
+```
+
+Encode a `OriginConnected` union.
+
+#### Errors
+
+Returns a Cap'n Proto error when a nested field cannot be encoded.
+
+### read_origin_connected
+
+```rust
+pub fn read_origin_connected(r: Reader<'_>) -> Result<OriginConnected>
+```
+
+Decode a `OriginConnected` union.
+
+#### Errors
+
+Returns a Cap'n Proto error when the union is unset or a field is malformed.
+
+### write_origin_connect_reply
+
+```rust
+pub fn write_origin_connect_reply(
+    b: Builder<'_>,
+    v: &Result<OriginConnected, PluginError>,
+) -> Result<()>
+```
+
+Encode a `OriginConnectReply` union from a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when a nested field cannot be encoded.
+
+### read_origin_connect_reply
+
+```rust
+pub fn read_origin_connect_reply(
+    r: Reader<'_>,
+) -> Result<Result<OriginConnected, PluginError>>
+```
+
+Decode a `OriginConnectReply` union into a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when the union is unset or a field is malformed.
+
 ### write_ingress_started
 
 ```rust
@@ -9099,7 +9227,7 @@ when the decoded value does not survive `write_*` then `read_*` intact.
 ### READ_ANY_COUNT
 
 ```rust
-pub const READ_ANY_COUNT: u8 = 170;
+pub const READ_ANY_COUNT: u8 = 173;
 ```
 
 Number of root structs [`read_any_message`](#read_any_message) can decode; selectors are

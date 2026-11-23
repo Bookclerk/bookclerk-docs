@@ -350,6 +350,11 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`SocketClosed`](#socketclosed) | class | Argument of `SocketHandler.closed`. |
 | [`OriginHeader`](#originheader) | class | One header field on an `Origin.fetch` request or response. |
 | [`OriginRequest`](#originrequest) | class | The head of one public request a relay `ingress` plugin carries (`Origin.fetch`). Its scheme is `https` and its authority is the library's public origin; neither is the plugin's to choose. |
+| [`OriginRefusal`](#originrefusal) | class | The library's answer to an `Origin.connect` it did not upgrade: an ordinary response (`401`, `403`, `404`, ...) for the plugin to hand back to the client. |
+| [`OriginConnectedSocket`](#originconnectedsocket) | class | `OriginConnected` member `socket`. |
+| [`OriginConnectedRefused`](#originconnectedrefused) | class | `OriginConnected` member `refused`. |
+| [`OriginConnectReplyOk`](#originconnectreplyok) | class | `OriginConnectReply` member `ok`. |
+| [`OriginConnectReplyErr`](#originconnectreplyerr) | class | `OriginConnectReply` member `err`. |
 | [`IngressStarted`](#ingressstarted) | class | Success payload of `Ingress.start`. |
 | [`IngressStartReplyOk`](#ingressstartreplyok) | class | `IngressStartReply` member `ok`. |
 | [`IngressStartReplyErr`](#ingressstartreplyerr) | class | `IngressStartReply` member `err`. |
@@ -537,6 +542,8 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`SocketConnectReply`](#socketconnectreply) | constant | Result union of `Sockets.connect`. |
 | [`SocketListReply`](#socketlistreply) | constant | Result union of `Sockets.list`. |
 | [`SocketMessageReply`](#socketmessagereply) | constant | Reply of `SocketHandler.message`. |
+| [`OriginConnected`](#originconnected) | constant | Success payload of `Origin.connect`. |
+| [`OriginConnectReply`](#originconnectreply) | constant | Result union of `Origin.connect`. |
 | [`IngressStartReply`](#ingressstartreply) | constant | Result union of `Ingress.start`. |
 | [`WebhookUrlReply`](#webhookurlreply) | constant | Result union of `Webhooks.url`. |
 | [`WebhookPullReply`](#webhookpullreply) | constant | Result union of `Webhooks.pull`. |
@@ -3089,6 +3096,28 @@ Serve one request; the response body streams as the library writes it.
 **Returns**
 
 `OriginFetchReply`
+
+#### Origin.connect
+
+```python
+async def connect(self, request: OriginRequest, attachment: bytes) -> OriginConnectReply
+```
+
+Open a WebSocket to the library for one upgrade request the provider
+delivers. An accepted upgrade becomes a socket in the instance's
+`Bindings.sockets`: its messages arrive on `Entrypoints.socketHandler`
+and the plugin answers with `Sockets.send` and `Sockets.close`, as on
+any socket it dialed. Needs `[sockets]`. These sockets count toward
+`maxOriginSocketsPerInstance`, not `maxSocketsPerInstance`.
+
+**Args**
+
+- `request`: A `GET` with `upgrade: websocket`.
+- `attachment`: Initial attachment, at most `maxSocketAttachmentBytes`.
+
+**Returns**
+
+`OriginConnectReply`
 
 ### Ingress
 
@@ -7006,6 +7035,87 @@ public origin; neither is the plugin's to choose.
 - `headers`: Request header fields in order, at most `maxOriginHeaders` and `maxOriginHeaderBytes`. `host` and forwarding headers are ignored.
 - `clientAddress`: IP address of the client, from the provider's own connection metadata; empty when the provider gives none. Omitted when absent (wire zero value).
 
+### OriginRefusal
+
+```python
+class OriginRefusal(TypedDict)
+```
+
+The library's answer to an `Origin.connect` it did not upgrade: an
+ordinary response (`401`, `403`, `404`, ...) for the plugin to hand back
+to the client.
+
+**Attributes**
+
+- `status`: HTTP status code, 200 to 599 and never `101`.
+- `headers`: Response header fields in order, at most `maxOriginHeaders` and `maxOriginHeaderBytes`.
+- `body`: Response body, at most `maxOriginRefusalBodyBytes`.
+
+### OriginConnectedSocket
+
+```python
+class OriginConnectedSocket(TypedDict)
+```
+
+`OriginConnected` member `socket`.
+
+The library accepted the upgrade; the socket is open in
+`Bindings.sockets`. Its `protocol` is the subprotocol the library
+chose.
+
+**Attributes**
+
+- `kind`: Always `"socket"`.
+- `value`: The library accepted the upgrade; the socket is open in `Bindings.sockets`. Its `protocol` is the subprotocol the library chose.
+
+### OriginConnectedRefused
+
+```python
+class OriginConnectedRefused(TypedDict)
+```
+
+`OriginConnected` member `refused`.
+
+The library answered without upgrading.
+
+**Attributes**
+
+- `kind`: Always `"refused"`.
+- `value`: The library answered without upgrading.
+
+### OriginConnectReplyOk
+
+```python
+class OriginConnectReplyOk(TypedDict)
+```
+
+`OriginConnectReply` member `ok`.
+
+Success: an open socket or the library's refusal.
+
+**Attributes**
+
+- `kind`: Always `"ok"`.
+- `value`: Success: an open socket or the library's refusal.
+
+### OriginConnectReplyErr
+
+```python
+class OriginConnectReplyErr(TypedDict)
+```
+
+`OriginConnectReply` member `err`.
+
+Typed failure: the request was refused before the library saw it
+(`invalid_params`, `forbidden` without `[sockets]`, `limit_exceeded`
+when the instance holds `maxOriginSocketsPerInstance`) or the library
+is unavailable.
+
+**Attributes**
+
+- `kind`: Always `"err"`.
+- `value`: Typed failure: the request was refused before the library saw it (`invalid_params`, `forbidden` without `[sockets]`, `limit_exceeded` when the instance holds `maxOriginSocketsPerInstance`) or the library is unavailable.
+
 ### IngressStarted
 
 ```python
@@ -9410,6 +9520,22 @@ SocketMessageReply = Union[SocketMessageReplyOk, SocketMessageReplyErr]
 ```
 
 Reply of `SocketHandler.message`.
+
+### OriginConnected
+
+```python
+OriginConnected = Union[OriginConnectedSocket, OriginConnectedRefused]
+```
+
+Success payload of `Origin.connect`.
+
+### OriginConnectReply
+
+```python
+OriginConnectReply = Union[OriginConnectReplyOk, OriginConnectReplyErr]
+```
+
+Result union of `Origin.connect`.
 
 ### IngressStartReply
 

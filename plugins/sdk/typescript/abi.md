@@ -1094,6 +1094,29 @@ response.
 
 ***
 
+### MAX\_ORIGIN\_REFUSAL\_BODY\_BYTES
+
+```ts
+const MAX_ORIGIN_REFUSAL_BODY_BYTES: 65536;
+```
+
+Largest body of an `OriginRefusal` (the library's answer to a WebSocket
+upgrade it did not accept), in bytes; a longer body is cut to this.
+
+***
+
+### MAX\_ORIGIN\_SOCKETS\_PER\_INSTANCE
+
+```ts
+const MAX_ORIGIN_SOCKETS_PER_INSTANCE: 256;
+```
+
+Most sockets into the library (accepted `Origin.connect` upgrades) one
+relay ingress instance may hold at once, apart from `maxSocketsPerInstance`:
+the host holds them in process, not in the socket broker.
+
+***
+
 ### MAX\_ORIGIN\_TARGET\_BYTES
 
 ```ts

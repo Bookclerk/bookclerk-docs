@@ -83,6 +83,7 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | [`MAX_SOCKET_FRAME_BYTES`](#max_socket_frame_bytes) | constant |  |
 | [`MAX_SOCKET_ATTACHMENT_BYTES`](#max_socket_attachment_bytes) | constant |  |
 | [`MAX_SOCKETS_PER_INSTANCE`](#max_sockets_per_instance) | constant |  |
+| [`MAX_ORIGIN_SOCKETS_PER_INSTANCE`](#max_origin_sockets_per_instance) | constant |  |
 | [`MAX_SOCKET_AUTO_RESPONSES`](#max_socket_auto_responses) | constant |  |
 | [`MAX_SOCKET_AUTO_RESPONSE_BYTES`](#max_socket_auto_response_bytes) | constant |  |
 | [`MAX_SOCKET_URL_BYTES`](#max_socket_url_bytes) | constant |  |
@@ -91,6 +92,7 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | [`MAX_ORIGIN_HEADER_BYTES`](#max_origin_header_bytes) | constant |  |
 | [`MAX_ORIGIN_TARGET_BYTES`](#max_origin_target_bytes) | constant |  |
 | [`MAX_INGRESS_ORIGIN_BYTES`](#max_ingress_origin_bytes) | constant |  |
+| [`MAX_ORIGIN_REFUSAL_BODY_BYTES`](#max_origin_refusal_body_bytes) | constant |  |
 | [`MAX_WEBHOOK_PULL_BATCH`](#max_webhook_pull_batch) | constant |  |
 | [`MAX_WEBHOOK_LEASE_ID_BYTES`](#max_webhook_lease_id_bytes) | constant |  |
 | [`MAX_WEBHOOK_VISIBILITY_MS`](#max_webhook_visibility_ms) | constant |  |
@@ -388,6 +390,9 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`socket_closed`](socket_closed.md)
 - [`origin_header`](origin_header.md)
 - [`origin_request`](origin_request.md)
+- [`origin_refusal`](origin_refusal.md)
+- [`origin_connected`](origin_connected.md)
+- [`origin_connect_reply`](origin_connect_reply.md)
 - [`ingress_started`](ingress_started.md)
 - [`ingress_start_reply`](ingress_start_reply.md)
 - [`webhook_url`](webhook_url.md)
@@ -1188,6 +1193,12 @@ pub const MAX_SOCKET_ATTACHMENT_BYTES: u32 = 2048;
 pub const MAX_SOCKETS_PER_INSTANCE: u32 = 8;
 ```
 
+### MAX_ORIGIN_SOCKETS_PER_INSTANCE
+
+```rust
+pub const MAX_ORIGIN_SOCKETS_PER_INSTANCE: u32 = 256;
+```
+
 ### MAX_SOCKET_AUTO_RESPONSES
 
 ```rust
@@ -1234,6 +1245,12 @@ pub const MAX_ORIGIN_TARGET_BYTES: u32 = 8192;
 
 ```rust
 pub const MAX_INGRESS_ORIGIN_BYTES: u32 = 253;
+```
+
+### MAX_ORIGIN_REFUSAL_BODY_BYTES
+
+```rust
+pub const MAX_ORIGIN_REFUSAL_BODY_BYTES: u32 = 65536;
 ```
 
 ### MAX_WEBHOOK_PULL_BATCH

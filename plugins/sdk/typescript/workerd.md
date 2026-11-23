@@ -1671,6 +1671,24 @@ Re-exports [OriginBinding](README.md#originbinding)
 
 ***
 
+### OriginConnectOptions
+
+Re-exports [OriginConnectOptions](README.md#originconnectoptions)
+
+***
+
+### OriginConnectResult
+
+Re-exports [OriginConnectResult](README.md#originconnectresult)
+
+***
+
+### OriginConnectTransportReply
+
+Re-exports [OriginConnectTransportReply](README.md#originconnecttransportreply)
+
+***
+
 ### OriginFetchOptions
 
 Re-exports [OriginFetchOptions](README.md#originfetchoptions)
