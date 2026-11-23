@@ -752,6 +752,7 @@ pub struct AcquireRequest {
     pub placement: Option<PlacementFacts>,
     pub job_id: Option<String>,
     pub temp_quota_bytes: Option<u64>,
+    pub cancel: Option<Arc<AtomicBool>>,
     pub call_number: Option<String>,
     pub parent_call_number: Option<String>,
     pub metadata: AcquireMetadata,
@@ -788,6 +789,10 @@ Request to acquire a single title.
   acquiring for an owner gets destinations the owner already chose.
 - `job_id`: Durable daemon job id that owns this acquire's scratch directory.
 - `temp_quota_bytes`: Refuse a new scratch dir when registered temps already exceed this.
+- `cancel`: Set when the job running this acquire is cancelled or loses its
+  fence: the store fetch in flight is stopped
+  (`FetchOptions::cancel`) rather than run to its end. `None` for an
+  acquire nothing cancels.
 - `call_number`: The `<call number>` to name the title by instead of its edition in
   `library`: a host acquiring for a shared node names the title as the
   owner does, since its scratch library's edition ids are its own.

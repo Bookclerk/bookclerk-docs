@@ -171,6 +171,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`WorkSplitRequest`](#worksplitrequest) | struct | A validated `WorkSplitBody`: 1 to `MAX_SPLIT_EXPRESSIONS` distinct expression ids, each 1 to `MAX_SPLIT_EXPRESSION_ID_BYTES` bytes, sorted. |
 | [`AcquireTitle`](#acquiretitle) | struct | One title an account holds, as acquire reads it from the library model. |
 | [`AcquireTitlePage`](#acquiretitlepage) | struct | One page of `LibraryStore::acquire_titles_page`. |
+| [`AcquireWriter`](#acquirewriter) | struct | The `writer` one acquire run records its keys under: `acquire:<32 hex>`, unique to the run. |
 | [`AcquiredTitleKey`](#acquiredtitlekey) | struct | One account's title of an edition acquired with a stored file, without its metadata. |
 | [`AcquiredTitleKeyPage`](#acquiredtitlekeypage) | struct | One page of `AcquiredTitleKey`s. |
 | [`AudioStream`](#audiostream) | struct | What a probe found about the audio stream of one file, besides its `FileProbe`: the encoding, channels, sample rate and the running time a player sees. |
@@ -263,6 +264,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`FileRole`](#filerole) | enum | What a recorded file is. |
 | [`HoldingSelection`](#holdingselection) | enum | Which holdings of one account a removal takes. |
 | [`NodeHoldingSelection`](#nodeholdingselection) | enum | Which holdings of one branch (node) a removal takes. |
+| [`RecordedFile`](#recordedfile) | enum | What recording a key an acquire run is about to write did (`LibraryStore::record_run_edition_file`). |
 | [`SeedScope`](#seedscope) | enum | Which seeds a subject's candidates and feed were built from. |
 | [`migrate_library_backend`](#migrate_library_backend) | function | Copy the whole library from `source` into `dest`. |
 | [`restore_backup_unit`](#restore_backup_unit) | function | Destructively replaces one logical database with `unit`. Never merges. |
@@ -449,7 +451,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`MAX_SPLIT_EXPRESSIONS`](#max_split_expressions) | constant | Most expressions one split moves: the batch's widest statement binds each id twice, and the minimum database profile allows 32 binds. |
 | [`MAX_SPLIT_EXPRESSION_ID_BYTES`](#max_split_expression_id_bytes) | constant | Longest expression id a split body may name, in bytes; ids are UUIDs. |
 | [`ACQUIRED_KEYS_MAX_PAGE`](#acquired_keys_max_page) | constant | Upper clamp for the editions one `LibraryStore::acquired_title_keys_page` read covers. |
-| [`ACQUIRE_WRITER`](#acquire_writer) | constant | The `writer` of a key an acquire run on this node wrote. |
+| [`ACQUIRE_WRITER`](#acquire_writer) | constant | The `writer` of a key an acquire on this node wrote without a run of its own (a branch's import of its owner's title), and the prefix of every acquire run's own writer (`AcquireWriter`). |
 | [`COPY_RETRY_BASE_DELAY`](#copy_retry_base_delay) | constant | Delay before the first background retry of a failed copy; each later failure doubles it, up to `COPY_RETRY_MAX_DELAY`. |
 | [`COPY_RETRY_MAX_DELAY`](#copy_retry_max_delay) | constant | The longest delay between two background retries of one copy. |
 | [`HOLDING_REMOVED`](#holding_removed) | constant | Event type published when a holding is removed. |
@@ -6420,6 +6422,47 @@ One page of [`LibraryStore::acquire_titles_page`](#librarystoreacquire_titles_pa
 
 Implements: `Clone`, `Debug`, `PartialEq`
 
+### AcquireWriter
+
+```rust
+pub struct AcquireWriter(/* private */);
+```
+
+The `writer` one acquire run records its keys under:
+`acquire:<32 hex>`, unique to the run.
+
+Each run has its own, so a write that fails can release exactly the
+record this run made for it ([`LibraryStore::release_run_edition_file`](#librarystorerelease_run_edition_file))
+and never a concurrent run's record of the same key. It is never a host
+upload id, so no upload's claim mistakes a run's key for its own.
+
+#### AcquireWriter::for_run
+
+```rust
+pub fn for_run() -> Self
+```
+
+A writer no other run has.
+
+#### AcquireWriter::as_str
+
+```rust
+pub fn as_str(&self) -> &str
+```
+
+The stored `writer` value.
+
+#### AcquireWriter::is_acquire
+
+```rust
+pub fn is_acquire(writer: &str) -> bool
+```
+
+True when `writer` is an acquire's: [`ACQUIRE_WRITER`](#acquire_writer) or a run's
+own writer.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### AcquiredTitleKey
 
 ```rust
@@ -6776,7 +6819,8 @@ Who holds a recorded file key, and what the file is.
 **Fields**
 
 - `owner`: The edition (or branch title) the file belongs to.
-- `writer`: The host upload id that claimed the key last, or [`ACQUIRE_WRITER`](#acquire_writer).
+- `writer`: The host upload id that claimed the key last, or an acquire's
+  writer ([`AcquireWriter`](#acquirewriter)).
 - `role`: What the file is.
 - `sha256`: Lowercase hex SHA-256 of the content, when known (host uploads).
 
@@ -8453,6 +8497,60 @@ edition holds it.
 
 Returns an error when a write fails.
 
+#### LibraryStore::record_run_edition_file
+
+```rust
+pub async fn record_run_edition_file(
+    &self,
+    destination: &str,
+    key: &str,
+    owner: &FileOwner,
+    role: FileRole,
+    copy: Option<&OutputCopy>,
+    writer: &AcquireWriter,
+) -> Result<RecordedFile>
+```
+
+[`Self::record_edition_copy_file`](#librarystorerecord_edition_copy_file) for one acquire run, recorded
+under the run's own `writer`.
+
+##### Returns
+
+Whether the record is new (the run's to release when its write
+fails, [`Self::release_run_edition_file`](#librarystorerelease_run_edition_file)), taken over from the
+owner's earlier record, or refused because another live edition
+holds the key.
+
+##### Errors
+
+Returns an error when a write fails.
+
+#### LibraryStore::release_run_edition_file
+
+```rust
+pub async fn release_run_edition_file(
+    &self,
+    destination: &str,
+    key: &str,
+    writer: &AcquireWriter,
+) -> Result<bool>
+```
+
+Releases the record an acquire run made of `key` on `destination`
+([`RecordedFile::New`](#recordedfile)) after its write failed, so the key is free
+again for a host upload of the same title.
+
+Only a record still naming `writer` goes: a concurrent run or an
+upload that recorded the key since keeps its record.
+
+##### Returns
+
+`true` when the record was removed.
+
+##### Errors
+
+Returns an error when the delete fails.
+
 #### LibraryStore::claim_edition_file
 
 ```rust
@@ -8544,6 +8642,52 @@ How many keys `writer` (a host upload id) holds, on every
 destination together. An upload id is unique and claims keys for one
 owner only, so this is how many keys that upload's title still holds
 through it.
+
+##### Errors
+
+Returns an error when the read fails.
+
+#### LibraryStore::key_held_by_another_edition
+
+```rust
+pub async fn key_held_by_another_edition(
+    &self,
+    destination: &str,
+    key: &str,
+    edition: Option<&str>,
+) -> Result<bool>
+```
+
+True when a live edition other than `edition` holds `key` on
+`destination`, so writing there would replace that edition's file.
+
+A key that is unrecorded, recorded for `edition`, or recorded for an
+edition no longer in the library is free. With `edition` `None`
+(the title has no edition here), any live edition's record counts.
+
+##### Errors
+
+Returns an error when the read fails.
+
+#### LibraryStore::edition_of_listing
+
+```rust
+pub async fn edition_of_listing(
+    &self,
+    plugin_key: &str,
+    marketplace: &str,
+    product_id: &str,
+) -> Result<Option<String>>
+```
+
+The edition a store's listing sells; `None` while the listing is
+not in this library.
+
+##### Arguments
+
+* `plugin_key` - The store's PluginKey.
+* `marketplace` - The store's marketplace (any case; blank for one).
+* `product_id` - The store's product id.
 
 ##### Errors
 
@@ -19367,6 +19511,30 @@ Which holdings of one branch (node) a removal takes.
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
+### RecordedFile
+
+```rust
+pub enum RecordedFile {
+    New,
+    TakenOver,
+    Refused,
+}
+```
+
+What recording a key an acquire run is about to write did
+([`LibraryStore::record_run_edition_file`](#librarystorerecord_run_edition_file)).
+
+**Variants**
+
+- `New`: The key was unrecorded: this run's record is new, and is this
+  run's to release when its write fails.
+- `TakenOver`: The key was already the owner's (or a stale holder's) and is now
+  recorded for this run: the earlier file may still be there, so a
+  failed write leaves the record.
+- `Refused`: Another live edition holds the key; nothing changed.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
 ### SeedScope
 
 ```rust
@@ -21817,7 +21985,9 @@ that does not stream.
 pub const ACQUIRE_WRITER: &str = "acquire";
 ```
 
-The `writer` of a key an acquire run on this node wrote.
+The `writer` of a key an acquire on this node wrote without a run of
+its own (a branch's import of its owner's title), and the prefix of
+every acquire run's own writer ([`AcquireWriter`](#acquirewriter)).
 
 ### COPY_RETRY_BASE_DELAY
 

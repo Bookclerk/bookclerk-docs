@@ -82,8 +82,8 @@ Row shape for one recorded file key.
 - `sample_rate_hz`: Output sample rate in hertz, when the headers state it.
 - `duration_ms`: The running time a player sees, in milliseconds; null when unknown,
   never zero.
-- `writer`: The host upload id that claimed the key last, or
-  [`crate::store::ACQUIRE_WRITER`](../README.md#acquire_writer) for an acquire run on this node.
+- `writer`: The host upload id that claimed the key last, or an acquire's
+  writer ([`crate::store::AcquireWriter`](../README.md#acquirewriter)) for an acquire on this node.
 - `written_at`: RFC 3339 time of the latest claim.
 
 #### Model::into_ex
