@@ -205,6 +205,9 @@ the external guest RPC. This crate owns the greenfield schema
 | [`TitleHolding`](#titleholding) | struct | The edition a library title sells and the account holding it is held by: the key its acquire writes are recorded under. |
 | [`UserBookFields`](#userbookfields) | struct | Partial update for user-defined book fields. |
 | [`WishWork`](#wishwork) | struct | The work a wish is for, read from a store listing in the shared pool. |
+| [`NewVector`](#newvector) | struct | One vector to store. |
+| [`SpaceCoverage`](#spacecoverage) | struct | How many work vectors one space holds. |
+| [`VectorSpace`](#vectorspace) | struct | What made a set of vectors. Vectors of two different spaces are never compared. |
 | [`NotifyCursor`](#notifycursor) | struct | Where a page of the delivery log or an inbox starts: the last row of the previous page (newest first). |
 | [`NotifyPage`](#notifypage) | struct | One page of a newest-first listing. |
 | [`NotifyQueueLimits`](#notifyqueuelimits) | struct | Queue limits a `notify_send` admission uses (the daemon's `[jobs]`). |
@@ -453,6 +456,8 @@ the external guest RPC. This crate owns the greenfield schema
 | [`MAX_COPY_ATTEMPTS`](#max_copy_attempts) | constant | Failed attempts after which a pending copy turns `CopyState::Failed` and is no longer retried in the background. |
 | [`MAX_QUEUE_REASONS`](#max_queue_reasons) | constant | Most taste reasons one stored row keeps, so a row stays small whatever the ranking explains. |
 | [`OBJECT_TOMBSTONE_DAYS`](#object_tombstone_days) | constant | Days a removed object's tombstone is kept for readers that page changes. |
+| [`VECTOR_KIND_TEXT`](#vector_kind_text) | constant | `embeddings.target_kind` of a plain text's vector; the target id is the SHA-256 hex of the text. |
+| [`VECTOR_KIND_WORK`](#vector_kind_work) | constant | `embeddings.target_kind` of a work's vector; the target id is `works.id`. |
 | [`MAX_NOTIFY_PAGE`](#max_notify_page) | constant | Most rows one page of the delivery log or the inbox returns. |
 | [`CLAIM_REDEEM_NONCE_HEX_LEN`](#claim_redeem_nonce_hex_len) | constant | Hex length of a browser-generated claim-redeem nonce (32 bytes). |
 
@@ -10071,41 +10076,6 @@ reads the whole table at once.
 
 Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
 
-#### LibraryStore::embedding_text_hashes
-
-```rust
-pub async fn embedding_text_hashes(
-    &self,
-    target_kind: &str,
-    model: &str,
-    target_ids: &[String],
-) -> Result<HashMap<String, String>>
-```
-
-Stored text hashes of the `model` embeddings of `target_kind` targets
-among `target_ids`, keyed by target id. Targets with no embedding are
-absent.
-
-Reads in chunks sized from the adapter's bind limit, so one call
-replaces a lookup per target.
-
-##### Errors
-
-Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
-
-#### LibraryStore::prune_orphan_work_embeddings
-
-```rust
-pub async fn prune_orphan_work_embeddings(&self) -> Result<u64>
-```
-
-Deletes work embeddings (every model) whose work no longer exists,
-and answers how many it removed.
-
-##### Errors
-
-Returns [`LibraryError::Orm`](#libraryerror) when the delete fails.
-
 #### LibraryStore::list_works
 
 ```rust
@@ -12588,6 +12558,165 @@ user.
 ##### Errors
 
 Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
+#### LibraryStore::put_vectors
+
+```rust
+pub async fn put_vectors(
+    &self,
+    target_kind: &str,
+    space: &VectorSpace,
+    dims: i64,
+    vectors: &[NewVector<'_>],
+) -> Result<()>
+```
+
+Stores vectors of one kind in one space, replacing the vector a
+target already has there.
+
+##### Arguments
+
+* `target_kind` - [`VECTOR_KIND_WORK`](#vector_kind_work) or [`VECTOR_KIND_TEXT`](#vector_kind_text).
+* `space` - The space the vectors belong to.
+* `dims` - Numbers in each vector.
+* `vectors` - The vectors, one statement each.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a write fails; the vectors before
+it are stored.
+
+#### LibraryStore::vector_text_hashes
+
+```rust
+pub async fn vector_text_hashes(
+    &self,
+    target_kind: &str,
+    space: &VectorSpace,
+    target_ids: &[String],
+) -> Result<HashMap<String, String>>
+```
+
+Stored text hashes of targets in one space, keyed by target id.
+Targets with no vector there are absent.
+
+Reads in chunks sized from the adapter's limits, so one call
+replaces a lookup per target.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
+#### LibraryStore::vectors
+
+```rust
+pub async fn vectors(
+    &self,
+    target_kind: &str,
+    space: &VectorSpace,
+    target_ids: &[String],
+) -> Result<HashMap<String, Vec<u8>>>
+```
+
+Stored vectors of targets in one space, keyed by target id, as
+little-endian `f32` bytes. Targets with no vector there are absent.
+
+Reads in chunks that narrow until each reply fits the adapter's
+limits, so a space of long vectors is still read.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
+#### LibraryStore::work_vector_spaces
+
+```rust
+pub async fn work_vector_spaces(&self) -> Result<Vec<SpaceCoverage>>
+```
+
+The spaces that hold work vectors, with how many each holds.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when the read fails.
+
+#### LibraryStore::count_works
+
+```rust
+pub async fn count_works(&self) -> Result<u64>
+```
+
+How many works the library has.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when the read fails.
+
+#### LibraryStore::prune_orphan_work_vectors
+
+```rust
+pub async fn prune_orphan_work_vectors(&self) -> Result<u64>
+```
+
+Deletes work vectors (every space) whose work no longer exists, and
+answers how many it removed.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when the delete fails.
+
+#### LibraryStore::prune_vectors_outside
+
+```rust
+pub async fn prune_vectors_outside(
+    &self,
+    keep: &VectorSpace,
+    before: DateTime<Utc>,
+) -> Result<u64>
+```
+
+Deletes every vector, of any kind, outside `keep` that was last
+written or used before `before`, and answers how many it removed.
+
+Called once `keep` holds a vector for every work, so the vectors of
+a model the library moved away from do not stay. The age limit
+leaves alone a space another node is still writing.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when the delete fails.
+
+#### LibraryStore::prune_text_vectors
+
+```rust
+pub async fn prune_text_vectors(&self, before: DateTime<Utc>) -> Result<u64>
+```
+
+Deletes the text vectors (every space) last used before `before`,
+and answers how many it removed.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when the delete fails.
+
+#### LibraryStore::touch_text_vectors
+
+```rust
+pub async fn touch_text_vectors(
+    &self,
+    space: &VectorSpace,
+    target_ids: &[String],
+    stale: DateTime<Utc>,
+) -> Result<()>
+```
+
+Marks text vectors of one space as used now, when their last use is
+older than `stale`, so [`Self::prune_text_vectors`](#librarystoreprune_text_vectors) keeps what a
+ranking still reads without a write per read.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a write fails.
 
 #### LibraryStore::library_work_detail
 
@@ -16327,118 +16456,6 @@ Updates the lifecycle status of a title request.
 
 Returns a crate error when the database operation fails or inputs are invalid.
 
-#### LibraryStore::upsert_embedding
-
-```rust
-pub async fn upsert_embedding(
-    &self,
-    target_kind: &str,
-    target_id: &str,
-    model: &str,
-    dims: i64,
-    vector: &[u8],
-    text_hash: &str,
-) -> Result<()>
-```
-
-Inserts or replaces an embedding vector for a target.
-
-##### Arguments
-
-* `target_kind` - Embedding target kind.
-* `target_id` - Embedding target id.
-* `model` - Embedding model id.
-* `dims` - Vector dimensionality.
-* `vector` - Raw embedding bytes.
-* `text_hash` - Hash of the embedded text.
-
-##### Returns
-
-`Result<()>` — `Ok` on success.
-
-##### Errors
-
-Returns a crate error when the database operation fails or inputs are invalid.
-
-#### LibraryStore::get_embedding_vector
-
-```rust
-pub async fn get_embedding_vector(
-    &self,
-    target_kind: &str,
-    target_id: &str,
-    model: &str,
-) -> Result<Option<(String, Vec<u8>)>>
-```
-
-Loads the raw embedding bytes for a target, if present.
-
-##### Arguments
-
-* `target_kind` - Embedding target kind.
-* `target_id` - Embedding target id.
-* `model` - Embedding model id.
-
-##### Returns
-
-`Result<Option<(String, Vec<u8>)>>` — `Ok` on success.
-
-##### Errors
-
-Returns a crate error when the database operation fails or inputs are invalid.
-
-#### LibraryStore::list_embeddings
-
-```rust
-pub async fn list_embeddings(
-    &self,
-    target_kind: &str,
-    model: &str,
-) -> Result<Vec<(String, Vec<u8>)>>
-```
-
-Lists embedding metadata rows (optionally filtered).
-
-##### Arguments
-
-* `target_kind` - Embedding target kind.
-* `model` - Embedding model id.
-
-##### Returns
-
-`Result<Vec<(String, Vec<u8>)>>` — `Ok` on success.
-
-##### Errors
-
-Returns a crate error when the database operation fails or inputs are invalid.
-
-#### LibraryStore::embedding_text_hash
-
-```rust
-pub async fn embedding_text_hash(
-    &self,
-    target_kind: &str,
-    target_id: &str,
-    model: &str,
-) -> Result<Option<String>>
-```
-
-Returns the stored text hash for an embedding target, if any.
-
-##### Arguments
-
-* `target_kind` - Embedding target kind.
-* `target_id` - Embedding target id.
-* `model` - Embedding model id.
-
-##### Returns
-
-`Result<Option<String>>` — `Ok` on success.
-
-##### Errors
-
-Returns a crate error when the database operation fails or inputs are invalid.
-
 #### LibraryStore::get_user_preferences
 
 ```rust
@@ -17077,6 +17094,79 @@ The work a wish is for, read from a store listing in the shared pool.
 - `edition_id`: `editions.id` the listing is an edition of.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### NewVector
+
+```rust
+pub struct NewVector<'a> {
+    pub target_id: &'a str,
+    pub vector: &'a [u8],
+    pub text_hash: &'a str,
+}
+```
+
+One vector to store.
+
+**Fields**
+
+- `target_id`: Id of the target within its kind.
+- `vector`: The vector as little-endian `f32`s.
+- `text_hash`: SHA-256 hex of the text that was embedded.
+
+Implements: `Clone`, `Copy`, `Debug`
+
+### SpaceCoverage
+
+```rust
+pub struct SpaceCoverage {
+    pub space: VectorSpace,
+    pub works: u64,
+    pub newest: Option<DateTime<Utc>>,
+}
+```
+
+How many work vectors one space holds.
+
+**Fields**
+
+- `space`: The space.
+- `works`: Work vectors stored in it.
+- `newest`: When the newest of them was written.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### VectorSpace
+
+```rust
+pub struct VectorSpace {
+    pub model: String,
+    pub revision: String,
+    pub packs: String,
+}
+```
+
+What made a set of vectors. Vectors of two different spaces are never
+compared.
+
+**Fields**
+
+- `model`: What made the vectors: `@<plugin id>/<model id>` for a model a
+  plugin serves, or the stand-in's own id.
+- `revision`: The model's digest of everything that decides its output (weights,
+  tokenizer, language packs); empty for the stand-in.
+- `packs`: BCP 47 tags of the languages the model was loaded for, joined by
+  `,`. Recorded beside the vectors; the revision already covers it,
+  so it takes no part in comparing two spaces.
+
+#### VectorSpace::same_as
+
+```rust
+pub fn same_as(&self, other: &Self) -> bool
+```
+
+Whether `other` is this space: the same model at the same revision.
+
+Implements: `Clone`, `Debug`, `Eq`, `Hash`, `PartialEq`
 
 ### NotifyCursor
 
@@ -17736,6 +17826,7 @@ pub enum JobKind {
     DiscoverCandidates,
     DiscoverFeed,
     DiscoverRequestQueue,
+    DiscoverEmbed,
     CacheSweep,
     SearchIndexRebuild,
     LibraryIndexRebuild,
@@ -17766,6 +17857,10 @@ Kind of durable daemon work stored in the `jobs` table.
 - `DiscoverRequestQueue`: Rank the shared request queue against household taste and store the
   ranking (`discover_request_queue`); no network. One job serves
   everyone, since the queue is not personalized.
+- `DiscoverEmbed`: Embed every work with the model one node serves for text embeddings
+  (`discover_embed`), after the model lands there or changes; only
+  the node named by [`JobPayload::node_id`](#jobpayload) claims it, since another
+  node may not have the model yet.
 - `CacheSweep`: Sweep one node's image caches and its orphaned job scratch
   (`cache_sweep`); only the node named by [`JobPayload::node_id`](#jobpayload)
   claims it.
@@ -17799,7 +17894,7 @@ Kind of durable daemon work stored in the `jobs` table.
 #### JobKind::ALL
 
 ```rust
-pub const ALL: [Self; 17] = _
+pub const ALL: [Self; 18] = _
 ```
 
 Every kind, in declaration order; the SQL plans derive their kind
@@ -21774,6 +21869,23 @@ pub const OBJECT_TOMBSTONE_DAYS: i64 = 30;
 ```
 
 Days a removed object's tombstone is kept for readers that page changes.
+
+### VECTOR_KIND_TEXT
+
+```rust
+pub const VECTOR_KIND_TEXT: &str = "text";
+```
+
+`embeddings.target_kind` of a plain text's vector; the target id is the
+SHA-256 hex of the text.
+
+### VECTOR_KIND_WORK
+
+```rust
+pub const VECTOR_KIND_WORK: &str = "work";
+```
+
+`embeddings.target_kind` of a work's vector; the target id is `works.id`.
 
 ### MAX_NOTIFY_PAGE
 

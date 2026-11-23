@@ -21,8 +21,10 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`CatalogSearchHit`](#catalogsearchhit) | struct | One autocomplete / results-page hit (possibly spanning multiple storefronts). |
 | [`CatalogSearchPage`](#catalogsearchpage) | struct | Paged catalog-search response. |
 | [`CatalogSearchPageOpts`](#catalogsearchpageopts) | struct | Options for `catalog_search_page`. |
-| [`CosineHit`](#cosinehit) | struct | One cosine-similarity neighbor from an embedding query. |
+| [`EmbedFields`](#embedfields) | struct | What is known of a book when its text is embedded. Works and storefront candidates are embedded from the same fields in the same order, so a candidate is compared with works on equal terms. |
+| [`EmbedPass`](#embedpass) | struct | What one `embed_dirty_works` call did. |
 | [`HashEmbedder`](#hashembedder) | struct | Deterministic offline embedder for discovery similarity. |
+| [`VectorSource`](#vectorsource) | struct | Where a ranking gets its vectors. |
 | [`StoreEdition`](#storeedition) | struct | One storefront edition of a work (for multi-store purchase links). |
 | [`WorkIdentity`](#workidentity) | struct | Bibliographic identity slice used for merge decisions. |
 | [`MetadataEnrichOptions`](#metadataenrichoptions) | struct | Pacing for one enrichment run. |
@@ -50,6 +52,7 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`TitleReviewsPage`](#titlereviewspage) | struct | One page of title reviews for infinite scroll. |
 | [`TitleReviewsQuery`](#titlereviewsquery) | struct | Query for a page of Audible customer reviews. |
 | [`PooledEdition`](#poolededition) | struct | One store edition a wish names, as placed in the shared pool. |
+| [`DiscoverError`](#discovererror) | enum | Errors from embeddings, catalog fan-out, and recommendation pipelines. |
 | [`FeedState`](#feedstate) | enum | How current a stored Discover feed is. |
 | [`FillLookup`](#filllookup) | enum | One storefront catalog-detail lookup a title-meta fill can make. |
 | [`Settlement`](#settlement) | enum | Whether a title-meta answer is final or may change when asked again. |
@@ -61,9 +64,15 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`catalog_search`](#catalog_search) | function | Search every configured storefront catalog and merge by work identity. |
 | [`catalog_search_page`](#catalog_search_page) | function | Paged multi-store catalog browse (filters + sort + cursor). |
 | [`catalog_search_with_field`](#catalog_search_with_field) | function | Like `catalog_search`, optionally scoping storefront queries to a facet (author / narrator / series / genre). When `language` is set it is applied as a hard include filter (unknown/missing language still passes). |
-| [`embed_dirty_works`](#embed_dirty_works) | function | Embed works whose text hash changed (or are missing), and drop the embeddings of works that no longer exist. |
+| [`embed_dirty_works`](#embed_dirty_works) | function | Embed works whose text hash changed (or are missing) in the embedder's space, and drop the vectors of works that no longer exist. |
+| [`embed_text`](#embed_text) | function | The text embedded for a book: each known field on its own line. |
+| [`is_stand_in`](#is_stand_in) | function | Whether `space` is the stand-in's: hash vectors that carry no meaning. |
 | [`open_embedder`](#open_embedder) | function | Opens the embedder the host uses while no plugin serves text embeddings. |
+| [`prune_vectors`](#prune_vectors) | function | Removes vectors nobody reads any more: text vectors unused for `TEXT_VECTOR_MAX_AGE` and, once a model's space serves, the vectors of every other space not written for `OLD_SPACE_MAX_AGE`. |
+| [`serving_space`](#serving_space) | function | The space a ranking reads on a node whose embedder makes `current`. |
+| [`stand_in_space`](#stand_in_space) | function | The stand-in's vector space. |
 | [`text_for_work`](#text_for_work) | function | Build the text blob embedded for a work. |
+| [`text_vectors`](#text_vectors) | function | The vectors of `texts` in `space`, keyed by the SHA-256 of each text. |
 | [`candidate_map_key`](#candidate_map_key) | function | Stable HashMap key for a storefront candidate (hard id, soft title+author, or source:product). |
 | [`hard_work_key`](#hard_work_key) | function | Hard bibliographic key: canonical ISBN first, then ASIN. |
 | [`identities_match`](#identities_match) | function | Whether two bibliographic identities refer to the same work. |
@@ -112,9 +121,12 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`resolve_title_sample`](#resolve_title_sample) | function | The public audio sample a storefront offers for a title, for the "Play sample" control of a title's details. |
 | [`pool_wish_editions`](#pool_wish_editions) | function | Asks each store about the editions a wish names and records the answers in the shared pool. |
 | [`record_wish_member_offers`](#record_wish_member_offers) | function | Stores the member prices `hints` quote for editions already pooled. |
+| [`SharedEmbedder`](#sharedembedder) | type alias | An embedder several rankings share, one call at a time. |
 | [`EMBED_PAGE_WORKS`](#embed_page_works) | constant | Works read per page by `embed_dirty_works`; also the most texts one embedder call receives. |
 | [`LOCAL_HASH_DIMENSIONS`](#local_hash_dimensions) | constant | Numbers in one hash vector. |
 | [`MODEL_LOCAL_HASH_V1`](#model_local_hash_v1) | constant | Model id stored beside hash vectors. They are never compared with a model's vectors. |
+| [`OLD_SPACE_MAX_AGE`](#old_space_max_age) | constant | How long the vectors of a space the library left are kept after their last write, so a node still on that space does not lose its work. |
+| [`TEXT_VECTOR_MAX_AGE`](#text_vector_max_age) | constant | How long a text vector may go unused before it is pruned. |
 | [`DEFAULT_MAX_REQUESTS_PER_RUN`](#default_max_requests_per_run) | constant | Default cap on provider asks in one run. |
 | [`METADATA_ENRICH_SOURCE_PREFIX`](#metadata_enrich_source_prefix) | constant | `enrich_source` prefix marking a title filled by a metadata provider; the provider's plugin key follows it. |
 | [`HOUSEHOLD_BLEND_WEIGHT`](#household_blend_weight) | constant | How much a household book counts in a member's taste while it blends in, relative to one of their own. |
@@ -152,21 +164,29 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 
 ```rust
 pub trait Embedder: Send {
-    fn model_id(&self) -> &str;
+    fn space(&self) -> &VectorSpace;
     fn dimensions(&self) -> usize;
-    fn embed(&mut self, texts: &[String]) -> Result<Vec<Vec<f32>>, DiscoverError>;
+    fn max_batch(&self) -> usize;
+    fn embed<'life0, 'life1, 'async_trait>(
+        &'life0 mut self,
+        texts: &'life1 [String],
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<Vec<f32>>, DiscoverError>> + Send + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,
+        'life1: 'async_trait,;
 }
 ```
 
 Produce dense vectors for recommendation / similarity search.
 
-#### Embedder::model_id
+#### Embedder::space
 
 ```rust
-fn model_id(&self) -> &str
+fn space(&self) -> &VectorSpace
 ```
 
-Stable embedding model id stored alongside vectors in SQLite.
+The space of the vectors this embedder makes.
 
 #### Embedder::dimensions
 
@@ -176,17 +196,33 @@ fn dimensions(&self) -> usize
 
 Length of each embedding vector produced by this backend.
 
+#### Embedder::max_batch
+
+```rust
+fn max_batch(&self) -> usize
+```
+
+Most texts one [`Self::embed`](#embedderembed) call takes.
+
 #### Embedder::embed
 
 ```rust
-fn embed(&mut self, texts: &[String]) -> Result<Vec<Vec<f32>>, DiscoverError>
+fn embed<'life0, 'life1, 'async_trait>(
+    &'life0 mut self,
+    texts: &'life1 [String],
+) -> Pin<Box<dyn Future<Output = Result<Vec<Vec<f32>>, DiscoverError>> + Send + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+    'life1: 'async_trait,
 ```
 
 Embeds each input text into a dense float vector of [`Self::dimensions`](#embedderdimensions) length.
 
 ##### Errors
 
-Returns an error when the operation fails.
+Returns an error when the model cannot be reached or fails, or when
+it now makes vectors of another space than [`Self::space`](#embedderspace).
 
 Implemented by: `HashEmbedder`
 
@@ -593,23 +629,51 @@ Options for [`catalog_search_page`](#catalog_search_page).
 
 Implements: `Clone`, `Debug`
 
-### CosineHit
+### EmbedFields
 
 ```rust
-pub struct CosineHit {
-    pub target_id: String,
-    pub score: f32,
+pub struct EmbedFields<'a> {
+    pub title: &'a str,
+    pub authors: Option<&'a str>,
+    pub series: Option<&'a str>,
+    pub genres: Option<&'a str>,
+    pub description: Option<&'a str>,
 }
 ```
 
-One cosine-similarity neighbor from an embedding query.
+What is known of a book when its text is embedded. Works and storefront
+candidates are embedded from the same fields in the same order, so a
+candidate is compared with works on equal terms.
 
 **Fields**
 
-- `target_id`: Library entity id of the similar work (`works.id`).
-- `score`: Ranking score (higher is better); units are algorithm-specific.
+- `title`: Display title.
+- `authors`: Authors, as one comma-separated line.
+- `series`: Series names, as one comma-separated line.
+- `genres`: Genres, categories or subjects, as one line.
+- `description`: Synopsis; only its first 1,200 characters are
+  used.
 
-Implements: `Clone`, `Debug`
+Implements: `Clone`, `Copy`, `Debug`, `Default`
+
+### EmbedPass
+
+```rust
+pub struct EmbedPass {
+    pub written: usize,
+    pub finished: bool,
+}
+```
+
+What one [`embed_dirty_works`](#embed_dirty_works) call did.
+
+**Fields**
+
+- `written`: Vectors written.
+- `finished`: Whether every work was looked at. False when the deadline passed
+  first; the next call starts over and skips what is stored.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Eq`, `PartialEq`
 
 ### HashEmbedder
 
@@ -642,6 +706,42 @@ Creates a hash embedder with the given vector length (clamped to 8..=384).
 Embedder that maps text to deterministic unit vectors of length `dims`.
 
 Implements: `Debug`, `Default`, `Embedder`
+
+### VectorSource
+
+```rust
+pub struct VectorSource {
+    pub space: VectorSpace,
+    pub embedder: Option<SharedEmbedder>,
+}
+```
+
+Where a ranking gets its vectors.
+
+**Fields**
+
+- `space`: The space the ranking reads ([`serving_space`](#serving_space)).
+- `embedder`: Makes the vectors of texts that have none stored; used only when
+  its space is `space`. `None` when this node cannot make vectors of
+  `space`: the ranking then compares only what is stored.
+
+#### VectorSource::stand_in
+
+```rust
+pub fn stand_in() -> Self
+```
+
+The stand-in: hash vectors, made in the ranking itself.
+
+#### VectorSource::new
+
+```rust
+pub fn new(space: VectorSpace, embedder: Option<Box<dyn Embedder>>) -> Self
+```
+
+A source that reads `space` and embeds missing texts with `embedder`.
+
+Implements: `Clone`, `Debug`
 
 ### StoreEdition
 
@@ -1097,7 +1197,7 @@ Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Serialize`, 
 ```rust
 pub struct RecommendOptions {
     pub limit: usize,
-    pub embedding_model: String,
+    pub vectors: VectorSource,
     pub region: String,
     pub include_purchase_hints: bool,
     pub external_user_id: Option<String>,
@@ -1117,7 +1217,8 @@ Tunables for [`recommend`](#recommend).
 **Fields**
 
 - `limit`: Maximum number of recommendations to return.
-- `embedding_model`: Model id of the vectors compared for similarity (`local-hash-v1`, …).
+- `vectors`: The vectors compared for similarity: the space the library's
+  rankings read, and what embeds a text that has no vector there.
 - `region`: Marketplace / region code (`us`, `uk`, …) for catalog lookups.
 - `include_purchase_hints`: When true, attach buy links to each recommendation.
 - `external_user_id`: When set, only listening rows for this external user influence ranking.
@@ -1617,6 +1718,46 @@ Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ## Enums
 
+### DiscoverError
+
+```rust
+pub enum DiscoverError {
+    Library(LibraryError),
+    Enrich(EnrichError),
+    Http(Error),
+    Embed(String),
+    Message(String),
+}
+```
+
+Errors from embeddings, catalog fan-out, and recommendation pipelines.
+
+**Variants**
+
+- `Library`: Error propagated from [`bookclerk_library`](../bookclerk_library/README.md).
+- `Enrich`: Error propagated from [`bookclerk_enrich`](../bookclerk_enrich/README.md).
+- `Http`: Outbound HTTP failure talking to a storefront or Open Library.
+- `Embed`: Embedding model load / inference failure.
+- `Message`: Operator-facing error text with no structured code.
+
+#### DiscoverError::message
+
+```rust
+pub fn message(msg: impl Into<String>) -> Self
+```
+
+Builds a [`DiscoverError::Message`](#discovererror) from operator-facing text.
+
+##### Arguments
+
+* `msg` - Human-readable error detail (no secrets).
+
+##### Returns
+
+A [`DiscoverError::Message`](#discovererror) variant.
+
+Implements: `Debug`, `Display`, `Error`, `From<EnrichError>`, `From<Error>`, `From<LibraryError>`
+
 ### FeedState
 
 ```rust
@@ -1935,30 +2076,53 @@ Returns an error when the underlying I/O, parse, network, or store operation fai
 pub async fn embed_dirty_works(
     library: &LibraryStore,
     embedder: &mut dyn Embedder,
-) -> Result<usize, DiscoverError>
+    deadline: Option<Instant>,
+) -> Result<EmbedPass, DiscoverError>
 ```
 
-Embed works whose text hash changed (or are missing), and drop the
-embeddings of works that no longer exist.
+Embed works whose text hash changed (or are missing) in the embedder's
+space, and drop the vectors of works that no longer exist.
 
 Walks `works` in keyset pages of [`EMBED_PAGE_WORKS`]: each page costs
-one read of the works, one chunked read of their stored hashes, and one
-embedder call for the dirty ones, so memory stays bounded by the page
+one read of the works, one chunked read of their stored hashes, and the
+embedder calls for the dirty ones, so memory stays bounded by the page
 and the store sees no per-work lookup.
 
 #### Arguments
 
 * `library` - Open library store used for reads/writes.
 * `embedder` - Embedding backend that produces dense vectors.
+* `deadline` - When to stop between pages, for a caller that checks for
+  cancellation between calls; `None` to run to the end.
 
 #### Returns
 
-How many embeddings were written.
+How many vectors were written, and whether the walk reached the end.
 
 #### Errors
 
 Returns an error when a store read or write fails, or when the
 embedder fails or returns a different number of vectors than texts.
+Pages before the failure stay stored.
+
+### embed_text
+
+```rust
+pub fn embed_text(fields: &EmbedFields<'_>) -> String
+```
+
+The text embedded for a book: each known field on its own line.
+
+Narrators are left out: who reads a book says little about what it is,
+and Discover scores a liked narrator on its own.
+
+### is_stand_in
+
+```rust
+pub fn is_stand_in(space: &VectorSpace) -> bool
+```
+
+Whether `space` is the stand-in's: hash vectors that carry no meaning.
 
 ### open_embedder
 
@@ -1971,6 +2135,68 @@ Opens the embedder the host uses while no plugin serves text embeddings.
 #### Returns
 
 The local-hash embedder, [`LOCAL_HASH_DIMENSIONS`](#local_hash_dimensions) numbers a vector.
+
+### prune_vectors
+
+```rust
+pub async fn prune_vectors(
+    library: &LibraryStore,
+    serving: &VectorSpace,
+) -> Result<u64, DiscoverError>
+```
+
+Removes vectors nobody reads any more: text vectors unused for
+[`TEXT_VECTOR_MAX_AGE`](#text_vector_max_age) and, once a model's space serves, the vectors
+of every other space not written for [`OLD_SPACE_MAX_AGE`](#old_space_max_age).
+
+#### Arguments
+
+* `library` - The library store.
+* `serving` - The space rankings read now ([`serving_space`](#serving_space)).
+
+#### Returns
+
+How many vectors were removed.
+
+#### Errors
+
+Returns the library error.
+
+### serving_space
+
+```rust
+pub async fn serving_space(
+    library: &LibraryStore,
+    current: &VectorSpace,
+) -> Result<VectorSpace, DiscoverError>
+```
+
+The space a ranking reads on a node whose embedder makes `current`.
+
+A space **covers** the library when it holds a vector for every work.
+The rule, in order:
+
+1. `current`, when it is a model's space and covers the library.
+2. Another model's space that covers the library (the one with the
+   newest vector): the model the library used before, or the one
+   another node embeds with while this node has none.
+3. The stand-in's space otherwise: its vectors are made in the ranking
+   job itself, so it always can serve.
+
+A work added since a space last covered the library costs it the
+cover until the work is embedded, which the next embedding does.
+
+#### Errors
+
+Returns the library read error.
+
+### stand_in_space
+
+```rust
+pub fn stand_in_space() -> VectorSpace
+```
+
+The stand-in's vector space.
 
 ### text_for_work
 
@@ -1986,7 +2212,40 @@ Build the text blob embedded for a work.
 
 #### Returns
 
-String result for this operation.
+The work's [`embed_text`](#embed_text).
+
+### text_vectors
+
+```rust
+pub async fn text_vectors(
+    library: &LibraryStore,
+    space: &VectorSpace,
+    embedder: Option<&mut dyn Embedder>,
+    texts: &[String],
+    deadline: Option<Instant>,
+) -> Result<HashMap<String, Vec<f32>>, DiscoverError>
+```
+
+The vectors of `texts` in `space`, keyed by the SHA-256 of each text.
+
+Stored vectors are read first. The texts without one are embedded and
+stored when `embedder` makes vectors of `space`, until `deadline`; a
+text that is not embedded has no entry, and the caller ranks it without
+similarity. A vector is stored under the hash of its text, so the next
+ranking of the same text, for anyone, reads it.
+
+#### Arguments
+
+* `library` - The library store.
+* `space` - The space to read and write.
+* `embedder` - An embedder, used only when its space is `space`.
+* `texts` - The texts; repeats are embedded once.
+* `deadline` - When to stop embedding missing texts.
+
+#### Errors
+
+Returns a library error. An embedder failure is not an error: the
+texts it left stay without a vector, and it is logged.
 
 ### candidate_map_key
 
@@ -3156,6 +3415,16 @@ calls this once both are in.
 * `pooled` - The pooled editions, as [`pool_wish_editions`](#pool_wish_editions) returned them.
 * `hints` - The purchase hints the server resolved for the wish.
 
+## Type aliases
+
+### SharedEmbedder
+
+```rust
+pub type SharedEmbedder = Arc<Mutex<Box<dyn Embedder>>>;
+```
+
+An embedder several rankings share, one call at a time.
+
 ## Constants
 
 ### EMBED_PAGE_WORKS
@@ -3183,6 +3452,23 @@ pub const MODEL_LOCAL_HASH_V1: &str = "local-hash-v1";
 
 Model id stored beside hash vectors. They are never compared with a
 model's vectors.
+
+### OLD_SPACE_MAX_AGE
+
+```rust
+pub const OLD_SPACE_MAX_AGE: Duration = _;
+```
+
+How long the vectors of a space the library left are kept after their
+last write, so a node still on that space does not lose its work.
+
+### TEXT_VECTOR_MAX_AGE
+
+```rust
+pub const TEXT_VECTOR_MAX_AGE: Duration = _;
+```
+
+How long a text vector may go unused before it is pruned.
 
 ### DEFAULT_MAX_REQUESTS_PER_RUN
 

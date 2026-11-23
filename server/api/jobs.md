@@ -135,6 +135,7 @@ Schema:
           "discover_candidates",
           "discover_feed",
           "discover_request_queue",
+          "discover_embed",
           "cache_sweep",
           "search_index_rebuild",
           "library_index_rebuild",

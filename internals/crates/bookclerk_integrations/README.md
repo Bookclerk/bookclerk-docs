@@ -835,6 +835,20 @@ Drops every cached listing, so the next run or listing asks each
 plugin again. The host calls this after it installed or removed a
 model's files, which changes what a running plugin lists.
 
+#### AiRouter::changes
+
+```rust
+pub fn changes(&self) -> Receiver<u64>
+```
+
+A receiver that changes each time the models served on this node
+may have changed: a model was installed or removed
+([`Self::forget_listings`](#airouterforget_listings)).
+
+##### Returns
+
+The receiver; its value is a count with no meaning of its own.
+
 #### AiRouter::models
 
 ```rust
