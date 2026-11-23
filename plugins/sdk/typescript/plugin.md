@@ -5255,7 +5255,7 @@ plus the grant tokens the adapter exchanges for the author's `EVENTS` and
 ##### ai?
 
 ```ts
-ai?: AiBinding;
+ai?: SettledTransport;
 ```
 
 `AI` binding, when `[ai].calls` is declared and granted.
@@ -5295,7 +5295,7 @@ Named `[[databases]]` binding → database-only bearer for `/db/execute`.
 ##### events?
 
 ```ts
-events?: EventPublisherBinding;
+events?: SettledTransport;
 ```
 
 `EVENTS` publisher, when `[[events.producers]]` is granted.
@@ -5347,7 +5347,7 @@ The network grant in effect, handed to the author as `env.NETWORK`.
 ##### notify?
 
 ```ts
-notify?: NotifyBinding;
+notify?: SettledTransport;
 ```
 
 `NOTIFY` binding, when `[[notifications.types]]` is declared.
@@ -5639,7 +5639,7 @@ author's `env` before dispatching; authors never receive it directly.
 ##### ai?
 
 ```ts
-ai?: AiBinding;
+ai?: SettledTransport;
 ```
 
 `AI` binding, when `[ai].calls` is declared and granted.
@@ -5663,7 +5663,7 @@ Named `[[databases]]` bindings.
 ##### events?
 
 ```ts
-events?: EventPublisherBinding;
+events?: SettledTransport;
 ```
 
 `EVENTS` publisher, when `[[events.producers]]` is granted.
@@ -5695,7 +5695,7 @@ The network grant in effect, handed to the author as `env.NETWORK`.
 ##### notify?
 
 ```ts
-notify?: NotifyBinding;
+notify?: SettledTransport;
 ```
 
 `NOTIFY` binding, when `[[notifications.types]]` is declared.
@@ -6073,7 +6073,7 @@ Job-runner bridge context: the durable job id plus [GrantedContext](#grantedcont
 ##### ai?
 
 ```ts
-ai?: AiBinding;
+ai?: SettledTransport;
 ```
 
 `AI` binding, when `[ai].calls` is declared and granted.
@@ -6109,7 +6109,7 @@ Named `[[databases]]` bindings.
 ##### events?
 
 ```ts
-events?: EventPublisherBinding;
+events?: SettledTransport;
 ```
 
 `EVENTS` publisher, when `[[events.producers]]` is granted.
@@ -6165,7 +6165,7 @@ The network grant in effect, handed to the author as `env.NETWORK`.
 ##### notify?
 
 ```ts
-notify?: NotifyBinding;
+notify?: SettledTransport;
 ```
 
 `NOTIFY` binding, when `[[notifications.types]]` is declared.
@@ -6564,10 +6564,10 @@ One granted `[[kv_namespaces]]` binding on the granted context.
 ##### kv
 
 ```ts
-kv: KvNamespaceBinding;
+kv: SettledTransport;
 ```
 
-Ready namespace (crosses the adapter → author RPC boundary).
+The adapter's namespace grant (crosses the adapter → author RPC boundary).
 
 ##### name
 
@@ -6596,10 +6596,10 @@ Binding name (`env.<name>`).
 ##### queue
 
 ```ts
-queue: QueueBinding;
+queue: SettledTransport;
 ```
 
-Ready producer (crosses the adapter → author RPC boundary).
+The adapter's producer grant (crosses the adapter → author RPC boundary).
 
 ***
 
@@ -6948,6 +6948,37 @@ Explicit earliest redelivery instant.
 
 ***
 
+### SettledTransport
+
+A granted binding (`EVENTS`, `NOTIFY`, `AI`, a queue producer or a KV
+namespace) as the author isolate reaches it. Never throws: every failure
+comes back as `err`.
+
+#### Methods
+
+##### settle()
+
+```ts
+settle(method, args): Promise<GrantedReply>;
+```
+
+Run one binding method in the adapter.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `method` | `string` | Method name on the binding (`publish`, `get`, ...). |
+| `args` | `unknown`[] | That method's arguments, structured-clonable. |
+
+###### Returns
+
+`Promise`\<[`GrantedReply`](#grantedreply)\>
+
+`{ ok }` with the method's value, or `{ err }`.
+
+***
+
 ### WireEventBatch
 
 Wire `EventBatch` as the adapter delivers it to `bookclerkEvent`.
@@ -7127,6 +7158,34 @@ type EventOutcome =
 ```
 
 Recorded per-event outcome (`EventResult` union, bridge JSON projection).
+
+***
+
+### GrantedReply
+
+```ts
+type GrantedReply = 
+  | {
+  ok: unknown;
+}
+  | {
+  err: {
+     code: string;
+     details?: string;
+     message: string;
+  };
+};
+```
+
+Outcome of one granted binding call as it crosses the adapter → author
+Workers RPC hop: the method's value, or the failure's wire code, message
+and `details` JSON text.
+
+Workers RPC keeps an error's own properties (such as `code`) only under the
+enhanced error serialization of newer compatibility dates, so a binding
+that threw across the hop would reach an author on an older date as a
+plain `Error`. Failures therefore travel as values and the author side
+rebuilds the [PluginError](README.md#pluginerror).
 
 ***
 

@@ -2960,6 +2960,12 @@ Re-exports [GrantedJobCapabilities](plugin.md#grantedjobcapabilities)
 
 ***
 
+### GrantedReply
+
+Re-exports [GrantedReply](plugin.md#grantedreply)
+
+***
+
 ### GuestDatabase
 
 Re-exports [GuestDatabase](generated.md#guestdatabase)
@@ -4445,6 +4451,12 @@ Re-exports [SettingNetworkGrant](generated.md#settingnetworkgrant)
 ### SettingNetworkKind
 
 Re-exports [SettingNetworkKind](abi.md#settingnetworkkind)
+
+***
+
+### SettledTransport
+
+Re-exports [SettledTransport](plugin.md#settledtransport)
 
 ***
 

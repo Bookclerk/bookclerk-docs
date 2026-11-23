@@ -5253,7 +5253,7 @@ pub enum PluginError {
     Manifest(Error),
     Other(Error),
     RateLimited { message: String, retry_after: Option<Duration> },
-    Abi { code: String, message: String },
+    Abi { code: String, message: String, details: Option<Map<String, Value>> },
 }
 ```
 
@@ -5282,6 +5282,9 @@ Failures from discovery, RPC, consent, or plugin adapters.
 - `Abi`: Guest ABI error with a preserved wire `code` (including `unknown`).
   - `code`: Wire error code (`not_found`, `unknown`, …).
   - `message`: Operator-facing explanation.
+  - `details`: The guest's structured detail object (`PluginError.details`), kept
+    so a binding guest receives what the adapter produced; `None`
+    when the error carried none.
 
 #### PluginError::message
 
@@ -5339,6 +5342,23 @@ pub fn from_abi(code: Option<&str>, message: impl Into<String>) -> Self
 
 Maps a guest ABI error, preserving [`unavailable`](#pluginerrorunavailable)
 so atomic retries can classify without string matching.
+
+#### PluginError::from_abi_error
+
+```rust
+pub fn from_abi_error(err: PluginError) -> Self
+```
+
+Maps a guest ABI error like [`Self::from_abi`](#pluginerrorfrom_abi), keeping its `details`.
+
+##### Arguments
+
+* `err` - The guest's error.
+
+##### Returns
+
+[`Self::Unavailable`](#pluginerror) for `unavailable` (which carries no details),
+otherwise [`Self::Abi`](#pluginerror) with the wire code, message and details.
 
 #### PluginError::is_ambiguous_transport
 

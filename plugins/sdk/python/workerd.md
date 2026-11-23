@@ -27,6 +27,7 @@ Outside the isolate (authoring / unit tests), lightweight stubs stand in for
 | [`CliEntrypoint`](#clientrypoint) | class | `cli` entrypoint (`PluginCli`): `describe()` → `CliSchema`, `invoke(params)` → `CliInvokeResult`. |
 | [`DatabaseAdapterEntrypoint`](#databaseadapterentrypoint) | class | `databaseAdapter` entrypoint: opens typed SQL sessions for the host library. |
 | [`EventBatch`](#eventbatch) | class | One `event(batch)` delivery (`EventBatch` struct), Workers `MessageBatch`-shaped. |
+| [`EventsBinding`](#eventsbinding) | class | `EVENTS` binding, present when `plugin.toml` declares `[[events.producers]]`. |
 | [`EventMessage`](#eventmessage) | class | One delivered domain event. |
 | [`GuestDatabase`](#guestdatabase) | class | Host-granted SQL transport behind a named `[[databases]]` binding. |
 | [`HostWebSocket`](#hostwebsocket) | class | One host-held WebSocket, shaped like a hibernatable Workers `WebSocket`. |
@@ -69,6 +70,7 @@ Outside the isolate (authoring / unit tests), lightweight stubs stand in for
 | [`queue_batch_results`](#queue_batch_results) | function | Translate recorded outcomes into the wire `QueueResult` list. |
 | [`socket_message_data`](#socket_message_data) | function | The message a handler receives for one wire frame. |
 | [`transport_database`](#transport_database) | function | Wrap an adapter `GrantedDatabaseTransport` stub as a `DatabaseBinding`. |
+| [`transport_events`](#transport_events) | function | Wrap the adapter's granted events stub as an `EventsBinding`. |
 | [`transport_kv`](#transport_kv) | function | Wrap the adapter's granted KV stub as a `KvNamespace`. |
 | [`transport_queue`](#transport_queue) | function | Wrap the adapter's granted queue stub as a `QueueBinding`. |
 | [`transport_sockets`](#transport_sockets) | function | Wrap the adapter's granted sockets stub as a `SocketsBinding`. |
@@ -497,6 +499,63 @@ Retry every message with the same [`EventMessage.retry`](#eventmessageretry) opt
 **Args**
 
 - `**options`: Keyword arguments forwarded to [`EventMessage.retry`](#eventmessageretry).
+
+### EventsBinding
+
+```python
+class EventsBinding
+```
+
+`EVENTS` binding, present when `plugin.toml` declares `[[events.producers]]`.
+
+Implements the generated [`EventPublisher`](abi.md#eventpublisher)
+protocol: each method takes the ABI request dict and returns the ABI
+reply union, `{"ok": ...}` or ``{"err": {"code", "message",
+"details"}}``, rather than raising. The adapter isolate owns the events
+grant; this wrapper converts Python values into the JS values it expects.
+
+#### EventsBinding.__init__
+
+```python
+def __init__(self, stub: Any) -> None
+```
+
+#### EventsBinding.publish
+
+```python
+async def publish(self, event: abi.PluginEvent) -> abi.PublishReply
+```
+
+Append one event to the outbox (`env.EVENTS.publish`).
+
+**Args**
+
+- `event`: `eventType` (a `[[events.producers]]` type), `schemaVersion`, `deduplicationKey`, `payload` (`bytes`, or a JSON value the adapter encodes), `occurredAtUnixMs`, `correlationId` and `causationId`.
+
+**Returns**
+
+`{"ok": {"eventId", "duplicate"}}`, or `{"err": ...}` with
+`forbidden` for an ungranted type, `payload_too_large` past
+`MAX_EVENT_PAYLOAD_BYTES`, or `invalid_params`.
+
+#### EventsBinding.read
+
+```python
+async def read(self, request: abi.EventReadRequest | None=None) -> abi.EventReadReply
+```
+
+Read one page of past events this instance subscribes to (`env.EVENTS.read`).
+
+**Args**
+
+- `request`: `after` (cursor), `sinceUnixMs`, `types` and `limit`; omitted fields take their zero values.
+
+**Returns**
+
+``{"ok": {"events", "cursor", "more", "expiredEventIds",
+"truncated"}}`, or `{"err": ...}` with `forbidden`` for an
+unconsented type, `invalid_cursor` for a stale cursor, or
+`invalid_params`.
 
 ### EventMessage
 
@@ -2516,6 +2575,22 @@ Wrap an adapter `GrantedDatabaseTransport` stub as a [`DatabaseBinding`](db_valu
 
 D1-shaped binding whose terminal methods route through the transport.
 
+### transport_events
+
+```python
+def transport_events(stub: Any) -> EventsBinding
+```
+
+Wrap the adapter's granted events stub as an [`EventsBinding`](#eventsbinding).
+
+**Args**
+
+- `stub`: `SettledTransport` JS stub from the granted context.
+
+**Returns**
+
+The author-facing binding.
+
 ### transport_kv
 
 ```python
@@ -2526,7 +2601,7 @@ Wrap the adapter's granted KV stub as a [`KvNamespace`](#kvnamespace).
 
 **Args**
 
-- `stub`: `KvNamespaceBinding`-shaped JS stub from the granted context.
+- `stub`: `SettledTransport` JS stub from the granted context.
 
 **Returns**
 
@@ -2542,7 +2617,7 @@ Wrap the adapter's granted queue stub as a [`QueueBinding`](#queuebinding).
 
 **Args**
 
-- `stub`: `QueueBinding`-shaped JS stub from the granted context.
+- `stub`: `SettledTransport` JS stub from the granted context.
 
 **Returns**
 
