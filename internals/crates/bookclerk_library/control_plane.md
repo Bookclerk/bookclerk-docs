@@ -608,7 +608,7 @@ See `docs/adr/control-plane.md`.
 | [`renew_permits`](#renew_permits) | function | Extends every permit in `permits` by `ttl` while its holder and token still own the slot. |
 | [`semaphore_slot_lease_name`](#semaphore_slot_lease_name) | function | Lease name of slot `slot` of semaphore `name`. |
 | [`library_contents`](#library_contents) | function | Counts the library data this install holds of its own. |
-| [`remove_shared_node`](#remove_shared_node) | function | Removes shared node `node_id` from the library's node list, in one transaction: its `nodes` row (and with it its labels and credentials), status, event-subscriber registrations, secret handoffs, and plugin deployments with their observations. Only a node that is not running may go, and never `this_node`. The liveness check and the removal are one step: the node's status row is deleted only if it still holds the stale heartbeat that was checked, so a heartbeat that lands in between refuses the removal. A node that was only cut off from the database for longer than its liveness window can still be removed while it runs; its next heartbeat writes a status row again, but not its node row. Removing a node does not take back the database credentials or DEK it held; rotate those when it is not trusted any more. |
+| [`remove_shared_node`](#remove_shared_node) | function | Removes shared node `node_id` from the library's node list, in one transaction: its `nodes` row (and with it its labels and credentials), status, event-subscriber registrations, secret handoffs, and plugin deployments with their observations. Only a node that is not running may go, and never `this_node`. The liveness check and the removal are one step: the node's status row is deleted only if it still holds the stale heartbeat that was checked, so a heartbeat that lands in between refuses the removal, and the removal and a heartbeat take the node's `nodes` row lock first, so a node's first heartbeat cannot slip past it either. A node that was only cut off from the database for longer than its liveness window can still be removed while it runs; its heartbeats then write nothing and fail until it restarts and registers again. Removing a node does not take back the database credentials or DEK it held; rotate those when it is not trusted any more. |
 | [`shared_nodes_visible_to`](#shared_nodes_visible_to) | function | The shared nodes (`kind = shared`: this one and its shared branches) `actor` may see, by the rule `remove_shared_node` removes them: the operator or an active Owner sees every one; another active user only the ones they own; an unknown or disabled user none. |
 | [`strip_install_state`](#strip_install_state) | function | Removes this install's own state from the library so that copies of it can start as installs of their own. |
 | [`accounts_owned_by`](#accounts_owned_by) | function | Store accounts linked to `user_id` through any of the user's identities. |
@@ -15067,10 +15067,12 @@ deployments with their observations. Only a node that is not
 running may go, and never `this_node`. The liveness check and the
 removal are one step: the node's status row is deleted only if it still
 holds the stale heartbeat that was checked, so a heartbeat that lands
-in between refuses the removal. A node that was only cut off from the
-database for longer than its liveness window can still be removed while
-it runs; its next heartbeat writes a status row again, but not its node
-row. Removing a node does not take back the
+in between refuses the removal, and the removal and a heartbeat take the
+node's `nodes` row lock first, so a node's first heartbeat cannot slip
+past it either. A node that was only cut off from the database for
+longer than its liveness window can still be removed while it runs; its
+heartbeats then write nothing and fail until it restarts and registers
+again. Removing a node does not take back the
 database credentials or DEK it held; rotate those when it is not
 trusted any more.
 
