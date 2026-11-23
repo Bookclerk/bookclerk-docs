@@ -5333,8 +5333,9 @@ A job claimed for a Host, with the secrets to seal for it.
   job alone does not say (only possible without a claim filter).
 - `source_plugin_key`: The one plugin whose source guest runs the job
   ([`job_source_plugin_key`](#job_source_plugin_key)); always set under a claim filter.
-- `resumed`: The claim resumed a suspended job ([`RoutedJobClaim::resumed`](#routedjobclaim)).
-  Pass it back to [`release_remote_job`](#release_remote_job) if the claim is given back.
+- `resumed`: The claim resumed a suspended job ([`RoutedJobClaim::resumed`](#routedjobclaim)), as
+  the `work` frame tells the Host. A release does not take it back
+  from the Host: the job row records it.
 - `for_node_owner`: Every store account the job touches belongs to the user who owns
   the node ([`super::job_for_node_owner`](#job_for_node_owner)): the branch owner's own
   work.
@@ -14556,7 +14557,6 @@ pub async fn release_remote_job(
     node_id: &str,
     job_id: &str,
     generation: i64,
-    resumed: bool,
     limits: JobClaimLimits,
 ) -> Result<RemoteFinish>
 ```
@@ -14568,9 +14568,11 @@ are released.
 For a Host whose operator no longer consents to the job's plugin, and
 for a `work` answer that cannot reach the Host (its connection was
 superseded or is closing), so the job is claimable again at once instead
-of only after its lease expires. `resumed` is the claim's
-[`RemoteJobClaim::resumed`]: a resumed claim gets its resume flag back,
-any other its attempt.
+of only after its lease expires. Whether the claim was a resume is read
+from the job row ([`LibraryStore::release_job_claim`](README.md#librarystorerelease_job_claim)), never taken from
+the Host: a resumed claim gets its resume flag back, any other its
+attempt, so a Host cannot keep a job by claiming and releasing it as
+resumed.
 
 The attempt is not spent, unless the job carries a checkpoint (it may
 have resumed, which spent none, or saved progress under this claim), in

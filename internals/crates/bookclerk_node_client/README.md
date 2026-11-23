@@ -1650,12 +1650,19 @@ Returns [`OwnerCallError`](#ownercallerror); `Lost` also cancels the job.
 ```rust
 pub async fn acquire_plan(
     &self,
+    after: Option<&str>,
 ) -> Result<(Vec<AcquireTarget>, Vec<PlanDestination>), OwnerCallError>
 ```
 
 Asks the owner which titles this acquire should fetch, and with
 which destinations (the shared node's, the primary first, each with
 its own `DownloadOptions`).
+
+##### Arguments
+
+* `after` - The holding id of the last target this run already
+  tried: only titles after it are planned (`None` for the first
+  plan).
 
 ##### Errors
 

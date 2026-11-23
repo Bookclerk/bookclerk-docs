@@ -91,6 +91,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`BookclerkPackageMetadata`](#bookclerkpackagemetadata) | struct | `[package.metadata.bookclerk]` published on crates.io. |
 | [`PluginCatalogEntry`](#plugincatalogentry) | struct | One catalog hit from crates.io (or a curated index). |
 | [`PluginCrateName`](#plugincratename) | struct | Parsed crates.io crate name for a Bookclerk plugin. |
+| [`LocalPlatformInstall`](#localplatforminstall) | struct | This host's own platform-bundled install of a plugin, as its provenance check found it: what an owner's request for the same plugin is compared with before it is approved without asking. |
 | [`RemoteNarrowing`](#remotenarrowing) | struct | What a host operator takes out of an owner plugin's request. |
 | [`ExecutorIdentity`](#executoridentity) | struct | Expanded executor identity. Pooling is an optimization; correctness must not depend on a PID surviving. |
 | [`PluginSession`](#pluginsession) | struct | Host-side plugin session (one jailed child + one vat thread). |
@@ -265,7 +266,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`remote_consent`](#remote_consent) | function | The consent an operator gives to `requested` with `narrowing` applied. |
 | [`remote_consent_state`](#remote_consent_state) | function | Evaluates a stored consent row's grants: the current request (`requested_json`), the request as reviewed and the consent (both `None` while unapproved). |
 | [`remote_consent_view`](#remote_consent_view) | function | The one JSON view of a consent row, shared by the operator API and the CLI so both answer the same fields: the request (version, grant, the archive this host would fetch, and its `request_digest`), the approval (`approved_version`, `grant`, `approved_at`, `approved_by`), `revoked_at`, `updated_at`, the `state` (`remote_row_consent_state`), and `pending`, what the request asks for beyond the approval (`remote_row_changes`). A stored grant that does not parse shows as `null`. |
-| [`remote_platform_auto_approval`](#remote_platform_auto_approval) | function | True when a platform plugin's request may be approved without asking: the key is a Bookclerk platform key, this host's own install of that key is platform-bundled with the same payload digest as the owner's artifact (`local_bundled_payload`, from this host's provenance check), and the request stays inside the platform envelope (deny network, only `config` / `work_fs`). |
+| [`remote_platform_auto_approval`](#remote_platform_auto_approval) | function | True when a platform plugin's request may be approved without asking: the key is a Bookclerk platform key, this host's own install of that key (`local`, from this host's provenance check) is platform-bundled with the same payload digest as the owner's artifact, the request stays inside the platform envelope (deny network, only `config` / `work_fs`), and it asks for no larger budget (memory, disk, CPU, processes, workerd CPU time and subrequests) than this host gives its own install. A request with a larger budget waits for this host's operator. |
 | [`remote_request_changes`](#remote_request_changes) | function | Operator-facing lines naming what `requested` asks for beyond `reviewed`. |
 | [`remote_request_within`](#remote_request_within) | function | True when `requested` asks for nothing outside `reviewed`: the same plugin, every capability set a subset, network no wider (outbound only if reviewed outbound), undeclared redirects only if reviewed, and no larger budget. |
 | [`remote_row_changes`](#remote_row_changes) | function | `remote_request_changes` for a stored consent row: what the owner's current request asks for beyond the request the operator approved. |
@@ -3373,6 +3374,28 @@ Parse `bookclerk-plugin-{family}-{id}`.
 Returns an error when the operation fails.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Display`, `Eq`, `PartialEq`, `Serialize`
+
+### LocalPlatformInstall
+
+```rust
+pub struct LocalPlatformInstall {
+    pub payload_root_sha256: String,
+    pub request: PluginGrant,
+}
+```
+
+This host's own platform-bundled install of a plugin, as its provenance
+check found it: what an owner's request for the same plugin is compared
+with before it is approved without asking.
+
+**Fields**
+
+- `payload_root_sha256`: Payload-root digest of the bundled tree (from the provenance check).
+- `request`: The grant this host gives its own install without asking
+  ([`crate::consent::consent_request`](#consent_request) of the bundled manifest): its
+  budgets are this host's defaults for the plugin.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ### RemoteNarrowing
 
@@ -7803,16 +7826,18 @@ A stored grant that does not parse shows as `null`.
 pub fn remote_platform_auto_approval(
     requested: &PluginGrant,
     owner_payload_root_sha256: &str,
-    local_bundled_payload: Option<&str>,
+    local: Option<&LocalPlatformInstall>,
 ) -> bool
 ```
 
 True when a platform plugin's request may be approved without asking:
 the key is a Bookclerk platform key, this host's own install of that key
-is platform-bundled with the same payload digest as the owner's
-artifact (`local_bundled_payload`, from this host's provenance check),
-and the request stays inside the platform envelope (deny network, only
-`config` / `work_fs`).
+(`local`, from this host's provenance check) is platform-bundled with
+the same payload digest as the owner's artifact, the request stays
+inside the platform envelope (deny network, only `config` / `work_fs`),
+and it asks for no larger budget (memory, disk, CPU, processes, workerd
+CPU time and subrequests) than this host gives its own install. A
+request with a larger budget waits for this host's operator.
 
 ### remote_request_changes
 

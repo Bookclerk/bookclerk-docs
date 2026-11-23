@@ -2908,6 +2908,7 @@ pub struct JobPayload {
     pub checkpoint: Option<JobCheckpoint>,
     pub invocation_sequence: Option<u32>,
     pub resume_pending: bool,
+    pub resumed_generation: Option<i64>,
     pub pdf_only: bool,
     pub paced: bool,
     pub requires_unsettled_since_ms: Option<i64>,
@@ -2952,6 +2953,10 @@ JSON command envelope stored on a job row.
   
   Cleared when that claim is taken. A leftover [`Self::checkpoint`](#jobpayload) after a
   retryable failure must not keep later claims in the resume path.
+- `resumed_generation`: The lease generation of the claim that took [`Self::resume_pending`]:
+  set by the claim itself, so a release of that claim knows, from the
+  library's own record and not the claimant's word, that it spent no
+  attempt. A value from an earlier claim never matches a later fence.
 - `pdf_only`: For [`JobKind::Acquire`]: fetch only each title's companion PDF.
   
   Run only by nodes that hold the library database; a Host is never
@@ -13008,18 +13013,23 @@ Returns [`LibraryError::Orm`](#libraryerror) when the write fails.
 #### LibraryStore::release_job_claim
 
 ```rust
-pub async fn release_job_claim(&self, fence: &JobFence, resumed: bool) -> Result<bool>
+pub async fn release_job_claim(&self, fence: &JobFence, keep_spent: bool) -> Result<bool>
 ```
 
 Returns a job claimed under `fence` to `pending` without spending an
 attempt, as if the claim had not happened.
 
 Used when the claim is refused at handoff (the node is no longer
-trusted with the job). `resumed` says the claim resumed a suspended
-job: its attempt count was not raised, and the one-shot resume flag
-is set again. Otherwise the count the claim added is taken back. The
-lease generation stays bumped, so the refused claimer's fence can
-never write to the row again.
+trusted with the job), and when a branch gives a claim back unrun.
+Whether the claim resumed a suspended job is read from the row
+([`JobPayload::resumed_generation`](#jobpayload), recorded by the claim), never
+taken from the claimant: a resumed claim did not raise the attempt
+count, so the one-shot resume flag is set again; otherwise the count
+the claim added is taken back. `keep_spent` keeps the attempt spent
+and the job resumable even for a claim that was not a resume (a
+checkpointed job given back resumes from its checkpoint). The lease
+generation stays bumped, so the released claimer's fence can never
+write to the row again.
 
 ##### Returns
 

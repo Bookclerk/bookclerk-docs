@@ -201,6 +201,7 @@ bytes.
 | [`is_copy_id`](#is_copy_id) | function | True for a copy id: a lowercase hyphenated UUID. |
 | [`parse_copy_answer`](#parse_copy_answer) | function | Reads the head of the answer to a download of a file of `size` bytes that asked for the bytes from `asked_from` on (0 for the whole file). |
 | [`parse_copy_range`](#parse_copy_range) | function | Reads the `Range` header of a download of a file of `size` bytes. |
+| [`deployments_page_problem`](#deployments_page_problem) | function | Why a branch would refuse one `deployments` page answering `deployments.list {after}`, or `None` when it takes it: every entry's deployment id sorts byte-wise after `after` and after the entry before it (so no deployment is listed twice), and `next`, when present, sorts after `after` and is not before the last entry. A page that breaks this would let a library keep a branch paging forever or list a deployment twice, so the branch drops the whole listing and retries. |
 | [`is_destination_id`](#is_destination_id) | function | True when `id` is a destination id: a short lowercase token. |
 | [`is_storage_key`](#is_storage_key) | function | True when `key` is a relative storage key: no empty, `.` or `..` segment, no backslash or control character, not absolute, at most `MAX_UPLOAD_KEY_BYTES`, and never a Windows path that leaves the destination's root (`colon_is_safe`). |
 | [`scan_pass_end_problem`](#scan_pass_end_problem) | function | Why a `Body::ScanPassEnd` the owner received is malformed, or `None` when it is one a host could send: a non-blank account id and a sync token of at most `MAX_SCAN_SYNC_TOKEN_BYTES` with no control characters. |
@@ -2311,9 +2312,9 @@ pub enum Body {
     Lost { item: String, job_id: String, fence: i64 },
     Complete { job_id: String, fence: i64, detail: Option<String> },
     Fail { job_id: String, fence: i64, error_kind: String, message: String },
-    Release { job_id: String, fence: i64, reason: String, resumed: bool },
-    DeploymentsList {  },
-    Deployments { items: Vec<RemoteDeployment> },
+    Release { job_id: String, fence: i64, reason: String },
+    DeploymentsList { after: Option<String> },
+    Deployments { items: Vec<RemoteDeployment>, next: Option<String> },
     InstanceConfigGet { instance_id: String },
     InstanceConfig { instance_id: String, revision: i64, config: Value, sealed_secrets: Option<String>, secrets_withheld: bool },
     Observation { deployment_id: String, status: String, detail: String, applied_config_revision: Option<i64> },
@@ -2322,7 +2323,7 @@ pub enum Body {
     ScanAccepted { batch: u64, upserted: u64 },
     ScanRemoved { job_id: String, fence: i64, plugin_key: String, account_id: String, batch: u64, product_ids: Vec<String> },
     ScanPassEnd { job_id: String, fence: i64, plugin_key: String, account_id: String, sync_token: String, complete: bool, full: bool },
-    AcquirePlan { job_id: String, fence: i64 },
+    AcquirePlan { job_id: String, fence: i64, after: Option<String> },
     AcquireTargets { targets: Vec<AcquireTarget>, destinations: Vec<PlanDestination> },
     UploadGrant { job_id: String, fence: i64, holding_id: String, primary_key: String, pdf_key: Option<String>, files: Vec<UploadFile> },
     UploadGranted { upload_id: String, sealed_token: String, expires_in_secs: u64 },
@@ -2460,18 +2461,24 @@ What a frame says, tagged by `type`.
   - `error_kind`: Stable error kind.
   - `message`: Operator-facing message (never a secret).
 - `Release`: Host → owner: give a job back unrun (its operator no longer
-  consents to the job's plugin). The job returns to pending without
-  spending the attempt. Answered with [`Body::Accepted`](#body) or
+  consents to the job's plugin, or its claim timed out before the
+  `work` answer arrived). The job returns to pending without spending
+  the attempt; whether the claim was a resume is the owner's own
+  record, never the host's. Answered with [`Body::Accepted`](#body) or
   [`Body::Lost`](#body).
   - `job_id`: Job id.
   - `fence`: Lease generation the host holds.
-  - `reason`: Stable reason (`awaiting_host_consent`, ...), for the log.
-  - `resumed`: The `resumed` flag of the job's `work` frame, so a resumed
-    claim is given back resumable.
-- `DeploymentsList`: Host → owner: the deployments that target this host and should run.
-  Answered with [`Body::Deployments`](#body).
-- `Deployments`: Owner → host: the answer to [`Body::DeploymentsList`](#body).
-  - `items`: One entry per deployment, in deployment-id order.
+  - `reason`: Stable reason (`awaiting_host_consent`, `claim_abandoned`, ...),
+    for the log.
+- `DeploymentsList`: Host → owner: one page of the deployments that target this host and
+  should run. Answered with [`Body::Deployments`](#body).
+  - `after`: The `next` of the previous page; absent for the first page.
+- `Deployments`: Owner → host: one page of the answer to [`Body::DeploymentsList`](#body),
+  as many entries as fit a frame.
+  - `items`: One entry per deployment, in deployment-id order, each after
+    the request's `after`.
+  - `next`: Where the next page starts (the last entry's deployment id);
+    absent on the last page.
 - `InstanceConfigGet`: Host → owner: `CONFIG` and `SECRETS` of an instance deployed to this
   host. Answered with [`Body::InstanceConfig`](#body), or `error {code:
   "not_found"}` for an instance not deployed here.
@@ -2548,8 +2555,12 @@ What a frame says, tagged by `type`.
   [`Body::AcquireTargets`](#body), [`Body::Lost`](#body), or `error`.
   - `job_id`: The acquire job.
   - `fence`: Lease generation the host holds.
+  - `after`: Only titles whose holding id sorts after this one: the last
+    target this run already tried, so titles that failed earlier in
+    the run never fill the plan's cap. Absent for the first plan.
 - `AcquireTargets`: Owner → host: the titles to acquire and how to package them.
-  - `targets`: Titles still to acquire, each one of the job's accounts.
+  - `targets`: Titles still to acquire, each one of the job's accounts, in
+    holding-id order and each after the plan's `after`.
   - `destinations`: Every output destination deployed on the answering shared node,
     the primary first, each with its own packaging and naming
     options, so the host names each destination's files as a local
@@ -3651,6 +3662,31 @@ One byte range is honoured: `bytes=A-B` (clamped to the file's end),
 number is 1 to 19 decimal digits. Anything else (another unit, several
 ranges, spaces, signs, `A` past `B`) is ignored and reads the whole
 file, as HTTP allows a server to do.
+
+### deployments_page_problem
+
+```rust
+pub fn deployments_page_problem(
+    after: Option<&str>,
+    items: &[RemoteDeployment],
+    next: Option<&str>,
+) -> Option<&'static str>
+```
+
+Why a branch would refuse one `deployments` page answering
+`deployments.list {after}`, or `None` when it takes it: every entry's
+deployment id sorts byte-wise after `after` and after the entry before
+it (so no deployment is listed twice), and `next`, when present, sorts
+after `after` and is not before the last entry. A page that breaks this
+would let a library keep a branch paging forever or list a deployment
+twice, so the branch drops the whole listing and retries.
+
+#### Arguments
+
+* `after` - The cursor the branch asked with (`None` for the first
+  page).
+* `items` - The page's entries.
+* `next` - The page's next cursor.
 
 ### is_destination_id
 
