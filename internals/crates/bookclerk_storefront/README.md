@@ -41,6 +41,7 @@ Product narrative: `docs/plugins/README.md`. Style: `docs/contributing/code-docu
 | [`SourceConfigOption`](#sourceconfigoption) | struct | One source-native setting a storefront declares for its plugin instance. |
 | [`SourcePurchaseHint`](#sourcepurchasehint) | struct | URL + optional live price for one storefront edition. |
 | [`SourceError`](#sourceerror) | enum | Errors from content-source auth, scan, or fetch. |
+| [`AccountMatch`](#accountmatch) | enum | How a scan's account names pick accounts (`ScanOptions::accounts`). |
 | [`CatalogSearchField`](#catalogsearchfield) | enum | Optional role / facet for the host's `ContentSource::search_catalog`. |
 | [`CatalogSearchSort`](#catalogsearchsort) | enum | Sort mode for the host's `ContentSource::search_catalog`. |
 | [`CatalogSortDir`](#catalogsortdir) | enum | Ascending / descending for catalog search host re-rank. |
@@ -585,6 +586,7 @@ Implements: `Clone`, `Debug`, `Default`, `From<&PurchaseHintOpts>`, `From<Purcha
 ```rust
 pub struct ScanOptions {
     pub accounts: Vec<String>,
+    pub account_match: AccountMatch,
     pub page_size: u32,
     pub import_episodes: bool,
     pub import_plus_titles: bool,
@@ -597,6 +599,7 @@ Options for a library scan.
 **Fields**
 
 - `accounts`: Limit to specific account nicknames / ids.
+- `account_match`: How [`Self::accounts`](#scanoptions) picks accounts.
 - `page_size`: Upstream library page size (titles per HTTP page; default 50).
 - `import_episodes`: Import podcast episodes — consumed by plugins that support it.
 - `import_plus_titles`: Import catalog Plus / non-owned titles — consumed by plugins that support it.
@@ -809,6 +812,44 @@ pub fn api(msg: impl Into<String>) -> Self
 Construct [`Self::Api`](#sourceerror) with an operator-facing message.
 
 Implements: `Debug`, `Display`, `Error`, `From<Error>`, `From<SourceError>`
+
+### AccountMatch
+
+```rust
+pub enum AccountMatch {
+    IdOrLabel,
+    ExactId,
+}
+```
+
+How a scan's account names pick accounts ([`ScanOptions::accounts`](#scanoptions)).
+
+**Variants**
+
+- `IdOrLabel`: A name matches an account's id or its label, ignoring ASCII case:
+  what a person types.
+- `ExactId`: A name matches only the account with exactly that id. A scan of
+  every account plans these, so a label that equals another account's
+  id never makes two jobs reach one account.
+
+#### AccountMatch::matches
+
+```rust
+pub fn matches(self, name: &str, account_id: &str, label: Option<&str>) -> bool
+```
+
+True when `name` picks the account with `account_id` and `label`.
+
+#### AccountMatch::is_default
+
+```rust
+pub fn is_default(&self) -> bool
+```
+
+True for the default ([`AccountMatch::IdOrLabel`](#accountmatch)); lets a stored
+job leave the field out.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`
 
 ### CatalogSearchField
 

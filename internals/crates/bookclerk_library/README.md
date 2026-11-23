@@ -2905,6 +2905,7 @@ Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 pub struct JobPayload {
     pub v: u32,
     pub account: Option<String>,
+    pub account_match: AccountMatch,
     pub title: Option<String>,
     pub plugin_instance_id: Option<String>,
     pub requires: Vec<String>,
@@ -2938,6 +2939,9 @@ JSON command envelope stored on a job row.
 
 - `v`: Envelope schema version; must equal [`JOB_PAYLOAD_VERSION`](#job_payload_version).
 - `account`: Optional account filter (`None` = all eligible accounts).
+- `account_match`: How [`Self::account`](#jobpayload) picks accounts: by id or label (what a person
+  types, the default), or by exact id (a scan of every account plans
+  these, one job per account).
 - `title`: Optional title filter (uuid / ASIN / ISBN / product id).
 - `plugin_instance_id`: Pins the plugin instance that serves the job. `None` routes to the
   plugin's default instance on the claiming host.

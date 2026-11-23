@@ -35,6 +35,7 @@ Product narrative: `docs/plugins/README.md`. Style: `docs/contributing/code-docu
 - [`bookclerk_storefront::listing`](../bookclerk_storefront/listing.md)
 - [`bookclerk_storefront::normalize_language`](../bookclerk_resolve/language.md#normalize_language)
 - [`bookclerk_storefront::records`](../bookclerk_storefront/records.md)
+- [`bookclerk_storefront::AccountMatch`](../bookclerk_storefront/README.md#accountmatch)
 - [`bookclerk_storefront::CatalogHit`](../bookclerk_storefront/README.md#cataloghit)
 - [`bookclerk_storefront::CatalogSearchField`](../bookclerk_storefront/README.md#catalogsearchfield)
 - [`bookclerk_storefront::CatalogSearchOpts`](../bookclerk_storefront/README.md#catalogsearchopts)

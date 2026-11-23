@@ -124,6 +124,7 @@ See `docs/adr/control-plane.md`.
 | [`MemberControls`](#membercontrols) | struct | A value for each control: the library's default, or what applies to one user. |
 | [`PatchDefaultControls`](#patchdefaultcontrols) | struct | `PATCH /api/users/default-controls` body. |
 | [`PatchUserControls`](#patchusercontrols) | struct | `PATCH /api/users/{id}/controls` body. |
+| [`BudgetShare`](#budgetshare) | struct | The part of a branch's own budget it gives one library: the branch's `node.runtime` budget, cut to that library's share of its machine. |
 | [`CacheUsage`](#cacheusage) | struct | What a node's image caches hold, as its daemon reports them. |
 | [`GuestReservation`](#guestreservation) | struct | CPU and memory one guest may use at most: its grant's ceilings after the node's `[plugins.jail]` limits. |
 | [`NodeHeartbeat`](#nodeheartbeat) | struct | One heartbeat's measurements, before budget and accounting are applied. |
@@ -686,6 +687,7 @@ See `docs/adr/control-plane.md`.
 | [`import_node_runtime_if_absent`](#import_node_runtime_if_absent) | function | Inserts a node runtime document when it is absent. |
 | [`replace_node_runtime`](#replace_node_runtime) | function | Replaces one node's runtime document. |
 | [`update_node_runtime`](#update_node_runtime) | function | Applies `edit` to a node's runtime document (creating it with defaults when the node never wrote one) under compare-and-swap, retrying a few times on a concurrent edit. Budgets reach the scheduler with the node's next heartbeat. |
+| [`NodeBoundKey`](#nodeboundkey) | type alias | Tells whether a stored plugin key names a node-bound output (`JobClaimRequest::node_bound`). |
 | [`HeldBookKey`](#heldbookkey) | type alias | A book this library holds, by store identity: `(plugin_key, stored marketplace, stored product id, account_id)`. |
 | [`LiveRevisions`](#liverevisions) | type alias | Every topic's revision, in `LiveTopic::ALL` order. |
 | [`AccountKey`](#accountkey) | type alias | A store account, keyed as in `accounts`: `(plugin_key, account_id)`. |
@@ -3310,6 +3312,7 @@ pub struct JobClaimRequest<'a> {
     pub lease_secs: u64,
     pub limits: JobClaimLimits,
     pub filter: Option<&'a JobClaimFilter>,
+    pub node_bound: Option<NodeBoundKey>,
 }
 ```
 
@@ -3327,6 +3330,13 @@ One routed claim attempt by one worker.
 - `limits`: Semaphore limits.
 - `filter`: The claimer's own narrowing; `None` claims every job it is trusted
   with and can run.
+- `node_bound`: Tells which plugin keys are node-bound outputs (the first-party
+  local destination), as the requirements sweep counts them. When
+  set, a job's requirements are resolved again before it is claimed,
+  and a job whose stored requirements no longer match (a deployment
+  committed since the sweep last rewrote them) is skipped until the
+  sweep catches up, so no node claims it on its old requirements.
+  `None` trusts the stored requirements.
 
 #### JobClaimRequest::scope
 
@@ -4247,6 +4257,30 @@ pub struct PatchUserControls {
 
 Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
+### BudgetShare
+
+```rust
+pub struct BudgetShare {
+    pub cpu_millicores: i64,
+    pub memory_bytes: Option<i64>,
+}
+```
+
+The part of a branch's own budget it gives one library: the branch's
+`node.runtime` budget, cut to that library's share of its machine.
+
+A library's budget for the node is applied to the physical share the
+branch reports, so without this a library whose percentage is higher
+than the branch's own would plan more than the branch budgeted.
+[`record_node_heartbeat`](#record_node_heartbeat) records the smaller of the two.
+
+**Fields**
+
+- `cpu_millicores`: CPU, in millicores.
+- `memory_bytes`: Memory, in bytes; `None` when the branch could not measure memory.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
 ### CacheUsage
 
 ```rust
@@ -4326,6 +4360,7 @@ pub struct NodeHeartbeat {
     pub files_dir_free_bytes: Option<i64>,
     pub cache: Option<CacheUsage>,
     pub public_origin: Option<String>,
+    pub budget_share: Option<BudgetShare>,
 }
 ```
 
@@ -4347,6 +4382,9 @@ One heartbeat's measurements, before budget and accounting are applied.
   (already parsed into a [`bookclerk_node_proto::BranchOrigin`](../bookclerk_node_proto/README.md#branchorigin) by the
   node API); `None` for a branch without one (a local branch) and for
   a shared node, which reports none.
+- `budget_share`: The budget a branch gives this library ([`BudgetShare`](#budgetshare)); `None`
+  from the library's own nodes and from a branch that reports none,
+  whose budget is then the library's alone.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
@@ -5483,6 +5521,7 @@ Implements: `Clone`, `Debug`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`
 pub struct RemoteClaimSettings {
     pub lease_secs: u64,
     pub limits: JobClaimLimits,
+    pub node_bound: Option<NodeBoundKey>,
 }
 ```
 
@@ -5493,6 +5532,8 @@ shared node serving it.
 
 - `lease_secs`: Lease length; permits are taken for the same time.
 - `limits`: Library semaphore limits.
+- `node_bound`: Tells node-bound output keys, so a job's requirements are checked
+  again before it is claimed ([`JobClaimRequest::node_bound`](#jobclaimrequest)).
 
 Implements: `Clone`, `Copy`, `Debug`
 
@@ -15903,10 +15944,13 @@ Plans the acquire jobs one request admits.
 own job, so each title can go to any node trusted with it. `account`
 narrows to one store account and `plugin_instance_id` pins every job.
 
-- Operator authority, an Owner or an Administrator: one job per title,
-  or one job for everything pending (it touches many accounts, and only
-  nodes trusted with every one of them claim it; splitting it per
-  account would repeat the storage listing for every account).
+- Operator authority, an Owner or an Administrator: a title named
+  without an account becomes one job per account id it is in (or one
+  unsplit job when it is in none), so a Host trusted with that account
+  can take it; a named account gives one job per title. Everything
+  pending stays one job (it touches many accounts, and only nodes
+  trusted with every one of them claim it; splitting it per account
+  would repeat the storage listing for every account).
 - Any other active user: a named account must be theirs, and so must
   every library row a named title matches. A title named without an
   account becomes one job per account id it is in, since a node trusted
@@ -16937,6 +16981,15 @@ Returns an error when the actor may not write, the edited body is
 invalid, or the document keeps changing underneath.
 
 ## Type aliases
+
+### NodeBoundKey
+
+```rust
+pub type NodeBoundKey = fn(&str) -> bool;
+```
+
+Tells whether a stored plugin key names a node-bound output
+([`JobClaimRequest::node_bound`](#jobclaimrequest)).
 
 ### HeldBookKey
 

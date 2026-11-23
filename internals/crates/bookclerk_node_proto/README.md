@@ -2326,7 +2326,7 @@ pub enum Body {
     Welcome { node_id: String, library_id: String, box_key: String },
     Resumed { renewed: Vec<HeldFence>, lost: Vec<HeldFence>, unchecked: Vec<HeldFence>, lease_secs: Option<u64> },
     Error { code: String, message: String },
-    Heartbeat { started_at: String, interval_secs: u64, cpu_millicores: i64, memory_bytes: Option<i64>, cpu_used_millicores: Option<i64>, memory_available_bytes: Option<i64>, files_dir_free_bytes: Option<i64>, public_origin: Option<String> },
+    Heartbeat { started_at: String, interval_secs: u64, cpu_millicores: i64, memory_bytes: Option<i64>, cpu_used_millicores: Option<i64>, memory_available_bytes: Option<i64>, files_dir_free_bytes: Option<i64>, public_origin: Option<String>, budget_cpu_millicores: Option<i64>, budget_memory_bytes: Option<i64> },
     Claim { item: String, class: Option<String>, filter: Option<ClaimFilter> },
     Work { item: String, job: WorkJob, fence: i64, lease_secs: u64, sealed_secrets: Option<String>, plugin_keys: Vec<String>, source_plugin_key: Option<String>, resumed: bool },
     NoWork { retry_after_secs: u64 },
@@ -2434,6 +2434,13 @@ What a frame says, tagged by `type`.
     installs reach it at; absent for a branch that has none (a
     local branch). The library keeps it only when
     [`crate::BranchOrigin::parse`](#branchoriginparse) accepts it.
+  - `budget_cpu_millicores`: The CPU, in millicores, of the branch's own budget it gives
+    this library (its `node.runtime` budget cut to this library's
+    share of the machine). The library records the smaller of this
+    and its own budget for the node. Absent from a branch that
+    reports none.
+  - `budget_memory_bytes`: The memory, in bytes, of the branch's own budget it gives this
+    library, like `budget_cpu_millicores`.
 - `Claim`: Host → owner: pull one work item. Answered with [`Body::Work`](#body) or
   [`Body::NoWork`](#body).
   - `item`: [`ITEM_JOB`](#item_job) (deliveries are not served yet).
