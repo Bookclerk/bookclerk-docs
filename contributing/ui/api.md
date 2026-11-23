@@ -745,6 +745,22 @@ sort_dir?: string;
 
 ***
 
+### ChapterAlignResponse
+
+A queued chapter alignment.
+
+#### Properties
+
+##### job\_id
+
+```ts
+job_id: string;
+```
+
+The `chapter_align` job; an alignment already queued is returned.
+
+***
+
 ### ConfigNodeView
 
 One library node as `GET /api/config/nodes` returns it.
@@ -10460,6 +10476,31 @@ Replaces the tags set in Bookclerk on a work; sidecar tags stay.
 `Promise`\<[`WorkTags`](#worktags)\>
 
 The tags afterwards.
+
+***
+
+### realignChapters()
+
+```ts
+function realignChapters(editionId): Promise<ChapterAlignResponse>;
+```
+
+Queues the alignment of a metadata provider's chapters to an edition's
+stored copy: the provider's chapters are asked for by the edition's
+ASIN and each start is snapped to the spoken chapter title.
+Administrators, Owners and the operator only.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `editionId` | `string` | The stored edition. |
+
+#### Returns
+
+`Promise`\<[`ChapterAlignResponse`](#chapteralignresponse)\>
+
+The queued job.
 
 ***
 

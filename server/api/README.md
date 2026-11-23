@@ -175,6 +175,7 @@ Books in the library, scans and acquires.
 | [`DELETE /api/library/listings/{id}/pin`](library.md#delete-apilibrarylistingsidpin) | Removes a listing's pin. |
 | [`GET /api/library/conflicts`](library.md#get-apilibraryconflicts) | Pages the conflicts the resolver could not decide, for an Administrator to settle with a pin. |
 | [`GET /api/library/editions/{id}/chapters/claims`](library.md#get-apilibraryeditionsidchaptersclaims) | Lists every source's chapter claim for an edition, with its chapters. |
+| [`POST /api/library/editions/{id}/chapters/realign`](library.md#post-apilibraryeditionsidchaptersrealign) | Queues the alignment of a metadata provider's chapters to the edition's stored copy. |
 | [`GET /api/library/editions/{id}/chapters`](library.md#get-apilibraryeditionsidchapters) | Reads the chapters an edition plays. |
 | [`PUT /api/library/editions/{id}/chapters`](library.md#put-apilibraryeditionsidchapters) | Sets an edition's chapters by hand. |
 | [`DELETE /api/library/editions/{id}/chapters`](library.md#delete-apilibraryeditionsidchapters) | Removes an Administrator's chapter edit, so the edition plays the best remaining claim again. |

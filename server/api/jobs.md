@@ -141,6 +141,7 @@ Schema:
           "branch_request",
           "ingest_batch",
           "notify_send",
+          "chapter_align",
           "invalid"
         ]
       },

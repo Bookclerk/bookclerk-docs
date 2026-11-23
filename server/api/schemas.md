@@ -665,6 +665,12 @@ A chapter of a book.
 - `end` *number (double)*, **required** — Where it ends, in seconds.
 - `title` *string*, **required** — Its title.
 
+## ChapterAlignJson
+
+A queued chapter alignment.
+
+- `job_id` *string*, **required** — The `chapter_align` job that does the work; it answers through the jobs API. An alignment already queued for the edition is returned rather than a second one.
+
 ## ChapterClaimJson
 
 One source's chapter claim for an edition.
@@ -1933,7 +1939,7 @@ Snapshot of one queued or running control-plane job.
 
 Kind of durable daemon work stored in the `jobs` table.
 
-Type: one of `scan`, `acquire`, `listen_sync`, `integration_scan`, `plugin_copy`, `plugin_scheduled`, `discover_candidates`, `discover_feed`, `discover_request_queue`, `cache_sweep`, `search_index_rebuild`, `library_index_rebuild`, `branch_request`, `ingest_batch`, `notify_send`, `invalid`
+Type: one of `scan`, `acquire`, `listen_sync`, `integration_scan`, `plugin_copy`, `plugin_scheduled`, `discover_candidates`, `discover_feed`, `discover_request_queue`, `cache_sweep`, `search_index_rebuild`, `library_index_rebuild`, `branch_request`, `ingest_batch`, `notify_send`, `chapter_align`, `invalid`
 
 ## JobState
 

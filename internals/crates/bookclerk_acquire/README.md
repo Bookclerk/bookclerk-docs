@@ -26,12 +26,15 @@ content-source plugins; this crate never sees license keys. See
 | [`AcquireResult`](#acquireresult) | struct | Result after a successful acquire. |
 | [`CopyOutcome`](#copyoutcome) | struct | What one destination ended up with in one acquire. |
 | [`PlannedTitleNames`](#plannedtitlenames) | struct | The names an acquire of one title writes on one destination, as the owner plans them, to bound a host's upload of that title. |
+| [`CopyAudio`](#copyaudio) | struct | One audio file of a stored copy, read to local disk, in play order. |
+| [`RealignTarget`](#realigntarget) | struct | The edition a copy belongs to and how its provider is asked. |
 | [`ReconcileOptions`](#reconcileoptions) | struct | Options for `reconcile_library`. |
 | [`ReconcileSummary`](#reconcilesummary) | struct | Summary of a reconcile run. |
 | [`StorageIndex`](#storageindex) | struct | Index of storage object keys, keyed by ASIN found in the path. |
 | [`ScanCheckpoint`](#scancheckpoint) | struct | Versioned scan progress stored in the job payload checkpoint. |
 | [`AcquireError`](#acquireerror) | enum | Failures from the acquire / convert / reconcile pipeline. |
 | [`CopyResult`](#copyresult) | enum | Whether a destination holds an acquire's audio. |
+| [`RealignOutcome`](#realignoutcome) | enum | What `realign_copy` did. |
 | [`from_store`](#from_store) | function | True when the library downloaded its copy from `store`, the store this install's title belongs to. A copy whose store the library does not know is never taken, and one from another store only replaces the install's own download when it is the better copy. |
 | [`match_storage_to_library`](#match_storage_to_library) | function | List audio in storage, probe metadata (no body download), match to library. |
 | [`match_storage_using_index`](#match_storage_using_index) | function | Match library rows against an existing scan index. |
@@ -56,6 +59,7 @@ content-source plugins; this crate never sees license keys. See
 | [`planned_title_folders`](#planned_title_folders) | function | The folders an acquire of `req` writes the title's files under on a destination with `req.options`: the folder of its planned audio key, which its sidecars, chapter files and parts share. When podcast episodes are saved to the parent's folder, the episode's own folder is included too, since a library without the parent's row names it so. An empty string is the destination's root (a template with no folder). |
 | [`planned_title_names`](#planned_title_names) | function | The title's planned names on the destination `req.options` describe: `PlannedTitleNames`. |
 | [`share_acquired_sibling`](#share_acquired_sibling) | function | Marks `book` acquired at the files of its edition, when another book of the edition acquired it (`edition_acquisitions`) and every destination holds the copy, so the edition is not fetched again. The edition's companion PDF is shared too when that book has one. |
+| [`realign_copy`](#realign_copy) | function | Asks the providers for the layout of `target` and records it, aligned to `files`, as the edition's provider and processed claims. |
 | [`extract_asins_from_key`](#extract_asins_from_key) | function | Extract Audible-like ASINs and ISBN-13 tokens from a storage key / file path. |
 | [`find_existing_for_request`](#find_existing_for_request) | function | Same as `find_existing_for_title` but for a acquire request before DB status is Acquired. |
 | [`find_existing_for_title`](#find_existing_for_title) | function | Find an existing acquired file for a title (planned path or ASIN-in-path). |
@@ -889,6 +893,44 @@ owner plans them, to bound a host's upload of that title.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### CopyAudio
+
+```rust
+pub struct CopyAudio {
+    pub path: PathBuf,
+    pub duration_ms: u64,
+}
+```
+
+One audio file of a stored copy, read to local disk, in play order.
+
+**Fields**
+
+- `path`: Where the file's bytes are on this node.
+- `duration_ms`: Its running time in milliseconds, as its probe recorded it.
+
+Implements: `Clone`, `Debug`
+
+### RealignTarget
+
+```rust
+pub struct RealignTarget<'a> {
+    pub edition_id: &'a str,
+    pub asin: &'a str,
+    pub marketplace: &'a str,
+}
+```
+
+The edition a copy belongs to and how its provider is asked.
+
+**Fields**
+
+- `edition_id`: The edition whose claims are recorded.
+- `asin`: The edition's ASIN, the identifier providers are asked by.
+- `marketplace`: The ASIN's marketplace (`us`, `uk`, …).
+
+Implements: `Clone`, `Copy`, `Debug`
+
 ### ReconcileOptions
 
 ```rust
@@ -1111,6 +1153,29 @@ Whether a destination holds an acquire's audio.
   - `error`: The last write's error.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### RealignOutcome
+
+```rust
+pub enum RealignOutcome {
+    NoLayout,
+    NoAudio,
+    Recorded { provider: String, chapters: usize },
+}
+```
+
+What [`realign_copy`](#realign_copy) did.
+
+**Variants**
+
+- `NoLayout`: No provider had a layout for the ASIN, or its layout had no
+  chapters on the copy's timeline; nothing was recorded.
+- `NoAudio`: The copy has no audio with a known running time; nothing was asked.
+- `Recorded`: The provider's layout and the aligned list were recorded.
+  - `provider`: PluginKey of the provider whose layout was aligned.
+  - `chapters`: How many chapters the aligned flat list holds.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ## Functions
 
@@ -1551,6 +1616,34 @@ what is missing.
 
 Returns an error when a library lookup or write, or a backend probe,
 fails.
+
+### realign_copy
+
+```rust
+pub async fn realign_copy(
+    library: &LibraryStore,
+    providers: &dyn MetadataProviders,
+    target: RealignTarget<'_>,
+    files: &[CopyAudio],
+    options: &DownloadOptions,
+) -> RealignOutcome
+```
+
+Asks the providers for the layout of `target` and records it, aligned
+to `files`, as the edition's provider and processed claims.
+
+#### Arguments
+
+* `library` - Where the claims are recorded.
+* `providers` - The deployed metadata providers.
+* `target` - The edition and the ASIN to ask by.
+* `files` - The copy's audio files, in play order, on local disk.
+* `options` - The title clean-ups the copy's destination applies.
+
+#### Returns
+
+What was recorded. Recording itself is best effort, as at acquire: a
+claim the library refuses is logged.
 
 ### extract_asins_from_key
 

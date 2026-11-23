@@ -7464,6 +7464,20 @@ The chapters an edition resolved to; `None` when it has none.
 Returns the read error, or [`LibraryError::Other`](#libraryerror) when the stored
 list is missing or no longer passes its own checks.
 
+#### LibraryStore::edition_asins
+
+```rust
+pub async fn edition_asins(&self, edition_id: &str) -> Result<Vec<(String, String)>>
+```
+
+The ASINs edition `edition_id` carries, as `(asin, marketplace)`:
+strong ones first, then in value order. A provider's chapter layout
+is asked for by the first.
+
+##### Errors
+
+Returns the read error.
+
 #### LibraryStore::chapters_for_copy
 
 ```rust
@@ -17718,6 +17732,7 @@ pub enum JobKind {
     BranchRequest,
     IngestBatch,
     NotifySend,
+    ChapterAlign,
     Invalid,
 }
 ```
@@ -17764,12 +17779,17 @@ Kind of durable daemon work stored in the `jobs` table.
   notifier instance ([`JobPayload::plugin_instance_id`](#jobpayload), also in
   [`JobPayload::requires`](#jobpayload)), so only a node running that instance
   claims it.
+- `ChapterAlign`: Align a metadata provider's chapter layout to one edition's stored
+  copy (`chapter_align`): the edition's id is in [`JobPayload::title`](#jobpayload).
+  Any node with a destination holding the copy claims it, since it
+  reads the copy's audio from there; it runs only on a node that
+  holds the library database.
 - `Invalid`: Terminal placeholder after an unreadable persisted command is rejected.
 
 #### JobKind::ALL
 
 ```rust
-pub const ALL: [Self; 16] = _
+pub const ALL: [Self; 17] = _
 ```
 
 Every kind, in declaration order; the SQL plans derive their kind
