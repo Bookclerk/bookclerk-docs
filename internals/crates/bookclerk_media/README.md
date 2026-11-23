@@ -33,6 +33,7 @@ the worker itself calls.
 | [`FixupRequest`](#fixuprequest) | struct | Request to fix up audiobook metadata after decrypt / download. |
 | [`OpusEncodeOptions`](#opusencodeoptions) | struct | How an Opus copy is encoded. |
 | [`PackageM4bRequest`](#packagem4brequest) | struct | Request to package ordered MP3 parts into one M4B. |
+| [`EncodedSample`](#encodedsample) | struct | A short sample of a file, encoded by a worker. |
 | [`PcmStream`](#pcmstream) | struct | Decoded samples of one file from one start position. |
 | [`MediaPool`](#mediapool) | struct | Bounded pool of confined media workers. |
 | [`MediaPoolConfig`](#mediapoolconfig) | struct | Pool sizing and isolation settings. |
@@ -58,7 +59,7 @@ the worker itself calls.
 | [`encode_to_opus_native`](#encode_to_opus_native) | function | Encodes the audio in `input` to an Ogg Opus file at `output`. |
 | [`package_m4b_from_mp3`](#package_m4b_from_mp3) | function | Decode/remux ordered parts → progressive M4B. |
 | [`package_m4b_from_pcm`](#package_m4b_from_pcm) | function | Encode interleaved PCM to AAC-LC and mux an M4B (test / internal helper). |
-| [`serve_pcm`](#serve_pcm) | function | Serves one PCM decode over `input` and `output` (the worker's stdin and stdout): reads `Open`, then streams `Format`, `Pcm` frames and `End`, or `Failed` when the file cannot be decoded. |
+| [`serve_pcm`](#serve_pcm) | function | Serves one PCM decode over `input` and `output` (the worker's stdin and stdout): reads `Open`, then streams `Format`, `Pcm` frames and `End`, or `Failed` when the file cannot be decoded. Opened with `Sample` instead, streams `Format`, `Encoded` frames and `End`. |
 | [`init_pool`](#init_pool) | function | Install the process-wide pool if none is installed yet. |
 | [`init_pool_from_config`](#init_pool_from_config) | function | Build the pool from `[media]` config and install it, logging what it will do. |
 | [`pool`](#pool) | function | The process-wide pool, creating a default one if startup never installed it. |
@@ -74,6 +75,8 @@ the worker itself calls.
 | [`BOOKCLERK_TOOL_NAME`](#bookclerk_tool_name) | constant | Product / CLI name written into tool attribution tags. |
 | [`MAX_OPUS_KBPS`](#max_opus_kbps) | constant | Highest bitrate an Opus copy is encoded at, in kbit/s (per stream; the Opus limit for stereo). |
 | [`MIN_OPUS_KBPS`](#min_opus_kbps) | constant | Lowest bitrate an Opus copy is encoded at, in kbit/s. |
+| [`MAX_SAMPLE_BYTES`](#max_sample_bytes) | constant | Largest sample the host takes from a worker (16 MiB): ten minutes of mono MP3 at 64 kbit/s is under 5 MiB. |
+| [`SAMPLE_TIMEOUT`](#sample_timeout) | constant | Longest a worker may take to cut one sample, start to end. |
 | [`JAIL_BIN_ENV`](#jail_bin_env) | constant | Environment variable naming the jail launcher (shared with plugin hosts). |
 | [`JAIL_BIN_NAME`](#jail_bin_name) | constant | File name of the jail launcher when it sits beside the host / worker. |
 | [`WORKER_BIN_ENV`](#worker_bin_env) | constant | Environment variable naming the worker binary explicitly. |
@@ -290,6 +293,25 @@ Request to package ordered MP3 parts into one M4B.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
 
+### EncodedSample
+
+```rust
+pub struct EncodedSample {
+    pub header: PcmHeader,
+    pub mp3: Vec<u8>,
+}
+```
+
+A short sample of a file, encoded by a worker.
+
+**Fields**
+
+- `header`: The encoded layout (mono), where the sample starts, and the file's
+  stated duration.
+- `mp3`: The MP3 stream: constant bit rate, no tag frames.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### PcmStream
 
 ```rust
@@ -330,7 +352,7 @@ The next chunk of interleaved samples: a whole number of frames in
 [`MediaError::Worker`](#mediaerror) when the worker died, stalled or broke the
 protocol. The stream ends after an error.
 
-Implements: `Debug`, `Drop`
+Implements: `Debug`
 
 ### MediaPool
 
@@ -495,6 +517,48 @@ found, [`MediaError::Native`](#mediaerror) when the file cannot be decoded,
 [`MediaError::Io`](#mediaerror) when `source` fails, and [`MediaError::Worker`](#mediaerror)
 when the worker cannot be started, stalls for 30 s before its
 format, or breaks the protocol.
+
+#### MediaPool::cut_sample
+
+```rust
+pub async fn cut_sample<S: RangeSource + 'static>(
+    &self,
+    size: u64,
+    start_ms: u64,
+    length_ms: u64,
+    source: S,
+) -> Result<EncodedSample>
+```
+
+Cuts a short sample of one audio file, folded to mono and encoded
+as MP3, for a book's details (`bookclerk-media-worker pcm`, opened
+with `Sample`).
+
+Like [`Self::open_pcm`](#mediapoolopen_pcm), each call starts its own worker, jailed to
+no path and no network, which asks for the byte ranges it reads. It
+does not take a job slot; samples have their own limit, as many at
+once as there are job slots, and a call waits for one. The worker decodes only the sample's span,
+and the bytes returned are its encoding, never the file's own. With
+isolation off, samples are refused, never cut in this process.
+
+##### Arguments
+
+* `size` - The file's size in bytes.
+* `start_ms` - Where the sample starts, in milliseconds into the
+  file.
+* `length_ms` - How long it runs; at most
+  [`crate::pcm_wire::MAX_SAMPLE_MS`](pcm_wire.md#max_sample_ms), and less when the file ends
+  first.
+* `source` - Where the file's bytes come from.
+
+##### Errors
+
+[`MediaError::NotIsolated`](#mediaerror) when isolation is off or no worker was
+found, [`MediaError::Native`](#mediaerror) when the file cannot be decoded or
+encoded, [`MediaError::Io`](#mediaerror) when `source` fails, and
+[`MediaError::Worker`](#mediaerror) when the worker cannot be started, breaks the
+protocol, sends more than [`crate::MAX_SAMPLE_BYTES`](#max_sample_bytes), or
+takes longer than [`crate::SAMPLE_TIMEOUT`](#sample_timeout).
 
 #### MediaPool::run
 
@@ -1188,7 +1252,8 @@ where
 
 Serves one PCM decode over `input` and `output` (the worker's stdin and
 stdout): reads `Open`, then streams `Format`, `Pcm` frames and `End`, or
-`Failed` when the file cannot be decoded.
+`Failed` when the file cannot be decoded. Opened with `Sample` instead,
+streams `Format`, `Encoded` frames and `End`.
 
 #### Arguments
 
@@ -1197,7 +1262,8 @@ stdout): reads `Open`, then streams `Format`, `Pcm` frames and `End`, or
 
 #### Errors
 
-Why the stream broke: the host sent no `Open`, or a pipe failed. A file
+Why the stream broke: the host sent no `Open` or `Sample`, or a pipe
+failed. A file
 that cannot be decoded is not an error here: the host is told with
 `Failed`.
 
@@ -1400,6 +1466,23 @@ pub const MIN_OPUS_KBPS: u16 = 6;
 ```
 
 Lowest bitrate an Opus copy is encoded at, in kbit/s.
+
+### MAX_SAMPLE_BYTES
+
+```rust
+pub const MAX_SAMPLE_BYTES: usize = _;
+```
+
+Largest sample the host takes from a worker (16 MiB): ten minutes of
+mono MP3 at 64 kbit/s is under 5 MiB.
+
+### SAMPLE_TIMEOUT
+
+```rust
+pub const SAMPLE_TIMEOUT: Duration = _;
+```
+
+Longest a worker may take to cut one sample, start to end.
 
 ### JAIL_BIN_ENV
 

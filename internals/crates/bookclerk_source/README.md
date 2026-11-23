@@ -545,6 +545,13 @@ Fetch rich bibliographic metadata for one catalog product (no account).
 Default: none. Used when search/expand hits are lean (e.g. HTML scrape)
 and a title detail dialog needs narrator, runtime, description, etc.
 
+##### Errors
+
+Returns the source's error when it could not answer (an external
+guest's failed call included); `Ok(None)` means the store answered
+with no record this host accepts (none listed, or one whose media
+the guest did not declare).
+
 #### ContentSource::answers_catalog_detail_by_product_id
 
 ```rust
@@ -592,7 +599,10 @@ Default: [`Self::catalog_detail`](#contentsourcecatalog_detail) with the ISBN as
 
 ##### Errors
 
-Returns the source's error; external guests soft-fail to `Ok(None)`.
+Returns the source's error, including an external guest's failed
+call, so a caller can tell a store that did not answer from one
+that answered with no accepted record; callers that only gap-fill
+soft-fail on it themselves.
 
 #### ContentSource::expand_candidates
 

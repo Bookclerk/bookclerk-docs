@@ -7738,6 +7738,27 @@ Audible review sort modes for title detail.
 
 ***
 
+### TitleSample
+
+```ts
+type TitleSample = object;
+```
+
+The answer of `POST /api/discover/title-sample`.
+
+#### Properties
+
+##### sample\_path?
+
+```ts
+sample_path?: string | null;
+```
+
+Same-origin path of a storefront's public sample, served through this
+daemon; absent when no store offers one.
+
+***
+
 ### WorkFacet
 
 ```ts
@@ -8433,6 +8454,32 @@ Relative URL under `/api/library/editions/.../cover`.
 
 ***
 
+### editionSampleUrl()
+
+```ts
+function editionSampleUrl(editionId): string;
+```
+
+Builds the authenticated URL of a short MP3 sample the daemon cuts from
+an edition this node can play. Hearing it records no listening progress
+and does not feed recommendations; it answers 404 or 422 (`no_sample`)
+when there is nothing here to cut from and 503 when cutting is
+unavailable.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `editionId` | `string` | Edition id. |
+
+#### Returns
+
+`string`
+
+Relative URL under `/api/library/editions/.../sample`.
+
+***
+
 ### elevate()
 
 ```ts
@@ -8943,6 +8990,28 @@ Loads a page of Audible customer reviews for title detail infinite scroll.
 `Promise`\<[`TitleReviewsPage`](#titlereviewspage)\>
 
 Reviews page payload.
+
+***
+
+### fetchTitleSample()
+
+```ts
+function fetchTitleSample(body): Promise<string | null>;
+```
+
+Asks the storefronts that listed a title for their public audio sample.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `body` | [`TitleMetaQuery`](#titlemetaquery) | The title, as sent to title-meta. |
+
+#### Returns
+
+`Promise`\<`string` \| `null`\>
+
+The sample's same-origin path, or `null` when no store offers one.
 
 ***
 

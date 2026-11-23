@@ -312,6 +312,16 @@ Union of `PRICE_LOOKUPS` wire names.
 
 ***
 
+### RemoteMedia
+
+```ts
+type RemoteMedia = typeof REMOTE_MEDIAS[number];
+```
+
+Union of `REMOTE_MEDIAS` wire names.
+
+***
+
 ### ResolvedSqlType
 
 ```ts
@@ -1514,6 +1524,18 @@ const PRODUCT_API_VERSION: 3;
 ```
 
 Product ABI version (`plugin.toml` `api_version` / `describe().apiVersion`).
+
+***
+
+### REMOTE\_MEDIAS
+
+```ts
+const REMOTE_MEDIAS: readonly ["image", "audio"];
+```
+
+The kind of public media `CoverFetcher.fetchCovers` downloads.
+
+Ordinal-ordered `RemoteMedia` wire names (index = Cap'n Proto ordinal).
 
 ***
 

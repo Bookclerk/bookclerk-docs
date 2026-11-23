@@ -67,6 +67,12 @@ pub fn get_conditions(self) -> Result<Reader<'a, Owned>>
 pub fn has_conditions(&self) -> bool
 ```
 
+#### Reader::get_media
+
+```rust
+pub fn get_media(self) -> Result<RemoteMedia, NotInSchema>
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -159,6 +165,18 @@ pub fn init_conditions(self, size: u32) -> Builder<'a, Owned>
 
 ```rust
 pub fn has_conditions(&self) -> bool
+```
+
+#### Builder::get_media
+
+```rust
+pub fn get_media(self) -> Result<RemoteMedia, NotInSchema>
+```
+
+#### Builder::set_media
+
+```rust
+pub fn set_media(&mut self, value: RemoteMedia)
 ```
 
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`

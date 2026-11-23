@@ -4296,6 +4296,12 @@ Re-exports [RemoteLibraryEntrypoint](plugin.md#remotelibraryentrypoint)
 
 ***
 
+### RemoteMedia
+
+Re-exports [RemoteMedia](abi.md#remotemedia)
+
+***
+
 ### ResolvedAssignment
 
 Re-exports [ResolvedAssignment](generated.md#resolvedassignment)

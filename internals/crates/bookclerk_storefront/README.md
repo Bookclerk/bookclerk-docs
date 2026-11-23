@@ -145,6 +145,7 @@ pub struct CatalogHit {
     pub series_entries: Vec<SeriesEntry>,
     pub parent_product_id: Option<String>,
     pub rank_hint: Option<u32>,
+    pub sample_url: Option<String>,
 }
 ```
 
@@ -187,6 +188,9 @@ second Audnexus / purchase-hint round-trip for Discover detail).
 - `rank_hint`: The storefront's own 1-based rank for a catalog search hit across all
   result pages (see [`CatalogSearchOpts::rank_hint`](#catalogsearchoptsrank_hint)); `None` when the
   store does not rank its results. Catalog search merges stores by it.
+- `sample_url`: Public `https` URL of a short audio sample the storefront offers for
+  this edition; `None` when it has none. The host plays it through a
+  same-origin path, never by handing the URL to a client.
 
 #### CatalogHit::decode_html_entities
 

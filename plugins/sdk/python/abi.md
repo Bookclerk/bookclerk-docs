@@ -463,6 +463,7 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`Explicitness`](#explicitness) | constant | Whether an edition is marked as explicit (adult) content. A patron scope can hide explicit editions; `unknown` and `clean` editions stay visible. |
 | [`OfferedCodec`](#offeredcodec) | constant | Audio codec of a stream a store offers (`QualityOffer.codec`). Spelled as the host's probed codecs are, so an offer compares with a held file. |
 | [`OfferedAacProfile`](#offeredaacprofile) | constant | AAC profile of an offered AAC stream (`QualityOffer.aacProfile`). |
+| [`RemoteMedia`](#remotemedia) | constant | The kind of public media `CoverFetcher.fetchCovers` downloads. |
 | [`MetadataField`](#metadatafield) | constant | A field of a `MetadataFileRecord`. Dialects declare in the manifest which fields their format carries; a parsed record lists the ones its file states, and a render request lists the ones to write. |
 | [`NotificationSeverity`](#notificationseverity) | constant | How urgent a notification is. Routing rules carry a minimum severity. |
 | [`NotificationAudience`](#notificationaudience) | constant | Who a notification type is for. The account audience is reserved to the host; a plugin may declare only operational and patron types. |
@@ -4968,6 +4969,7 @@ One catalog / candidate hit returned by `searchCatalog`,
 - `parentProductId`: Product id of the parent podcast show, for a podcast episode. Omitted when absent (wire zero value).
 - `rankHint`: The storefront's own rank for this hit in `searchCatalog` results 1-based position in the store's ordering for the requested sort across all pages (page 2 of 20-hit pages starts at 21), or a store-wide popularity rank when the store has one. 0 means unranked. Catalog search merges stores by it for relevance and popularity sorts and puts unranked hits after ranked ones. Other catalog methods leave it 0. Omitted when absent (wire zero value).
 - `explicitness`: Whether the storefront marks the edition explicit (adult) content.
+- `sampleUrl`: Absolute `https://` URL of a short audio sample of this edition that the storefront offers publicly (a few minutes, in any format the media worker decodes). The host never hands it to a client: a book's details play it through a same-origin path, fetched by a `covers` plugin with `media = audio` and re-encoded in the media worker. Empty when the store has none. Omitted when absent (wire zero value).
 
 ### CatalogHits
 
@@ -6130,6 +6132,7 @@ Params of `CoverFetcher.fetchCovers`.
 - `urls`: Absolute `https://` URLs to fetch, at most `maxCoverUrls`; never empty. The host has already checked each one against its URL policy.
 - `maxBytes`: Largest body, in bytes, the host accepts for one image; at most `maxCoverBytes`. The sink refuses a larger body, which fails that URL only.
 - `conditions`: Conditional request headers per URL, in the same order as `urls`, from the host's cached copy. Empty, or shorter than `urls`, means the remaining URLs are fetched unconditionally.
+- `media`: What the URLs name: cover art (the default) or a storefront's audio sample (`CatalogHit.sampleUrl`). A fetcher sends a matching `Accept` header and refuses a body whose `Content-Type` names something else; the host checks and re-encodes either kind regardless.
 
 ### CoverCondition
 
@@ -8868,6 +8871,14 @@ OfferedAacProfile = Literal['unknown', 'lc', 'he', 'heV2', 'xhe']
 ```
 
 AAC profile of an offered AAC stream (`QualityOffer.aacProfile`).
+
+### RemoteMedia
+
+```python
+RemoteMedia = Literal['image', 'audio']
+```
+
+The kind of public media `CoverFetcher.fetchCovers` downloads.
 
 ### MetadataField
 

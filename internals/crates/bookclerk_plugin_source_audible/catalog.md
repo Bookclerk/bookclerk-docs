@@ -12,6 +12,7 @@ Uses [`bookclerk_audible_catalog`](../bookclerk_audible_catalog/README.md) publi
 | [`purchase_answer`](#purchase_answer) | function | Resolve a title's Audible product and price, with every listing a title search found. |
 | [`purchase_hints`](#purchase_hints) | function | Resolves purchase hints for several titles, pricing them together. |
 | [`purchase_answers`](#purchase_answers) | function | Resolves several titles, pricing them together, with each title search's records. |
+| [`catalog_detail`](#catalog_detail) | function | The public catalog record for one ASIN (`catalogDetail` by product id): its bibliographic fields, cover and audio sample. |
 | [`TITLE_RECORDS`](#title_records) | constant | Most listings one title search answers as records. A page of cards stays within a couple of `PRICE_BATCH_ASINS` price requests. |
 | [`PRICE_BATCH_ASINS`](#price_batch_asins) | constant | Most ASINs the public catalog prices in one `products` request. |
 | [`RESOLVE_BUDGET`](#resolve_budget) | constant | How long `purchase_hints` keeps starting catalog searches for titles without an ASIN. Well under the host's 10 s batch deadline, so the price request for every resolved title still lands in time. |
@@ -125,6 +126,30 @@ card.
 
 Returns `SourceError::RateLimited` when Audible asks to slow down;
 a search that fails otherwise answers nothing for that title.
+
+### catalog_detail
+
+```rust
+pub async fn catalog_detail(product_id: &str) -> Result<Option<CatalogHit>>
+```
+
+The public catalog record for one ASIN (`catalogDetail` by product id):
+its bibliographic fields, cover and audio sample.
+
+#### Arguments
+
+* `product_id` - The ASIN.
+
+#### Returns
+
+`None` when `product_id` is not an ASIN, or every marketplace answered
+within eight seconds and none lists it.
+
+#### Errors
+
+Returns an error when no HTTP client can be built, or when no
+marketplace listed the product and one of them failed or the eight
+seconds ran out first, so the product's absence is not settled.
 
 ## Constants
 

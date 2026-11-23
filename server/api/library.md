@@ -27663,6 +27663,421 @@ Schema:
 
 A `text/plain` body: a string.
 
+## `GET /api/library/editions/{id}/sample`
+
+Plays a few minutes of an edition this node holds.
+
+**Access:** The operator, or any library session, including a library card (refused with 403 `transport_insecure` off loopback without TLS, or `clerk_sign_in_unavailable` where remote installs are not served).
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clerkToken`
+
+### Parameters
+
+- `id` (path) *string*, **required** — Edition id (an `id` in a work's `editions`).
+- `Range` (header) *string or null* — One byte range (`bytes=A-B`, `bytes=A-` or `bytes=-N`); anything else reads the whole sample.
+
+### Responses
+
+- `200` — The sample: mono MP3, five minutes or the rest of the first file. Body: [`BinaryBody`](schemas.md#binarybody) (`audio/mpeg`)
+- `206` — The requested byte range, with `Content-Range`. Body: [`BinaryBody`](schemas.md#binarybody) (`audio/mpeg`)
+- `401` — The session ended. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `403` — The session has no library user. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `clerk_sign_in_unavailable`. Body: [`ErrorMessage`](schemas.md#errormessage) or [`ErrorJson`](schemas.md#errorjson) or [`ErrorJson`](schemas.md#errorjson) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `404` — No such edition (`edition … not found`), or this node holds none of its audio (`no_sample`). Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `416` — The range starts at or past the end of the sample (`range_not_satisfiable`); `Content-Range` states the size. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `422` — The edition's audio could not be decoded (`no_sample`). Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The library could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — No confined media worker or storage is available; retry (`unavailable`). When the sign-in could not be checked because the library did not answer in time, the answer is `session_check_unavailable` instead, with `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorMessage`](schemas.md#errormessage) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/library/editions/<id>/sample' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/library/editions/<id>/sample' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/library/editions/<id>/sample",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/library/editions/<id>/sample", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/library/editions/<id>/sample")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The sample: mono MP3, five minutes or the rest of the first file. The body is binary (`audio/mpeg`).
+
+Schema:
+
+A `audio/mpeg` body: binary bytes.
+
+Status `206`: The requested byte range, with `Content-Range`. The body is binary (`audio/mpeg`).
+
+Schema:
+
+A `audio/mpeg` body: binary bytes.
+
+Status `401`: The session ended.
+
+```json
+{
+  "error": "sign in again"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `403`: The session has no library user. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `clerk_sign_in_unavailable`.
+
+```json
+{
+  "error": "clerk_sign_in_unavailable",
+  "message": "This library does not accept clerks on this address.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "anyOf": [
+    {
+      "anyOf": [
+        {
+          "anyOf": [
+            {
+              "type": "object",
+              "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+              "required": [
+                "error"
+              ],
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "description": "What went wrong, as the handler describes it.",
+                  "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+              "required": [
+                "error",
+                "message",
+                "status"
+              ],
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "description": "Machine slug (same as [`ErrorBody::code`]).",
+                  "example": "not_found"
+                },
+                "message": {
+                  "type": "string",
+                  "description": "Operator-facing explanation.",
+                  "example": "That page or resource was not found."
+                },
+                "status": {
+                  "type": "integer",
+                  "format": "int32",
+                  "description": "Numeric HTTP status (duplicates the response status for clients).",
+                  "example": 404,
+                  "minimum": 0
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+          "required": [
+            "error",
+            "message",
+            "status"
+          ],
+          "properties": {
+            "error": {
+              "type": "string",
+              "description": "Machine slug (same as [`ErrorBody::code`]).",
+              "example": "not_found"
+            },
+            "message": {
+              "type": "string",
+              "description": "Operator-facing explanation.",
+              "example": "That page or resource was not found."
+            },
+            "status": {
+              "type": "integer",
+              "format": "int32",
+              "description": "Numeric HTTP status (duplicates the response status for clients).",
+              "example": 404,
+              "minimum": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "object",
+      "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
+    }
+  ]
+}
+```
+
+Status `404`: No such edition (`edition … not found`), or this node holds none of its audio (`no_sample`).
+
+```json
+{
+  "error": "no_sample"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `416`: The range starts at or past the end of the sample (`range_not_satisfiable`); `Content-Range` states the size.
+
+```json
+{
+  "error": "range_not_satisfiable"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `422`: The edition's audio could not be decoded (`no_sample`).
+
+```json
+{
+  "error": "no_sample"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `500`: The library could not be read.
+
+```json
+{
+  "error": "the library could not be read"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `503`: No confined media worker or storage is available; retry (`unavailable`). When the sign-in could not be checked because the library did not answer in time, the answer is `session_check_unavailable` instead, with `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "What went wrong, as the handler describes it.",
+          "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
+    }
+  ]
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
 ## `GET /api/uploads`
 
 Lists the caller's uploads, newest first.

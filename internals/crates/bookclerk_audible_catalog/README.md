@@ -78,6 +78,7 @@ pub struct CatalogProduct {
     pub rating_overall: Option<f64>,
     pub rating_count: Option<i64>,
     pub is_explicit: Option<bool>,
+    pub sample_url: Option<String>,
 }
 ```
 
@@ -121,6 +122,9 @@ One Audible catalog product (public search hit).
 - `rating_count`: Count of star ratings (`rating.num_ratings`) when present.
 - `is_explicit`: Audible's adult flag (`is_adult_product`, in `product_attrs`):
   `Some(true)` for explicit content, `None` when the reply omits it.
+- `sample_url`: Public `https` URL of the title's audio sample (`sample_url`, in the
+  `media` response group); `None` when the reply has none or it is not
+  an absolute `https` URL.
 
 Implements: `Clone`, `Debug`, `PartialEq`
 

@@ -563,6 +563,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`generated::Explicitness`](generated.md#explicitness)
 - [`generated::OfferedCodec`](generated.md#offeredcodec)
 - [`generated::OfferedAacProfile`](generated.md#offeredaacprofile)
+- [`generated::RemoteMedia`](generated.md#remotemedia)
 - [`generated::MetadataField`](generated.md#metadatafield)
 - [`generated::NotificationSeverity`](generated.md#notificationseverity)
 - [`generated::NotificationAudience`](generated.md#notificationaudience)

@@ -157,6 +157,7 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`Explicitness`](#explicitness) | enum | Whether an edition is marked as explicit (adult) content. A patron scope can hide explicit editions; `unknown` and `clean` editions stay visible. |
 | [`OfferedCodec`](#offeredcodec) | enum | Audio codec of a stream a store offers (`QualityOffer.codec`). Spelled as the host's probed codecs are, so an offer compares with a held file. |
 | [`OfferedAacProfile`](#offeredaacprofile) | enum | AAC profile of an offered AAC stream (`QualityOffer.aacProfile`). |
+| [`RemoteMedia`](#remotemedia) | enum | The kind of public media `CoverFetcher.fetchCovers` downloads. |
 | [`MetadataField`](#metadatafield) | enum | A field of a `MetadataFileRecord`. Dialects declare in the manifest which fields their format carries; a parsed record lists the ones its file states, and a render request lists the ones to write. |
 | [`NotificationSeverity`](#notificationseverity) | enum | How urgent a notification is. Routing rules carry a minimum severity. |
 | [`NotificationAudience`](#notificationaudience) | enum | Who a notification type is for. The account audience is reserved to the host; a plugin may declare only operational and patron types. |
@@ -1631,6 +1632,7 @@ pub struct CatalogHit {
     pub parent_product_id: Option<String>,
     pub rank_hint: Option<u32>,
     pub explicitness: Explicitness,
+    pub sample_url: Option<String>,
 }
 ```
 
@@ -1687,6 +1689,13 @@ One catalog / candidate hit returned by `searchCatalog`,
   hits after ranked ones. Other catalog methods leave it 0.
   `None` when absent (wire zero value).
 - `explicitness`: Whether the storefront marks the edition explicit (adult) content.
+- `sample_url`: Absolute `https://` URL of a short audio sample of this edition that
+  the storefront offers publicly (a few minutes, in any format the media
+  worker decodes). The host never hands it to a client: a book's details
+  play it through a same-origin path, fetched by a `covers` plugin with
+  `media = audio` and re-encoded in the media worker. Empty when the store
+  has none.
+  `None` when absent (wire zero value).
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `PartialEq`, `Serialize`
 
@@ -2645,6 +2654,7 @@ pub struct CoverFetchParams {
     pub urls: Vec<String>,
     pub max_bytes: u32,
     pub conditions: Vec<CoverCondition>,
+    pub media: RemoteMedia,
 }
 ```
 
@@ -2660,6 +2670,10 @@ Params of `CoverFetcher.fetchCovers`.
 - `conditions`: Conditional request headers per URL, in the same order as `urls`, from
   the host's cached copy. Empty, or shorter than `urls`, means the
   remaining URLs are fetched unconditionally.
+- `media`: What the URLs name: cover art (the default) or a storefront's audio
+  sample (`CatalogHit.sampleUrl`). A fetcher sends a matching `Accept`
+  header and refuses a body whose `Content-Type` names something else;
+  the host checks and re-encodes either kind regardless.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -4477,6 +4491,40 @@ pub fn from_wire_name(name: &str) -> Option<Self>
 Parse a wire name; `None` for unknown strings.
 
 Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<OfferedAacProfile>`, `Hash`, `PartialEq`, `Serialize`
+
+### RemoteMedia
+
+```rust
+pub enum RemoteMedia {
+    Image,
+    Audio,
+}
+```
+
+The kind of public media `CoverFetcher.fetchCovers` downloads.
+
+**Variants**
+
+- `Image`: Cover art or another image.
+- `Audio`: A short audio sample of a book.
+
+#### RemoteMedia::wire_name
+
+```rust
+pub fn wire_name(self) -> &'static str
+```
+
+Wire name of this enumerant (matches the TypeScript / Python SDK literal).
+
+#### RemoteMedia::from_wire_name
+
+```rust
+pub fn from_wire_name(name: &str) -> Option<Self>
+```
+
+Parse a wire name; `None` for unknown strings.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<RemoteMedia>`, `Hash`, `PartialEq`, `Serialize`
 
 ### MetadataField
 

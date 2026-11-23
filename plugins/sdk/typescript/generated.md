@@ -1357,6 +1357,20 @@ ratingOverall?: number;
 Aggregate rating when known.
 Omitted when absent (wire zero value).
 
+##### sampleUrl?
+
+```ts
+sampleUrl?: string;
+```
+
+Absolute `https://` URL of a short audio sample of this edition that
+the storefront offers publicly (a few minutes, in any format the media
+worker decodes). The host never hands it to a client: a book's details
+play it through a same-origin path, fetched by a `covers` plugin with
+`media = audio` and re-encoded in the media worker. Empty when the store
+has none.
+Omitted when absent (wire zero value).
+
 ##### seriesEntries
 
 ```ts
@@ -2277,6 +2291,17 @@ maxBytes: number;
 Largest body, in bytes, the host accepts for one image; at most
 `maxCoverBytes`. The sink refuses a larger body, which fails that URL
 only.
+
+##### media
+
+```ts
+media: "audio" | "image";
+```
+
+What the URLs name: cover art (the default) or a storefront's audio
+sample (`CatalogHit.sampleUrl`). A fetcher sends a matching `Accept`
+header and refuses a body whose `Content-Type` names something else;
+the host checks and re-encodes either kind regardless.
 
 ##### urls
 
@@ -13415,6 +13440,12 @@ Re-exports [PortalAuthMode](abi.md#portalauthmode)
 ### PriceLookup
 
 Re-exports [PriceLookup](abi.md#pricelookup)
+
+***
+
+### RemoteMedia
+
+Re-exports [RemoteMedia](abi.md#remotemedia)
 
 ***
 

@@ -106,6 +106,7 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`resolve_title_meta`](#resolve_title_meta) | function | Resolve public metadata for a title detail dialog. |
 | [`resolve_title_meta_batch`](#resolve_title_meta_batch) | function | Resolve many title-meta queries with bounded concurrency (order preserved). |
 | [`resolve_title_reviews`](#resolve_title_reviews) | function | Resolve one page of Audible customer reviews for infinite scroll. |
+| [`resolve_title_sample`](#resolve_title_sample) | function | The public audio sample a storefront offers for a title, for the "Play sample" control of a title's details. |
 | [`pool_wish_editions`](#pool_wish_editions) | function | Asks each store about the editions a wish names and records the answers in the shared pool. |
 | [`record_wish_member_offers`](#record_wish_member_offers) | function | Stores the member prices `hints` quote for editions already pooled. |
 | [`EMBED_PAGE_WORKS`](#embed_page_works) | constant | Works read per page by `embed_dirty_works`; also the most texts one embedder call receives. |
@@ -2963,6 +2964,46 @@ On success, the inner `TitleReviewsPage` value.
 #### Errors
 
 Returns an error when the underlying I/O, parse, network, or store operation fails.
+
+### resolve_title_sample
+
+```rust
+pub async fn resolve_title_sample(
+    query: &TitleMetaQuery,
+    sources: &SourceRegistry,
+    usable: fn(&str) -> bool,
+) -> Option<String>
+```
+
+The public audio sample a storefront offers for a title, for the
+"Play sample" control of a title's details.
+
+Asks the same stores, in the same order, as the title-meta store fill
+([`plan_title_meta_fill`](#plan_title_meta_fill)): the listing stores that declared
+`detailByProductId` by their own product ids, then the stores that
+declared `detailByIsbn` by the title's ISBN. The first catalog record
+with a `sample_url` wins; a store that fails is skipped, and the calls
+together stop after ten seconds. A URL is cached for six hours only when
+it is the first store's answer in that order, and is checked against
+`usable` again on every hit; a miss is cached only when every store
+answered and none offered a sample at all. A timeout, a failed store or
+a URL `usable` refused leaves nothing cached (a later store's URL is
+still returned), so callers with different rules never see each
+other's choice.
+
+#### Arguments
+
+* `query` - The title, as the details dialog sends title-meta.
+* `sources` - Loaded storefronts.
+* `usable` - Whether the caller can serve a sample URL (for the
+  daemon, one it can sign into a path); a record whose URL is not
+  usable is passed over for the next store's.
+
+#### Returns
+
+The sample's URL as the store gave it; the caller signs it into a
+same-origin path and never hands it to a client. `None` when no store
+offered a usable one.
 
 ### pool_wish_editions
 

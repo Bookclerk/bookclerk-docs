@@ -28,6 +28,7 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | [`Explicitness`](#explicitness) | enum |  |
 | [`OfferedCodec`](#offeredcodec) | enum |  |
 | [`OfferedAacProfile`](#offeredaacprofile) | enum |  |
+| [`RemoteMedia`](#remotemedia) | enum |  |
 | [`MetadataField`](#metadatafield) | enum |  |
 | [`NotificationSeverity`](#notificationseverity) | enum |  |
 | [`NotificationAudience`](#notificationaudience) | enum |  |
@@ -766,6 +767,17 @@ pub enum OfferedAacProfile {
 ```
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<OfferedAacProfile>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
+
+### RemoteMedia
+
+```rust
+pub enum RemoteMedia {
+    Image = 0,
+    Audio = 1,
+}
+```
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<RemoteMedia>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
 
 ### MetadataField
 

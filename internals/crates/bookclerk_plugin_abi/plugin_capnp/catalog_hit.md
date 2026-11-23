@@ -301,6 +301,18 @@ pub fn get_rank_hint(self) -> u32
 pub fn get_explicitness(self) -> Result<Explicitness, NotInSchema>
 ```
 
+#### Reader::get_sample_url
+
+```rust
+pub fn get_sample_url(self) -> Result<Reader<'a>>
+```
+
+#### Reader::has_sample_url
+
+```rust
+pub fn has_sample_url(&self) -> bool
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -861,6 +873,30 @@ pub fn get_explicitness(self) -> Result<Explicitness, NotInSchema>
 
 ```rust
 pub fn set_explicitness(&mut self, value: Explicitness)
+```
+
+#### Builder::get_sample_url
+
+```rust
+pub fn get_sample_url(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_sample_url
+
+```rust
+pub fn set_sample_url(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_sample_url
+
+```rust
+pub fn init_sample_url(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_sample_url
+
+```rust
+pub fn has_sample_url(&self) -> bool
 ```
 
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`

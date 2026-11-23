@@ -207,6 +207,7 @@ Books in the library, scans and acquires.
 | [`GET /api/library/editions/{id}/playback`](library.md#get-apilibraryeditionsidplayback) | Reads whether and what the caller may play of an edition, with their own progress and bookmarks. |
 | [`GET /api/library/editions/{id}/bookmarks`](library.md#get-apilibraryeditionsidbookmarks) | Lists the caller's bookmarks in an edition. |
 | [`POST /api/library/editions/{id}/bookmarks`](library.md#post-apilibraryeditionsidbookmarks) | Adds a bookmark of the caller's in an edition. |
+| [`GET /api/library/editions/{id}/sample`](library.md#get-apilibraryeditionsidsample) | Plays a few minutes of an edition this node holds. |
 | [`GET /api/uploads`](library.md#get-apiuploads) | Lists the caller's uploads, newest first. |
 | [`POST /api/uploads`](library.md#post-apiuploads) | Starts an upload from a manifest of the files to come. |
 | [`GET /api/uploads/review`](library.md#get-apiuploadsreview) | Lists uploaded books stored under a new local edition because nothing strong identified them, for an Administrator to check and, when they are a known edition, pin. |
@@ -241,6 +242,8 @@ Recommendations, catalog search and title metadata.
 | [`GET /api/covers/{token}/{size}`](discover.md#get-apicoverstokensize) | Serves one size of a cover the API linked to. |
 | [`GET /api/images/{token}`](discover.md#get-apiimagestoken) | Serves a signed image that is not a cover as a 128 px JPEG. |
 | [`GET /api/stores/{id}/icon`](discover.md#get-apistoresidicon) | Serves a storefront's or integration's icon as a 128 px JPEG through the cover service. |
+| [`GET /api/samples/{token}`](discover.md#get-apisamplestoken) | Plays a storefront's sample of a title. |
+| [`POST /api/discover/title-sample`](discover.md#post-apidiscovertitle-sample) | Finds a storefront's sample of a title. |
 | [`GET /api/discover/status`](discover.md#get-apidiscoverstatus) | Reports whether the caller's Discover shelves are stored yet, so provisioning can wait for a new visitor's shelves before sending them in. |
 | [`POST /api/discover/refresh`](discover.md#post-apidiscoverrefresh) | Queues a storefront fetch and ranking for the caller's shelves now, as the Discover page's Refresh button asks. Unchanged store calls answer from the day's cache, so a refresh is cheap; a fetch already waiting absorbs the request. |
 | [`GET /api/discover/recommendations`](discover.md#get-apidiscoverrecommendations) | Returns the caller's stored Discover shelves; never builds them on the request. |
