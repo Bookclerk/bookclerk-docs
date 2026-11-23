@@ -58,6 +58,7 @@ pub struct RouteConnect {
     pub auto_responses: Vec<RouteAutoResponse>,
     pub attachment: Vec<u8>,
     pub trust_anchors: Vec<String>,
+    pub server_name: String,
 }
 ```
 
@@ -72,6 +73,9 @@ pub struct RouteConnect {
 - `auto_responses`: Heartbeats the broker answers without waking the guest.
 - `attachment`: Initial attachment, base64.
 - `trust_anchors`: `tls://` only: DER root certificates, each base64.
+- `server_name`: `tls://` only: the DNS name to send as SNI and verify the certificate
+  against, when it differs from the URL's host. It must be on a `tcp`
+  grant for the URL's port too.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 

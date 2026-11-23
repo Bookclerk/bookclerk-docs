@@ -10937,6 +10937,19 @@ protocols: string[];
 Requested subprotocols, at most `maxSocketHeaders`; on a `tls://`
 stream, the ALPN protocol ids to offer (visible ASCII, 1 to 255 bytes).
 
+##### serverName
+
+```ts
+serverName: string;
+```
+
+`tls://` only: the DNS name to send as SNI and to check the server's
+certificate against, for an endpoint reached at one name that answers
+for another (a Cloudflare Tunnel edge, dialed at `region1.v2.argotunnel.com`
+and serving `h2.cftunnel.com`). It must be on a `tcp` grant for the
+URL's port too, so it can't route past the grant by name. At most
+`maxSocketServerNameBytes`; empty uses the URL's host.
+
 ##### trustAnchors
 
 ```ts

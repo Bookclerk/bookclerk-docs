@@ -21,6 +21,7 @@ the unit tests drive the code the broker runs.
 | [`check_socket_close`](#check_socket_close) | function | Normalizes a close request into the code and reason the broker sends. |
 | [`parse_socket_url`](#parse_socket_url) | function | Parses a socket URL into its target. |
 | [`validate_socket_connect`](#validate_socket_connect) | function | Validates a whole `Sockets.connect` request. |
+| [`check_server_name`](#check_server_name) | function | Checks a `tls://` request's server name: empty, or a DNS name of at most `MAX_SOCKET_SERVER_NAME_BYTES` whose dot-separated labels are 1 to 63 letters, digits and inner hyphens. IP literals, punycode (`xn--`) labels and a numeric last label are refused: the name is matched against certificates and grants as text, so it must be one spelling. |
 | [`check_trust_anchors`](#check_trust_anchors) | function | Checks a `tls://` request's trust anchors: at most `MAX_SOCKET_TRUST_ANCHORS`, each a DER certificate of at most `MAX_SOCKET_TRUST_ANCHOR_BYTES` whose outer SEQUENCE spans exactly its bytes. The broker's certificate parser decides the rest. |
 | [`is_der_certificate_shape`](#is_der_certificate_shape) | function | True when `der` is at most `MAX_SOCKET_TRUST_ANCHOR_BYTES` and is one DER SEQUENCE (tag `0x30`, definite minimal length) covering all of it. |
 | [`is_alpn_id`](#is_alpn_id) | function | True when `id` is an ALPN protocol id the broker offers: 1 to `MAX_SOCKET_ALPN_BYTES` bytes of visible ASCII. |
@@ -206,6 +207,22 @@ Returns `invalid_params` or `payload_too_large` naming the first problem:
 the URL, too many or malformed subprotocols or headers, a header the broker
 owns, a header value with control bytes, too many or oversized heartbeat
 frames, or an oversized attachment.
+
+### check_server_name
+
+```rust
+pub fn check_server_name(name: &str) -> Result<()>
+```
+
+Checks a `tls://` request's server name: empty, or a DNS name of at most
+[`MAX_SOCKET_SERVER_NAME_BYTES`](README.md#max_socket_server_name_bytes) whose dot-separated labels are 1 to 63
+letters, digits and inner hyphens. IP literals, punycode (`xn--`)
+labels and a numeric last label are refused: the name is matched
+against certificates and grants as text, so it must be one spelling.
+
+#### Errors
+
+`invalid_params` naming the problem.
 
 ### check_trust_anchors
 

@@ -1353,6 +1353,16 @@ Most request headers, and separately subprotocols, on one `Sockets.connect`.
 
 ***
 
+### MAX\_SOCKET\_SERVER\_NAME\_BYTES
+
+```ts
+const MAX_SOCKET_SERVER_NAME_BYTES: 253;
+```
+
+Longest `SocketConnectRequest.serverName`, in bytes (a DNS name's limit).
+
+***
+
 ### MAX\_SOCKET\_TRUST\_ANCHOR\_BYTES
 
 ```ts

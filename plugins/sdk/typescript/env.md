@@ -1149,6 +1149,18 @@ Subprotocols to request (`Sec-WebSocket-Protocol`), at most 16. For a
 `tls://` stream, the ALPN ids to offer instead (1 to 255 visible ASCII
 bytes each).
 
+##### serverName?
+
+```ts
+serverName?: string;
+```
+
+`tls://` only: the DNS name to send as SNI and to check the server's
+certificate against, for an endpoint dialed at one name that answers for
+another. It must be on a `tcp` grant for the URL's port too. At most
+`MAX_SOCKET_SERVER_NAME_BYTES`; IP addresses and `xn--` labels are
+refused. Defaults to the URL's host.
+
 ##### trustAnchors?
 
 ```ts

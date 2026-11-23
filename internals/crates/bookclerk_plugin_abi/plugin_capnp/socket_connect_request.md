@@ -109,6 +109,18 @@ pub fn get_trust_anchors(self) -> Result<Reader<'a>>
 pub fn has_trust_anchors(&self) -> bool
 ```
 
+#### Reader::get_server_name
+
+```rust
+pub fn get_server_name(self) -> Result<Reader<'a>>
+```
+
+#### Reader::has_server_name
+
+```rust
+pub fn has_server_name(&self) -> bool
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -285,6 +297,30 @@ pub fn init_trust_anchors(self, size: u32) -> Builder<'a>
 
 ```rust
 pub fn has_trust_anchors(&self) -> bool
+```
+
+#### Builder::get_server_name
+
+```rust
+pub fn get_server_name(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_server_name
+
+```rust
+pub fn set_server_name(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_server_name
+
+```rust
+pub fn init_server_name(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_server_name
+
+```rust
+pub fn has_server_name(&self) -> bool
 ```
 
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
