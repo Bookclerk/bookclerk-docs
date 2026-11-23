@@ -29,7 +29,6 @@ See `docs/plugins/README.md` for manifest fields and runtime requirements.
 | [`check_main_module_source`](#check_main_module_source) | function | Check a workerd main module against the v3 author model. |
 | [`check_plugin`](#check_plugin) | function | Validate a plugin directory and its `plugin.toml`. |
 | [`sync_embed`](#sync_embed) | function | Vendor SDK sources under `modules/` for offline workerd archives. |
-| [`format_manifest`](#format_manifest) | function | Emit canonical TOML matching Rust `format_manifest` gold fixtures. |
 | [`fmt_plugin_toml`](#fmt_plugin_toml) | function | Format `plugin.toml` in place, or check that it is already canonical. |
 | [`package_plugin`](#package_plugin) | function | Pack a plugin into a `.tar.gz` archive and update `SHA256SUMS`. |
 | [`env_properties_for`](#env_properties_for) | function | Compute the `Env` protocol members for a validated manifest. |
@@ -316,6 +315,9 @@ def validate_manifest(m: dict[str, Any]) -> None
 
 Validate a parsed `plugin.toml` mapping.
 
+Checks run in the host's order (`PluginManifest::validate`), so a
+manifest that breaks two rules gets the same first error everywhere.
+
 **Args**
 
 - `m`: Manifest dictionary (typically from `tomllib.loads`).
@@ -413,24 +415,6 @@ Status string describing the synced path (and flag updates, if any).
 ```python
 >>> # print(sync_embed(Path("./my-python-workerd-plugin")))
 ```
-
-### format_manifest
-
-```python
-def format_manifest(m: dict[str, Any]) -> str
-```
-
-Emit canonical TOML matching Rust `format_manifest` gold fixtures.
-
-Flags are emitted as written. This function does not insert the Python pair.
-
-**Args**
-
-- `m`: Validated manifest dictionary.
-
-**Returns**
-
-Canonical `plugin.toml` text ending with a newline.
 
 ### fmt_plugin_toml
 
