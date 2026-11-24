@@ -459,6 +459,7 @@ See `docs/adr/control-plane.md`.
 | [`job_semaphores`](#job_semaphores) | function | The library semaphores `job` counts against under `limits`. |
 | [`job_source_plugin_key`](#job_source_plugin_key) | function | The one plugin whose source guest runs `job`, or `None` when the job alone does not name exactly one. |
 | [`node_can_run_job`](#node_can_run_job) | function | True when `node_id` can run a job that requires `requires`. |
+| [`prefer_metadata_providers`](#prefer_metadata_providers) | function | Adds the metadata providers an acquire prefers to `requires`. |
 | [`resolve_job_requirements`](#resolve_job_requirements) | function | The instances a new job must find on its claiming node. |
 | [`adopt_library_sign_in`](#adopt_library_sign_in) | function | Takes the library's sign-in of an account it answered a first push with (`keeper_reconcile`) as this install's own. |
 | [`apply_keeper_update`](#apply_keeper_update) | function | Applies a keeper branch's push of one account's newest sign-in. |
@@ -12444,6 +12445,47 @@ True when `node_id` can run a job that requires `requires`.
 Each instance needs a deployment on the node that should run and an
 observation from the node with the guest up. An empty list is always
 satisfied; an unknown node or an unparsable id never is.
+
+#### Errors
+
+Returns an error when a read fails.
+
+### prefer_metadata_providers
+
+```rust
+pub async fn prefer_metadata_providers(
+    store: &LibraryStore,
+    requires: Vec<String>,
+    provider_keys: &BTreeSet<String>,
+) -> Result<Vec<String>>
+```
+
+Adds the metadata providers an acquire prefers to `requires`.
+
+An acquire's plain-audio overlay (a provider's chapters, cover and tags)
+asks only the providers on the node that runs it, so each library
+instance of a key in `provider_keys` is added when some node runs it,
+with its guest up, together with everything already required. A
+provider that fits on no such node (it is down, or deployed only where
+the required outputs are not) is left out rather than holding the
+acquire back; the acquire then runs without its overlay, as it would on
+a node without providers.
+
+The preference holds while the job waits: the requirements sweep
+resolves node-bound outputs only, so it treats a provider as a dropped
+requirement and removes it once the grace period ends, and claims accept
+the extra instances (a stored set that covers the current one).
+
+#### Arguments
+
+* `store` - The library store.
+* `requires` - What [`resolve_job_requirements`](#resolve_job_requirements) recorded for the
+  acquire.
+* `provider_keys` - Plugin keys of the metadata providers.
+
+#### Returns
+
+`requires` with the fitting providers added, sorted.
 
 #### Errors
 
