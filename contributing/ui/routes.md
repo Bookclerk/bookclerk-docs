@@ -216,6 +216,16 @@ The library's consent page for a player app's browser sign-in.
 
 ***
 
+### RESET\_PASSWORD\_PATH
+
+```ts
+const RESET_PASSWORD_PATH: "/reset-password" = "/reset-password";
+```
+
+The page a mailed password-reset link opens.
+
+***
+
 ### VERIFY\_EMAIL\_PATH
 
 ```ts
@@ -304,6 +314,28 @@ True when this document is the magic-link invite route.
 `boolean`
 
 True for `/invite` (trailing slash ignored).
+
+***
+
+### isResetPasswordPath()
+
+```ts
+function isResetPasswordPath(pathname?): boolean;
+```
+
+True when this document is the page a mailed password-reset link opens.
+
+#### Parameters
+
+| Parameter | Type | Default value | Description |
+| ------ | ------ | ------ | ------ |
+| `pathname?` | `string` | `window.location.pathname` | Document pathname. |
+
+#### Returns
+
+`boolean`
+
+True for `/reset-password` (trailing slash ignored).
 
 ***
 

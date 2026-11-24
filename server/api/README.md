@@ -114,6 +114,11 @@ Sign-in, sessions, passkeys, TOTP and the operator's elevation.
 | [`DELETE /api/auth/totp`](auth.md#delete-apiauthtotp) | Disables TOTP after recent reauth and deletes sealed secrets. |
 | [`GET /api/auth/mfa-policy`](auth.md#get-apiauthmfa-policy) | Current MFA policy (`require_second_factor`). |
 | [`PUT /api/auth/mfa-policy`](auth.md#put-apiauthmfa-policy) | Persists `daemon.auth.require_second_factor` to `config.toml`. |
+| [`GET /api/auth/password-reset`](auth.md#get-apiauthpassword-reset) | Whether self-service password reset is on, for the sign-in page. |
+| [`POST /api/auth/password-reset`](auth.md#post-apiauthpassword-reset) | Asks for a password-reset link. When an enabled account has the address verified, a link that works once for 30 minutes is mailed to it, at most one every five minutes. The answer and its timing are the same whether or not an account has the address. |
+| [`POST /api/auth/password-reset/check`](auth.md#post-apiauthpassword-resetcheck) | Checks a reset link without using it, and says which second factor finishing it asks for. |
+| [`POST /api/auth/password-reset/passkey`](auth.md#post-apiauthpassword-resetpasskey) | Begins the passkey step of a reset, for an account whose link asks for a passkey. The challenge works once, for five minutes. |
+| [`POST /api/auth/password-reset/finish`](auth.md#post-apiauthpassword-resetfinish) | Finishes a reset: checks the account's second factor when it has one, uses the link up, sets the password, signs every device out and mails a password-changed notice to the verified address. |
 | [`GET /api/auth/player-passwords`](auth.md#get-apiauthplayer-passwords) | Lists the caller's player passwords. |
 | [`POST /api/auth/player-passwords`](auth.md#post-apiauthplayer-passwords) | Makes a player password for the caller and shows it once. |
 | [`DELETE /api/auth/player-passwords/{id}`](auth.md#delete-apiauthplayer-passwordsid) | Removes one of the caller's player passwords and signs out every app it signed in. |

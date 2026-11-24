@@ -102,6 +102,7 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`oidc_refresh_tokens`](oidc_refresh_tokens.md): SeaORM entity for the `oidc_refresh_tokens` — refresh tokens bound to a User.
 - [`oidc_rp_states`](oidc_rp_states.md): SeaORM entity for OIDC relying-party authorize state (PKCE + nonce).
 - [`operator_sessions`](operator_sessions.md): SeaORM entity for the `operator_sessions` table.
+- [`password_resets`](password_resets.md): SeaORM entity for `password_resets`: the live password-reset link of one user, stored as a hash.
 - [`patron_controls`](patron_controls.md): SeaORM entity for the `patron_controls` table: one Member's overrides of the library's default member controls, set by an Administrator.
 - [`patron_scope_keys`](patron_scope_keys.md): SeaORM entity for the `patron_scope_keys` table: the include and exclude values of a patron scope as rows, so the Library filter joins them instead of binding one parameter per rule.
 - [`patron_scopes`](patron_scopes.md): SeaORM entity for the `patron_scopes` table: a Member's own patron scope, set by an Administrator.

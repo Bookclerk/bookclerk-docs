@@ -35,6 +35,12 @@ A paused destination is skipped.
 | [`VerifyEmailToken`](#verifyemailtoken) | struct | The token of a verification link, as a patron's browser sends it back: exactly `VERIFY_TOKEN_CHARS` lowercase hex characters. |
 | [`AccountMailSettingsRequest`](#accountmailsettingsrequest) | struct | The body of `PUT /api/notifications/account-mail`, read from a JSON object only, before `AccountMailSettingsRequest::validate` checks it. |
 | [`VerifyEmailRequest`](#verifyemailrequest) | struct | The body of `POST /api/auth/verify-email`, read from a JSON object only, before `VerifyEmailRequest::validate` checks it. |
+| [`RedeemedReset`](#redeemedreset) | struct | A reset link that was redeemed: the password is set and every session of the account is signed out. |
+| [`PasswordResetToken`](#passwordresettoken) | struct | The token of a password-reset link, as the patron's browser sends it back: exactly `VERIFY_TOKEN_CHARS` lowercase hex characters. |
+| [`PasswordResetAsk`](#passwordresetask) | struct | The body of `POST /api/auth/password-reset`: the address to send a reset link to, read from a JSON object only. |
+| [`PasswordResetLink`](#passwordresetlink) | struct | The body of `POST /api/auth/password-reset/check` and `POST /api/auth/password-reset/passkey`: a reset link's token, read from a JSON object only. |
+| [`ResetFinish`](#resetfinish) | struct | A checked `PasswordResetFinish`. |
+| [`PasswordResetFinish`](#passwordresetfinish) | struct | The body of `POST /api/auth/password-reset/finish`, read from a JSON object only. |
 | [`HostNotificationType`](#hostnotificationtype) | struct | A notification type the host itself raises. |
 | [`NewNotification`](#newnotification) | struct | A notification for the router to accept: rendered once, copied to every destination. |
 | [`PendingDelivery`](#pendingdelivery) | struct | One accepted notification's delivery waiting for its send job. |
@@ -52,9 +58,14 @@ A paused destination is skipped.
 | [`DestinationKind`](#destinationkind) | enum | Whether a destination is a library channel or one patron's address. |
 | [`DeliveryState`](#deliverystate) | enum | Where one delivery stands. |
 | [`AccountMailKind`](#accountmailkind) | enum | What an account-mail message says. |
+| [`PasswordResetFactor`](#passwordresetfactor) | enum | The second factor an account required when its reset was checked. |
+| [`ResetSecondFactor`](#resetsecondfactor) | enum | The second factor a reset is finished with. |
 | [`StallOutcome`](#stalloutcome) | enum | What failing one `StalledSend` did. |
 | [`FailureEffect`](#failureeffect) | enum | What a finished send attempt did to its destination. |
 | [`FailedAttempt`](#failedattempt) | enum | Whether recording a failed delivery spends one more attempt. |
+| [`parse_password_reset_ask`](#parse_password_reset_ask) | function | Parses the body of `POST /api/auth/password-reset` from bytes (sans-IO), for the fuzz target and tests; the route reads the same `PasswordResetAsk` with the JSON extractor. |
+| [`parse_password_reset_link`](#parse_password_reset_link) | function | Parses the body of `POST /api/auth/password-reset/check` from bytes (sans-IO), for the fuzz target and tests; the route reads the same `PasswordResetLink` with the JSON extractor. |
+| [`parse_password_reset_finish`](#parse_password_reset_finish) | function | Parses the body of `POST /api/auth/password-reset/finish` from bytes (sans-IO), for the fuzz target and tests; the route reads the same `PasswordResetFinish` with the JSON extractor. |
 | [`parse_account_mail_settings`](#parse_account_mail_settings) | function | Parses the body of `PUT /api/notifications/account-mail` from bytes (sans-IO), for the fuzz target and tests. The route reads the same `AccountMailSettingsRequest` with the JSON extractor and calls the same validation. |
 | [`parse_verify_email_request`](#parse_verify_email_request) | function | Parses the body of `POST /api/auth/verify-email` from bytes (sans-IO), for the fuzz target and tests. The route reads the same `VerifyEmailRequest` with the JSON extractor and calls the same validation. |
 | [`host_notification_type`](#host_notification_type) | function | The host type named `id`, if it is one. |
@@ -73,8 +84,10 @@ A paused destination is skipped.
 | [`ACCOUNT_MAIL_RETENTION_DAYS`](#account_mail_retention_days) | constant | How long a delivered or failed account-mail record is kept. |
 | [`EMAIL_VERIFICATION_HOURS`](#email_verification_hours) | constant | How long an email verification link works. |
 | [`INVITE_DAYS`](#invite_days) | constant | How long an emailed invite works, as for every claim ticket. |
+| [`PASSWORD_RESET_MINUTES`](#password_reset_minutes) | constant | How long a password-reset link works. |
 | [`VERIFY_TOKEN_CHARS`](#verify_token_chars) | constant | Length of a verification link's token: 32 random bytes as lowercase hex. |
 | [`MAX_INSTANCE_ID_BYTES`](#max_instance_id_bytes) | constant | Longest plugin instance id the account-mail settings body takes. |
+| [`MAX_PASSWORD_BYTES`](#max_password_bytes) | constant | Longest password a reset link sets, in bytes. |
 | [`AUDIENCES`](#audiences) | constant | Every audience, in the order of the `audience` column's CHECK list. |
 | [`SEVERITIES`](#severities) | constant | Every severity, lowest first, in the order of the CHECK lists. |
 | [`ALERT_ACTIONS`](#alert_actions) | constant | Every alert action, in the order of the `alert_action` CHECK list. |
@@ -256,6 +269,147 @@ The token: exactly [`VERIFY_TOKEN_CHARS`](#verify_token_chars) lowercase hex cha
 
 Implements: `Debug`, `Deserialize<'de>`
 
+### RedeemedReset
+
+```rust
+pub struct RedeemedReset {
+    pub revoked_sessions: Option<u64>,
+}
+```
+
+A reset link that was redeemed: the password is set and every session
+of the account is signed out.
+
+**Fields**
+
+- `revoked_sessions`: How many portal sessions were signed out, or `None` when the
+  database's reply was lost and the retry found this reset already
+  applied: the count left with the lost reply.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
+### PasswordResetToken
+
+```rust
+pub struct PasswordResetToken(/* private */);
+```
+
+The token of a password-reset link, as the patron's browser sends it
+back: exactly [`VERIFY_TOKEN_CHARS`](#verify_token_chars) lowercase hex characters.
+
+#### PasswordResetToken::expose
+
+```rust
+pub fn expose(&self) -> &str
+```
+
+The raw token, to hash and look up. Never logged.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### PasswordResetAsk
+
+```rust
+pub struct PasswordResetAsk(/* private */);
+```
+
+The body of `POST /api/auth/password-reset`: the address to send a
+reset link to, read from a JSON object only.
+
+#### PasswordResetAsk::validate
+
+```rust
+pub fn validate(self) -> Result<String>
+```
+
+Checks the address.
+
+##### Returns
+
+The address trimmed and lowercased, as addresses are stored.
+
+##### Errors
+
+[`crate::LibraryError::Invalid`](README.md#libraryerror) when it is empty or not a valid
+address.
+
+Implements: `Debug`, `Deserialize<'de>`
+
+### PasswordResetLink
+
+```rust
+pub struct PasswordResetLink(/* private */);
+```
+
+The body of `POST /api/auth/password-reset/check` and
+`POST /api/auth/password-reset/passkey`: a reset link's token, read
+from a JSON object only.
+
+#### PasswordResetLink::validate
+
+```rust
+pub fn validate(self) -> Result<PasswordResetToken>
+```
+
+Checks the token.
+
+##### Errors
+
+[`crate::LibraryError::Invalid`](README.md#libraryerror) when it is not a link token.
+
+Implements: `Debug`, `Deserialize<'de>`
+
+### ResetFinish
+
+```rust
+pub struct ResetFinish {
+    pub token: PasswordResetToken,
+    pub password: Zeroizing<String>,
+    pub second_factor: ResetSecondFactor,
+}
+```
+
+A checked [`PasswordResetFinish`](#passwordresetfinish).
+
+**Fields**
+
+- `token`: The link's token.
+- `password`: The new password, trimmed; 1 to [`MAX_PASSWORD_BYTES`](#max_password_bytes) bytes.
+- `second_factor`: The second factor sent with it.
+
+Implements: `Debug`
+
+### PasswordResetFinish
+
+```rust
+pub struct PasswordResetFinish(/* private */);
+```
+
+The body of `POST /api/auth/password-reset/finish`, read from a JSON
+object only.
+
+#### PasswordResetFinish::validate
+
+```rust
+pub fn validate(self) -> Result<ResetFinish>
+```
+
+Checks the body.
+
+##### Returns
+
+The token, the trimmed password and the second factor.
+
+##### Errors
+
+[`crate::LibraryError::Invalid`](README.md#libraryerror) naming the first rule the body
+breaks: the token is not a link token; the password is empty or
+longer than [`MAX_PASSWORD_BYTES`](#max_password_bytes); `totp_code` is not six digits;
+the passkey's challenge id is not 1 to 64 printable characters or
+its credential is not an object; or both factors are sent.
+
+Implements: `Debug`, `Deserialize<'de>`
+
 ### HostNotificationType
 
 ```rust
@@ -399,8 +553,9 @@ node; otherwise it is waiting for a worker.
 - `account_mail_id`: Its pending account mail, when the job sends one instead of a
   delivery; `None` when the mail is gone, finished or linked to
   another job.
-- `notifier`: The notifier instance the delivery or account mail goes through;
-  `None` exactly when both of those are.
+- `notifier`: The notifier instance the delivery or account mail goes through,
+  or that a password-reset request names; `None` when the job has
+  none of those.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
@@ -750,6 +905,8 @@ pub enum AccountMailKind {
     Test,
     Invite,
     VerifyEmail,
+    PasswordReset,
+    PasswordChanged,
 }
 ```
 
@@ -761,11 +918,14 @@ What an account-mail message says.
   the instance tested.
 - `Invite`: An invite: a link that sets up the account (a claim ticket).
 - `VerifyEmail`: A link that proves the user's email address.
+- `PasswordReset`: A link that sets a new password, sent only to a verified address.
+- `PasswordChanged`: A notice, with no link, that the password was changed through a
+  reset link.
 
 #### AccountMailKind::ALL
 
 ```rust
-pub const ALL: [Self; 3] = _
+pub const ALL: [Self; 5] = _
 ```
 
 Every kind, in the order of the `kind` column's CHECK list.
@@ -787,6 +947,52 @@ pub fn parse(s: &str) -> Option<Self>
 Parses the stored spelling; `None` when unknown.
 
 Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `Hash`, `PartialEq`, `Serialize`, `ToSchema`
+
+### PasswordResetFactor
+
+```rust
+pub enum PasswordResetFactor {
+    None,
+    Totp,
+    Passkey,
+}
+```
+
+The second factor an account required when its reset was checked.
+
+Redeeming a link repeats the check inside the same atomic write, so a
+factor enrolled or removed after the check makes the redemption fail
+rather than set a password without it.
+
+**Variants**
+
+- `None`: No authenticator and no passkey.
+- `Totp`: An authenticator app (it takes precedence over passkeys).
+- `Passkey`: At least one passkey and no authenticator.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
+### ResetSecondFactor
+
+```rust
+pub enum ResetSecondFactor {
+    None,
+    Totp(String),
+    Passkey { challenge_id: String, credential: Value },
+}
+```
+
+The second factor a reset is finished with.
+
+**Variants**
+
+- `None`: None was sent; enough only for an account without one.
+- `Totp`: A six-digit authenticator code.
+- `Passkey`: A passkey assertion answering the challenge the reset began.
+  - `challenge_id`: The challenge from `POST /api/auth/password-reset/passkey`.
+  - `credential`: The browser's credential, a JSON object WebAuthn reads.
+
+Implements: `Clone`, `Debug`, `PartialEq`
 
 ### StallOutcome
 
@@ -849,6 +1055,48 @@ Whether recording a failed delivery spends one more attempt.
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
 ## Functions
+
+### parse_password_reset_ask
+
+```rust
+pub fn parse_password_reset_ask(body: &[u8]) -> Result<String>
+```
+
+Parses the body of `POST /api/auth/password-reset` from bytes
+(sans-IO), for the fuzz target and tests; the route reads the same
+[`PasswordResetAsk`](#passwordresetask) with the JSON extractor.
+
+#### Errors
+
+[`crate::LibraryError::Invalid`](README.md#libraryerror) naming the first rule the body breaks.
+
+### parse_password_reset_link
+
+```rust
+pub fn parse_password_reset_link(body: &[u8]) -> Result<PasswordResetToken>
+```
+
+Parses the body of `POST /api/auth/password-reset/check` from bytes
+(sans-IO), for the fuzz target and tests; the route reads the same
+[`PasswordResetLink`](#passwordresetlink) with the JSON extractor.
+
+#### Errors
+
+[`crate::LibraryError::Invalid`](README.md#libraryerror) naming the first rule the body breaks.
+
+### parse_password_reset_finish
+
+```rust
+pub fn parse_password_reset_finish(body: &[u8]) -> Result<ResetFinish>
+```
+
+Parses the body of `POST /api/auth/password-reset/finish` from bytes
+(sans-IO), for the fuzz target and tests; the route reads the same
+[`PasswordResetFinish`](#passwordresetfinish) with the JSON extractor.
+
+#### Errors
+
+[`crate::LibraryError::Invalid`](README.md#libraryerror) naming the first rule the body breaks.
 
 ### parse_account_mail_settings
 
@@ -1040,6 +1288,14 @@ pub const INVITE_DAYS: i64 = 7;
 
 How long an emailed invite works, as for every claim ticket.
 
+### PASSWORD_RESET_MINUTES
+
+```rust
+pub const PASSWORD_RESET_MINUTES: i64 = 30;
+```
+
+How long a password-reset link works.
+
 ### VERIFY_TOKEN_CHARS
 
 ```rust
@@ -1055,6 +1311,14 @@ pub const MAX_INSTANCE_ID_BYTES: usize = 128;
 ```
 
 Longest plugin instance id the account-mail settings body takes.
+
+### MAX_PASSWORD_BYTES
+
+```rust
+pub const MAX_PASSWORD_BYTES: usize = 1024;
+```
+
+Longest password a reset link sets, in bytes.
 
 ### AUDIENCES
 

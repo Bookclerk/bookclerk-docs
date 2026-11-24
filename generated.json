@@ -249,6 +249,7 @@
     "internals/crates/bookclerk_library/entities/oidc_refresh_tokens",
     "internals/crates/bookclerk_library/entities/oidc_rp_states",
     "internals/crates/bookclerk_library/entities/operator_sessions",
+    "internals/crates/bookclerk_library/entities/password_resets",
     "internals/crates/bookclerk_library/entities/patron_controls",
     "internals/crates/bookclerk_library/entities/patron_scope_keys",
     "internals/crates/bookclerk_library/entities/patron_scopes",

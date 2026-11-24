@@ -3275,6 +3275,61 @@ JSON body for local password login (login name or email plus password).
 - `login` *string*, **required** — Login name or email.
 - `password` *string*, **required** — Password verified against the stored hash; mismatch fails closed and counts toward lockout.
 
+## PasswordResetAccepted
+
+The answer to a reset request, the same whether or not an account has
+the address.
+
+- `accepted` *boolean*, **required** — Always true.
+
+## PasswordResetAskBody
+
+The body of `POST /api/auth/password-reset`.
+
+- `email` *string*, **required** — The address to send a link to.
+
+## PasswordResetAvailability
+
+Whether self-service password reset is on.
+
+- `available` *boolean*, **required** — True when the sign-in page may offer "Forgot password": account mail is set up and a test message through it was delivered.
+
+## PasswordResetDone
+
+The answer to a finished reset.
+
+- `ok` *boolean*, **required** — Always true.
+- `revoked_sessions` *integer (int64) or null* — Sessions of the account that were signed out. Every session is signed out either way; the count is `null` in the rare case the database's reply was lost and a retry found the reset already done. At least 0.
+
+## PasswordResetFinishBody
+
+The body of `POST /api/auth/password-reset/finish`.
+
+- `token` *string*, **required** — The token from the link: 64 lowercase hex characters.
+- `password` *string*, **required** — The new password: 1 to 1024 bytes after trimming.
+- `totp_code` *string or null* — Six-digit authenticator code, when the link asks for `totp`.
+- `passkey` *[`PasswordResetPasskeyBody`](#passwordresetpasskeybody) or null* — Passkey assertion, when the link asks for `passkey`.
+
+## PasswordResetLinkBody
+
+The body of `POST /api/auth/password-reset/check` and
+`POST /api/auth/password-reset/passkey`.
+
+- `token` *string*, **required** — The token from the link: 64 lowercase hex characters.
+
+## PasswordResetLinkState
+
+What a working reset link needs to finish.
+
+- `second_factor` *[`ResetFactor`](#resetfactor)*, **required** — The second factor the finish step asks for.
+
+## PasswordResetPasskeyBody
+
+A passkey assertion in the finish body.
+
+- `challenge_id` *string*, **required** — The challenge from `POST /api/auth/password-reset/passkey`.
+- `credential` *any JSON*, **required** — W3C PublicKeyCredential from `navigator.credentials.get()`, as the browser serializes it: an authentication assertion (`response.authenticatorData`, `clientDataJSON`, `signature`, `userHandle`), binary fields base64url-encoded.
+
 ## PasswordSet
 
 JSON body after a password was set.
@@ -4529,6 +4584,12 @@ The archive an owner library deploys to this install.
 Wishlist row status (`open` while wishlisted; `cancelled` after un-wishlist).
 
 Type: one of `open`, `cancelled`
+
+## ResetFactor
+
+The second factor a reset link asks for.
+
+Type: one of `none`, `totp`, `passkey`
 
 ## ReviewItemJson
 

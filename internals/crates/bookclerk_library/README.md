@@ -2937,6 +2937,7 @@ pub struct JobPayload {
     pub convert: Option<OutputCopy>,
     pub notify_delivery: Option<String>,
     pub account_mail: Option<String>,
+    pub password_reset_request: Option<String>,
 }
 ```
 
@@ -3022,6 +3023,10 @@ JSON command envelope stored on a job row.
 - `notify_delivery`: For [`JobKind::NotifySend`]: the `notify_deliveries.id` to send.
 - `account_mail`: For [`JobKind::NotifySend`]: the `account_mail.id` to send instead of
   a delivery-log row. The job mints the message's link when it sends.
+- `password_reset_request`: For [`JobKind::NotifySend`]: the address a self-service password
+  reset was asked for. The job looks the account up and queues the
+  reset mail, so neither the request's answer nor its timing says
+  whether an account has the address.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -7186,6 +7191,30 @@ The job id, or `None` when the queue is full.
 
 An error when the enqueue or the write fails.
 
+#### LibraryStore::enqueue_password_reset_request
+
+```rust
+pub async fn enqueue_password_reset_request(
+    &self,
+    address: &str,
+    plugin_instance_id: &str,
+    limits: NotifyQueueLimits,
+) -> Result<bool>
+```
+
+Enqueues the job that answers a self-service password-reset
+request for `address`: it looks the account up and queues the reset
+mail when a user has that address verified.
+
+##### Returns
+
+Whether a job was enqueued or already waits for the address;
+`false` when the queue is full.
+
+##### Errors
+
+An error when the enqueue fails.
+
 #### LibraryStore::account_mail
 
 ```rust
@@ -7457,6 +7486,120 @@ Whether the address was verified.
 
 An error when the batch fails.
 
+#### LibraryStore::mint_password_reset
+
+```rust
+pub async fn mint_password_reset(
+    &self,
+    user_id: i64,
+    email: &str,
+    fence: Option<&JobFence>,
+) -> Result<Option<MintedToken>>
+```
+
+Mints the link a password-reset message carries, voiding the
+user's last one.
+
+##### Arguments
+
+* `user_id` - The user.
+* `email` - The address it goes to; nothing is minted unless the
+  user still has it, verified.
+* `fence` - The send job's claim; nothing is minted or voided once
+  it lost the job, so a stale send cannot void a newer link.
+
+##### Returns
+
+The raw token, for the link; `None` when the fence no longer holds
+or the user's address is no longer `email`, verified.
+
+##### Errors
+
+An error when the batch fails.
+
+#### LibraryStore::password_reset_user
+
+```rust
+pub async fn password_reset_user(
+    &self,
+    token: &PasswordResetToken,
+    now: DateTime<Utc>,
+) -> Result<Option<i64>>
+```
+
+The user a password-reset link is for, without using it up.
+
+##### Arguments
+
+* `token` - The raw token from the link.
+* `now` - The current time.
+
+##### Returns
+
+The user's id; `None` for a link that is unknown, used, expired, or
+for an address the user no longer has verified.
+
+##### Errors
+
+An error when a read fails.
+
+#### LibraryStore::redeem_password_reset
+
+```rust
+pub async fn redeem_password_reset(
+    &self,
+    token: &PasswordResetToken,
+    user_id: i64,
+    factor: PasswordResetFactor,
+    password_hash: &str,
+    now: DateTime<Utc>,
+) -> Result<Option<RedeemedReset>>
+```
+
+Redeems a reset link: sets the new password, signs the account out
+everywhere (portal and elevated sessions, and OpenID refresh
+tokens), records `password_reset_self` in the security audit log and
+spends the link, all in one atomic batch.
+
+The first statement claims the link: it marks the row with
+a claim marker (`RESET_CLAIM`) only while the link is unexpired, is for `user_id`,
+still names the account's verified address, the account is not
+disabled, and its second factor is still `factor`. Every later
+write is guarded only by that claim, and the claimed row is deleted
+last, so the claim is never visible outside the batch. When the
+claim matches nothing, nothing changes. A second redemption of the
+same link waits on the claimed row's lock and then finds it gone, so
+only one applies even under `READ COMMITTED`, and a factor enrolled
+after the claim cannot strand a half-applied reset.
+
+The operation id comes from the link and the new hash, so a retry
+after a lost reply resends the same batch, while a later attempt
+with another password gets an id of its own. When the retry finds
+the link already spent, the stored hash tells whether the lost
+batch was this one.
+
+##### Arguments
+
+* `token` - The link's token.
+* `user_id` - The account the link was checked for.
+* `factor` - The second factor the account required when checked.
+* `password_hash` - The new Argon2id hash. Its salt makes it unique
+  to this attempt.
+* `now` - The current time.
+
+##### Returns
+
+The redeemed reset, with how many portal sessions were signed out
+(unknown when the reply was lost and the retry found this reset
+already applied, since the count went with the reply), or `None`
+when the link no longer works for this account and factor (nothing
+was changed).
+
+##### Errors
+
+An error when the batch fails; nothing was changed unless the error
+is [`LibraryError::Unavailable`](#libraryerror) after a retry.
+
 #### LibraryStore::prune_account_mail
 
 ```rust
@@ -7465,7 +7608,7 @@ pub async fn prune_account_mail(&self, now: DateTime<Utc>) -> Result<u64>
 
 Deletes account-mail records older than
 [`ACCOUNT_MAIL_RETENTION_DAYS`](notifications.md#account_mail_retention_days) that are no longer pending, and
-verification links that expired.
+verification and password-reset links that expired.
 
 ##### Returns
 

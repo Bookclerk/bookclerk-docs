@@ -19069,6 +19069,1807 @@ Schema:
 
 A `text/plain` body: a string.
 
+## `GET /api/auth/password-reset`
+
+Whether self-service password reset is on, for the sign-in page.
+
+Access: anyone.
+
+**Access:** No auth layer. Routes that need a caller say so in `security`; the handler checks it.
+
+**Credentials:** none
+
+### Responses
+
+- `200` — Whether the sign-in page may offer a reset. Body: [`PasswordResetAvailability`](schemas.md#passwordresetavailability) (`application/json`)
+  - `available` *boolean*, **required** — True when the sign-in page may offer "Forgot password": account mail is set up and a test message through it was delivered.
+- `500` — The library or the plugin catalog could not be read. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/password-reset'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/password-reset'
+```
+
+```python
+import requests
+
+response = requests.get("http://127.0.0.1:8787/api/auth/password-reset")
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/password-reset");
+console.log(response.status, await response.text());
+```
+
+```rust
+let response = reqwest::get("http://127.0.0.1:8787/api/auth/password-reset").await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: Whether the sign-in page may offer a reset.
+
+```json
+{
+  "available": true
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Whether self-service password reset is on.",
+  "required": [
+    "available"
+  ],
+  "properties": {
+    "available": {
+      "type": "boolean",
+      "description": "True when the sign-in page may offer \"Forgot password\": account\nmail is set up and a test message through it was delivered.",
+      "example": true
+    }
+  }
+}
+```
+
+Status `500`: The library or the plugin catalog could not be read.
+
+```json
+{
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `POST /api/auth/password-reset`
+
+Asks for a password-reset link. When an enabled account has the
+address verified, a link that works once for 30 minutes is mailed to
+it, at most one every five minutes. The answer and its timing are the
+same whether or not an account has the address.
+
+Access: anyone; each request counts toward a per-client limit of its
+own, separate from the one link checks use.
+
+**Access:** No auth layer. Routes that need a caller say so in `security`; the handler checks it.
+
+**Credentials:** none
+
+### Request body
+
+`application/json`: [`PasswordResetAskBody`](schemas.md#passwordresetaskbody)
+
+- `email` *string*, **required** — The address to send a link to.
+
+### Responses
+
+- `202` — Accepted; a link is mailed when an account has the address verified. Body: [`PasswordResetAccepted`](schemas.md#passwordresetaccepted) (`application/json`)
+  - `accepted` *boolean*, **required** — Always true.
+- `400` — The body is not one object whose only key is a valid `email`. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `409` — Self-service reset is not set up (`reset_unavailable`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `415` — The body is not sent as `application/json`. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `429` — Too many requests from this client; retry after `Retry-After` seconds. Body: [`LoginThrottled`](schemas.md#loginthrottled) (`application/json`)
+  - `error` *string*, **required** — Always `too_many_requests`.
+  - `message` *string*, **required** — Caller-facing explanation naming the wait.
+  - `status` *integer (int32)*, **required** — Always 429 (duplicates the response status for clients). At least 0.
+  - `retry_after_secs` *integer (int64)*, **required** — Seconds until this client may try again; the same value as `Retry-After`. At least 0.
+- `500` — The library could not be read or written. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `503` — The notification queue is full, so nothing was queued (`busy`); ask again after `Retry-After` seconds. The answer is the same for every address. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/password-reset' \
+    -X POST \
+    -H 'Content-Type: application/json' \
+    -d '{"email": "dana@example.com"}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/password-reset' `
+    -Method Post `
+    -ContentType 'application/json' `
+    -Body '{"email": "dana@example.com"}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/auth/password-reset",
+    json={"email": "dana@example.com"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/password-reset", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({"email": "dana@example.com"}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/auth/password-reset")
+    .json(&serde_json::json!({"email": "dana@example.com"}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `202`: Accepted; a link is mailed when an account has the address verified.
+
+```json
+{
+  "accepted": true
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "The answer to a reset request, the same whether or not an account has\nthe address.",
+  "required": [
+    "accepted"
+  ],
+  "properties": {
+    "accepted": {
+      "type": "boolean",
+      "description": "Always true.",
+      "example": true
+    }
+  }
+}
+```
+
+Status `400`: The body is not one object whose only key is a valid `email`.
+
+```json
+{
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `409`: Self-service reset is not set up (`reset_unavailable`).
+
+```json
+{
+  "error": "reset_unavailable",
+  "message": "Password reset by email is not set up. Ask an administrator.",
+  "status": 409
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `415`: The body is not sent as `application/json`.
+
+```json
+{
+  "error": "unsupported_media_type",
+  "message": "Send JSON with Content-Type: application/json.",
+  "status": 415
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `429`: Too many requests from this client; retry after `Retry-After` seconds.
+
+```json
+{
+  "error": "too_many_requests",
+  "message": "Too many failed login attempts. Try again in 45 seconds.",
+  "retry_after_secs": 45,
+  "status": 429
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of a 429 after too many failed sign-in attempts from one client.",
+  "required": [
+    "error",
+    "message",
+    "status",
+    "retry_after_secs"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Always `too_many_requests`.",
+      "example": "too_many_requests"
+    },
+    "message": {
+      "type": "string",
+      "description": "Caller-facing explanation naming the wait.",
+      "example": "Too many failed login attempts. Try again in 45 seconds."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Always 429 (duplicates the response status for clients).",
+      "example": 429,
+      "minimum": 0
+    },
+    "retry_after_secs": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Seconds until this client may try again; the same value as `Retry-After`.",
+      "example": 45,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `500`: The library could not be read or written.
+
+```json
+{
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `503`: The notification queue is full, so nothing was queued (`busy`); ask again after `Retry-After` seconds. The answer is the same for every address.
+
+```json
+{
+  "error": "busy",
+  "message": "The library is busy. Ask again in a minute.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `POST /api/auth/password-reset/check`
+
+Checks a reset link without using it, and says which second factor
+finishing it asks for.
+
+Access: anyone holding the link; a link that does not work counts
+toward the client's sign-in throttle.
+
+**Access:** No auth layer. Routes that need a caller say so in `security`; the handler checks it.
+
+**Credentials:** none
+
+### Request body
+
+`application/json`: [`PasswordResetLinkBody`](schemas.md#passwordresetlinkbody)
+
+- `token` *string*, **required** — The token from the link: 64 lowercase hex characters.
+
+### Responses
+
+- `200` — The link works. Body: [`PasswordResetLinkState`](schemas.md#passwordresetlinkstate) (`application/json`)
+  - `second_factor` *[`ResetFactor`](schemas.md#resetfactor)*, **required** — The second factor the finish step asks for.
+- `400` — `bad_request` when the body is not one object whose only key is `token`; `invalid_link` when the link is unknown, used, expired, for an address the account no longer has verified, or for a disabled account. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `415` — The body is not sent as `application/json`. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `429` — Too many failed attempts from this client; retry after `Retry-After` seconds. Body: [`LoginThrottled`](schemas.md#loginthrottled) (`application/json`)
+  - `error` *string*, **required** — Always `too_many_requests`.
+  - `message` *string*, **required** — Caller-facing explanation naming the wait.
+  - `status` *integer (int32)*, **required** — Always 429 (duplicates the response status for clients). At least 0.
+  - `retry_after_secs` *integer (int64)*, **required** — Seconds until this client may try again; the same value as `Retry-After`. At least 0.
+- `500` — The library could not be read. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/password-reset/check' \
+    -X POST \
+    -H 'Content-Type: application/json' \
+    -d '{"token": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/password-reset/check' `
+    -Method Post `
+    -ContentType 'application/json' `
+    -Body '{"token": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/auth/password-reset/check",
+    json={"token": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/password-reset/check", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({"token": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/auth/password-reset/check")
+    .json(&serde_json::json!({"token": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The link works.
+
+```json
+{
+  "second_factor": "none"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "What a working reset link needs to finish.",
+  "required": [
+    "second_factor"
+  ],
+  "properties": {
+    "second_factor": {
+      "type": "string",
+      "description": "The second factor the finish step asks for.",
+      "enum": [
+        "none",
+        "totp",
+        "passkey"
+      ]
+    }
+  }
+}
+```
+
+Status `400`: `bad_request` when the body is not one object whose only key is `token`; `invalid_link` when the link is unknown, used, expired, for an address the account no longer has verified, or for a disabled account.
+
+```json
+{
+  "error": "invalid_link",
+  "message": "This reset link is invalid or has expired. Ask for a new one.",
+  "status": 400
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `415`: The body is not sent as `application/json`.
+
+```json
+{
+  "error": "unsupported_media_type",
+  "message": "Send JSON with Content-Type: application/json.",
+  "status": 415
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `429`: Too many failed attempts from this client; retry after `Retry-After` seconds.
+
+```json
+{
+  "error": "too_many_requests",
+  "message": "Too many failed login attempts. Try again in 45 seconds.",
+  "retry_after_secs": 45,
+  "status": 429
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of a 429 after too many failed sign-in attempts from one client.",
+  "required": [
+    "error",
+    "message",
+    "status",
+    "retry_after_secs"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Always `too_many_requests`.",
+      "example": "too_many_requests"
+    },
+    "message": {
+      "type": "string",
+      "description": "Caller-facing explanation naming the wait.",
+      "example": "Too many failed login attempts. Try again in 45 seconds."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Always 429 (duplicates the response status for clients).",
+      "example": 429,
+      "minimum": 0
+    },
+    "retry_after_secs": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Seconds until this client may try again; the same value as `Retry-After`.",
+      "example": 45,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `500`: The library could not be read.
+
+```json
+{
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `POST /api/auth/password-reset/passkey`
+
+Begins the passkey step of a reset, for an account whose link asks for
+a passkey. The challenge works once, for five minutes.
+
+Access: anyone holding the link.
+
+**Access:** No auth layer. Routes that need a caller say so in `security`; the handler checks it.
+
+**Credentials:** none
+
+### Request body
+
+`application/json`: [`PasswordResetLinkBody`](schemas.md#passwordresetlinkbody)
+
+- `token` *string*, **required** — The token from the link: 64 lowercase hex characters.
+
+### Responses
+
+- `200` — WebAuthn request options for the account's passkeys. Body: [`PasskeyRequestOptions`](schemas.md#passkeyrequestoptions) (`application/json`)
+  - `challenge_id` *string*, **required** — Server-issued challenge id to send back with the assertion; consumed once, five-minute lifetime.
+  - `publicKey` *any JSON*, **required** — W3C PublicKeyCredentialRequestOptions (challenge, relying party id, allowed credentials), binary fields base64url-encoded.
+  - `mediation` *string or null* — Credential mediation the daemon asks the browser for; absent unless conditional mediation was requested.
+- `400` — `bad_request` when the body is not one object whose only key is `token`; `invalid_link` when the link does not work; or the daemon's origin is not a valid WebAuthn relying party. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `409` — The link does not ask for a passkey (`passkey_not_needed`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `415` — The body is not sent as `application/json`. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `429` — Too many failed attempts from this client; retry after `Retry-After` seconds. Body: [`LoginThrottled`](schemas.md#loginthrottled) (`application/json`)
+  - `error` *string*, **required** — Always `too_many_requests`.
+  - `message` *string*, **required** — Caller-facing explanation naming the wait.
+  - `status` *integer (int32)*, **required** — Always 429 (duplicates the response status for clients). At least 0.
+  - `retry_after_secs` *integer (int64)*, **required** — Seconds until this client may try again; the same value as `Retry-After`. At least 0.
+- `500` — The library could not be read, or the challenge could not be stored. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/password-reset/passkey' \
+    -X POST \
+    -H 'Content-Type: application/json' \
+    -d '{"token": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/password-reset/passkey' `
+    -Method Post `
+    -ContentType 'application/json' `
+    -Body '{"token": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/auth/password-reset/passkey",
+    json={"token": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/password-reset/passkey", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({"token": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/auth/password-reset/passkey")
+    .json(&serde_json::json!({"token": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: WebAuthn request options for the account's passkeys.
+
+```json
+{
+  "challenge_id": "6d2f0c1e-8a4b-4f3d-9e7c-5b1a2c3d4e5f",
+  "publicKey": {
+    "allowCredentials": [
+      {
+        "id": "pQECAyYgASFYIE",
+        "type": "public-key"
+      }
+    ],
+    "challenge": "k9u2Xo3cZ1Qp7mT4vW8yA2bC5dE6fG7hI8jK9lM0nO1",
+    "rpId": "books.example.com",
+    "timeout": 60000,
+    "userVerification": "preferred"
+  },
+  "mediation": "conditional"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "WebAuthn request options for `navigator.credentials.get()`, plus the challenge id for the finish step.",
+  "required": [
+    "challenge_id",
+    "publicKey"
+  ],
+  "properties": {
+    "challenge_id": {
+      "type": "string",
+      "description": "Server-issued challenge id to send back with the assertion; consumed once, five-minute lifetime.",
+      "example": "6d2f0c1e-8a4b-4f3d-9e7c-5b1a2c3d4e5f"
+    },
+    "publicKey": {
+      "description": "W3C PublicKeyCredentialRequestOptions (challenge, relying party id, allowed credentials), binary fields base64url-encoded.",
+      "examples": [
+        {
+          "allowCredentials": [
+            {
+              "id": "pQECAyYgASFYIE",
+              "type": "public-key"
+            }
+          ],
+          "challenge": "k9u2Xo3cZ1Qp7mT4vW8yA2bC5dE6fG7hI8jK9lM0nO1",
+          "rpId": "books.example.com",
+          "timeout": 60000,
+          "userVerification": "preferred"
+        }
+      ]
+    },
+    "mediation": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Credential mediation the daemon asks the browser for; absent unless\nconditional mediation was requested.",
+      "example": "conditional"
+    }
+  }
+}
+```
+
+Status `400`: `bad_request` when the body is not one object whose only key is `token`; `invalid_link` when the link does not work; or the daemon's origin is not a valid WebAuthn relying party.
+
+```json
+{
+  "error": "invalid_link",
+  "message": "This reset link is invalid or has expired. Ask for a new one.",
+  "status": 400
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `409`: The link does not ask for a passkey (`passkey_not_needed`).
+
+```json
+{
+  "error": "conflict",
+  "message": "Conflict",
+  "status": 409
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `415`: The body is not sent as `application/json`.
+
+```json
+{
+  "error": "unsupported_media_type",
+  "message": "Send JSON with Content-Type: application/json.",
+  "status": 415
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `429`: Too many failed attempts from this client; retry after `Retry-After` seconds.
+
+```json
+{
+  "error": "too_many_requests",
+  "message": "Too many failed login attempts. Try again in 45 seconds.",
+  "retry_after_secs": 45,
+  "status": 429
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of a 429 after too many failed sign-in attempts from one client.",
+  "required": [
+    "error",
+    "message",
+    "status",
+    "retry_after_secs"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Always `too_many_requests`.",
+      "example": "too_many_requests"
+    },
+    "message": {
+      "type": "string",
+      "description": "Caller-facing explanation naming the wait.",
+      "example": "Too many failed login attempts. Try again in 45 seconds."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Always 429 (duplicates the response status for clients).",
+      "example": 429,
+      "minimum": 0
+    },
+    "retry_after_secs": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Seconds until this client may try again; the same value as `Retry-After`.",
+      "example": 45,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `500`: The library could not be read, or the challenge could not be stored.
+
+```json
+{
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `POST /api/auth/password-reset/finish`
+
+Finishes a reset: checks the account's second factor when it has one,
+uses the link up, sets the password, signs every device out and mails
+a password-changed notice to the verified address.
+
+Access: anyone holding the link; a wrong second factor or a link that
+does not work counts toward the client's sign-in throttle.
+
+**Access:** No auth layer. Routes that need a caller say so in `security`; the handler checks it.
+
+**Credentials:** none
+
+### Request body
+
+`application/json`: [`PasswordResetFinishBody`](schemas.md#passwordresetfinishbody)
+
+- `token` *string*, **required** — The token from the link: 64 lowercase hex characters.
+- `password` *string*, **required** — The new password: 1 to 1024 bytes after trimming.
+- `totp_code` *string or null* — Six-digit authenticator code, when the link asks for `totp`.
+- `passkey` *[`PasswordResetPasskeyBody`](schemas.md#passwordresetpasskeybody) or null* — Passkey assertion, when the link asks for `passkey`.
+
+### Responses
+
+- `200` — The password is set and every session signed out. Body: [`PasswordResetDone`](schemas.md#passwordresetdone) (`application/json`)
+  - `ok` *boolean*, **required** — Always true.
+  - `revoked_sessions` *integer (int64) or null* — Sessions of the account that were signed out. Every session is signed out either way; the count is `null` in the rare case the database's reply was lost and a retry found the reset already done. At least 0.
+- `400` — `bad_request` when the body is malformed, the password is blank or longer than 1024 bytes, or a second factor is sent for an account without one; `invalid_link` when the link is unknown, used, expired, for an address the account no longer has verified, or for a disabled account. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `401` — The account's second factor is missing (`second_factor_required`) or wrong (`invalid_code`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `415` — The body is not sent as `application/json`. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `429` — Too many failed attempts from this client; retry after `Retry-After` seconds. Body: [`LoginThrottled`](schemas.md#loginthrottled) (`application/json`)
+  - `error` *string*, **required** — Always `too_many_requests`.
+  - `message` *string*, **required** — Caller-facing explanation naming the wait.
+  - `status` *integer (int32)*, **required** — Always 429 (duplicates the response status for clients). At least 0.
+  - `retry_after_secs` *integer (int64)*, **required** — Seconds until this client may try again; the same value as `Retry-After`. At least 0.
+- `500` — The password could not be hashed, or the library could not be read or written. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/password-reset/finish' \
+    -X POST \
+    -H 'Content-Type: application/json' \
+    -d '{"token": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08", "password": "new horse battery staple"}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/password-reset/finish' `
+    -Method Post `
+    -ContentType 'application/json' `
+    -Body '{"token": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08", "password": "new horse battery staple"}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/auth/password-reset/finish",
+    json={"token": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08", "password": "new horse battery staple"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/password-reset/finish", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({"token": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08", "password": "new horse battery staple"}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/auth/password-reset/finish")
+    .json(&serde_json::json!({"token": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08", "password": "new horse battery staple"}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The password is set and every session signed out.
+
+```json
+{
+  "ok": true,
+  "revoked_sessions": 2
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "The answer to a finished reset.",
+  "required": [
+    "ok"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "Always true.",
+      "example": true
+    },
+    "revoked_sessions": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "int64",
+      "description": "Sessions of the account that were signed out. Every session is\nsigned out either way; the count is `null` in the rare case the\ndatabase's reply was lost and a retry found the reset already done.",
+      "example": 2,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `400`: `bad_request` when the body is malformed, the password is blank or longer than 1024 bytes, or a second factor is sent for an account without one; `invalid_link` when the link is unknown, used, expired, for an address the account no longer has verified, or for a disabled account.
+
+```json
+{
+  "error": "invalid_link",
+  "message": "This reset link is invalid or has expired. Ask for a new one.",
+  "status": 400
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `401`: The account's second factor is missing (`second_factor_required`) or wrong (`invalid_code`).
+
+```json
+{
+  "error": "second_factor_required",
+  "message": "Enter the code from your authenticator app.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `415`: The body is not sent as `application/json`.
+
+```json
+{
+  "error": "unsupported_media_type",
+  "message": "Send JSON with Content-Type: application/json.",
+  "status": 415
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `429`: Too many failed attempts from this client; retry after `Retry-After` seconds.
+
+```json
+{
+  "error": "too_many_requests",
+  "message": "Too many failed login attempts. Try again in 45 seconds.",
+  "retry_after_secs": 45,
+  "status": 429
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of a 429 after too many failed sign-in attempts from one client.",
+  "required": [
+    "error",
+    "message",
+    "status",
+    "retry_after_secs"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Always `too_many_requests`.",
+      "example": "too_many_requests"
+    },
+    "message": {
+      "type": "string",
+      "description": "Caller-facing explanation naming the wait.",
+      "example": "Too many failed login attempts. Try again in 45 seconds."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Always 429 (duplicates the response status for clients).",
+      "example": 429,
+      "minimum": 0
+    },
+    "retry_after_secs": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Seconds until this client may try again; the same value as `Retry-After`.",
+      "example": 45,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `500`: The password could not be hashed, or the library could not be read or written.
+
+```json
+{
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
 ## `GET /api/auth/player-passwords`
 
 Lists the caller's player passwords.

@@ -8180,6 +8180,16 @@ Where an owner plugin's request to run here stands.
 
 ***
 
+### ResetFactor
+
+```ts
+type ResetFactor = "none" | "totp" | "passkey";
+```
+
+The second factor a password-reset link asks for before it sets a password.
+
+***
+
 ### RuleEffect
 
 ```ts
@@ -8872,6 +8882,28 @@ Takes up to two minutes.
 `Promise`\<[`DeliverabilityReport`](#deliverabilityreport)\>
 
 The checks and the merged advice.
+
+***
+
+### checkPasswordReset()
+
+```ts
+function checkPasswordReset(token): Promise<ResetFactor>;
+```
+
+Checks a password-reset link without using it up.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `token` | `string` | The token from the link. |
+
+#### Returns
+
+`Promise`\<[`ResetFactor`](#resetfactor)\>
+
+The second factor finishing the reset asks for.
 
 ***
 
@@ -9931,6 +9963,38 @@ The page and the next page's cursor.
 
 ***
 
+### finishPasswordReset()
+
+```ts
+function finishPasswordReset(body): Promise<{
+  revoked_sessions: number | null;
+}>;
+```
+
+Finishes a password reset: sets the password and signs every device out.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `body` | \{ `passkey?`: \{ `challenge_id`: `string`; `credential`: `Record`\<`string`, `unknown`\>; \}; `password`: `string`; `token`: `string`; `totp_code?`: `string`; \} | The link's token, the new password, and the second factor the link asked for (a code or a passkey assertion), if any. |
+| `body.passkey?` | \{ `challenge_id`: `string`; `credential`: `Record`\<`string`, `unknown`\>; \} | - |
+| `body.passkey.challenge_id` | `string` | - |
+| `body.passkey.credential` | `Record`\<`string`, `unknown`\> | - |
+| `body.password` | `string` | - |
+| `body.token` | `string` | - |
+| `body.totp_code?` | `string` | - |
+
+#### Returns
+
+`Promise`\<\{
+  `revoked_sessions`: `number` \| `null`;
+\}\>
+
+How many sessions were signed out.
+
+***
+
 ### getAccountMail()
 
 ```ts
@@ -10563,6 +10627,51 @@ Signs in with username/password via `POST /api/auth/password`.
 \}\>
 
 Session cookie on success, or an MFA challenge when TOTP is enabled.
+
+***
+
+### passwordResetAvailable()
+
+```ts
+function passwordResetAvailable(): Promise<boolean>;
+```
+
+Whether the sign-in page may offer "Forgot password": account mail is set
+up and a test message through it was delivered. Needs no sign-in.
+
+#### Returns
+
+`Promise`\<`boolean`\>
+
+True when self-service password reset is on.
+
+***
+
+### passwordResetPasskeyBegin()
+
+```ts
+function passwordResetPasskeyBegin(token): Promise<{
+  challenge_id: string;
+  publicKey: Record<string, unknown>;
+}>;
+```
+
+Begins the passkey step of a password reset.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `token` | `string` | The token from the link. |
+
+#### Returns
+
+`Promise`\<\{
+  `challenge_id`: `string`;
+  `publicKey`: `Record`\<`string`, `unknown`\>;
+\}\>
+
+WebAuthn request options for the account's passkeys.
 
 ***
 
@@ -11525,6 +11634,29 @@ The queued request.
 #### Throws
 
 404 when the branch no longer lists the title.
+
+***
+
+### requestPasswordReset()
+
+```ts
+function requestPasswordReset(email): Promise<void>;
+```
+
+Asks for a password-reset link. The answer is the same whether or not an
+account has the address, so it never says whether a mail was sent.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `email` | `string` | The address to send the link to. |
+
+#### Returns
+
+`Promise`\<`void`\>
+
+Resolves once the library accepted the request.
 
 ***
 
