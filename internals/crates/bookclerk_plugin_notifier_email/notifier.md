@@ -20,6 +20,7 @@ pub struct Settings {
     pub from: String,
     pub from_name: String,
     pub to: String,
+    pub mail_tester_account: Result<Option<String>, String>,
 }
 ```
 
@@ -34,6 +35,9 @@ The instance's settings, checked.
 - `from_name`: Sender display name.
 - `to`: The `to` setting, unparsed; empty when only patrons' addresses are
   used.
+- `mail_tester_account`: The operator's mail-tester.com account name, checked; `None` skips
+  that checker. A bad value is kept as its reason, which only the
+  deliverability check reports, so a typo never stops sending.
 
 #### Settings::read
 
@@ -97,6 +101,19 @@ run.
 
 * `boundary` - The MIME boundary.
 * `now` - The time, Unix seconds.
+
+#### EmailNotifier::with_checkers
+
+```rust
+pub fn with_checkers(self, checkers: Box<dyn Checkers>, token: &str) -> Self
+```
+
+Uses `checkers` and a fixed mail-tester token, for tests.
+
+##### Arguments
+
+* `checkers` - Canned checker answers.
+* `token` - The mail-tester token.
 
 Implements: `Notifier`
 

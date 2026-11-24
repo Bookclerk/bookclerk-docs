@@ -2542,6 +2542,469 @@ Schema:
 
 A `text/plain` body: a string.
 
+## `POST /api/notifications/notifiers/{id}/deliverability`
+
+Runs a notifier instance's deliverability check.
+
+The notifier sends the host's test message the way real messages go
+and asks the checker services the operator approved how it scores,
+then merges their findings into advice. It can take up to two minutes;
+sends on that notifier wait behind it.
+
+Access: the operator, an Owner or an Administrator.
+
+**Access:** The operator, or any signed-in user.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Parameters
+
+- `id` (path) *string*, **required** — Plugin instance id of the notifier.
+
+### Responses
+
+- `200` — The checks and the merged advice. Body: [`DeliverabilityReportJson`](schemas.md#deliverabilityreportjson) (`application/json`)
+  - `checks` *array of [`DeliverabilityCheckJson`](schemas.md#deliverabilitycheckjson)*, **required** — One entry per checker.
+  - `advice` *array of [`DeliverabilityAdviceJson`](schemas.md#deliverabilityadvicejson)*, **required** — What to do, most urgent first.
+- `400` — The instance is not a notifier with a deliverability check, or its settings are incomplete. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `401` — No one is signed in. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `403` — The caller is not an Administrator. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorMessage`](schemas.md#errormessage) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `409` — The notifier is not running on this server. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The library could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `502` — The notifier could not be reached, did not answer in time, or its report was refused. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/notifications/notifiers/<id>/deliverability' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/notifications/notifiers/<id>/deliverability' `
+    -Method Post `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/notifications/notifiers/<id>/deliverability",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/notifications/notifiers/<id>/deliverability", {
+  method: "POST",
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/notifications/notifiers/<id>/deliverability")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The checks and the merged advice.
+
+```json
+{
+  "checks": [
+    {
+      "service": "Postmark spam check",
+      "outcome": "passed",
+      "summary": "SpamAssassin score 0.8; under 5 passes",
+      "report_url": "https://www.mail-tester.com/example-1a2b3c"
+    }
+  ],
+  "advice": [
+    {
+      "outcome": "passed",
+      "title": "Publish a DMARC record",
+      "detail": "Add a TXT record at _dmarc.example.com, for example v=DMARC1; p=none.",
+      "sources": [
+        "DNS records"
+      ]
+    }
+  ]
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "The answer to a deliverability check.",
+  "required": [
+    "checks",
+    "advice"
+  ],
+  "properties": {
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One checker's result.",
+        "required": [
+          "service",
+          "outcome",
+          "summary"
+        ],
+        "properties": {
+          "service": {
+            "type": "string",
+            "description": "The checker.",
+            "example": "Postmark spam check"
+          },
+          "outcome": {
+            "type": "string",
+            "description": "How it came out.",
+            "enum": [
+              "passed",
+              "warning",
+              "failed",
+              "skipped"
+            ]
+          },
+          "summary": {
+            "type": "string",
+            "description": "One line on the result.",
+            "example": "SpamAssassin score 0.8; under 5 passes"
+          },
+          "report_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The checker's full report, an `https` link, when it has one.",
+            "example": "https://www.mail-tester.com/example-1a2b3c"
+          }
+        }
+      },
+      "description": "One entry per checker."
+    },
+    "advice": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One thing to do, merged from every check.",
+        "required": [
+          "outcome",
+          "title",
+          "detail",
+          "sources"
+        ],
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "description": "`failed` is a fix, `warning` an improvement, `passed` what is\nalready right.",
+            "enum": [
+              "passed",
+              "warning",
+              "failed",
+              "skipped"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "description": "Short heading.",
+            "example": "Publish a DMARC record"
+          },
+          "detail": {
+            "type": "string",
+            "description": "What to change and where.",
+            "example": "Add a TXT record at _dmarc.example.com, for example v=DMARC1; p=none."
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The checks that raised it.",
+            "example": [
+              "DNS records"
+            ]
+          }
+        }
+      },
+      "description": "What to do, most urgent first."
+    }
+  }
+}
+```
+
+Status `400`: The instance is not a notifier with a deliverability check, or its settings are incomplete.
+
+```json
+{
+  "error": "the notifier refused the check: the server setting is not set"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `401`: No one is signed in.
+
+```json
+{
+  "error": "sign in first"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `403`: The caller is not an Administrator. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "mfa_enrollment_required",
+  "message": "This server requires a passkey or authenticator app. Set one up to continue, or log out and finish later.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "What went wrong, as the handler describes it.",
+          "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
+    }
+  ]
+}
+```
+
+Status `409`: The notifier is not running on this server.
+
+```json
+{
+  "error": "the notifier is not running on this server"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `500`: The library could not be read.
+
+```json
+{
+  "error": "the library could not be read or changed"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `502`: The notifier could not be reached, did not answer in time, or its report was refused.
+
+```json
+{
+  "error": "the notifier could not run the check"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
 ## `GET /api/notifications/routes`
 
 Lists every routing rule.

@@ -5,8 +5,8 @@ SMTP submission, with no I/O of its own.
 Everything the notifier reads from outside is parsed here: the server's
 replies (RFC 5321 section 4.2), its EHLO capabilities, a patron's address
 document and the operator's addresses. The message is built here too
-(RFC 5322 headers, MIME `multipart/alternative` with base64 bodies,
-RFC 2047 encoded words), and [`Session`](#session) is the client's state machine:
+(RFC 5322 headers, MIME `multipart/alternative` with quoted-printable
+text, `multipart/related` for inline images, RFC 2047 encoded words), and [`Session`](#session) is the client's state machine:
 it is fed one reply at a time and answers with the next thing to write, a
 TLS upgrade, or the end. [`crate::client`](client.md) only moves bytes, so the unit
 tests and the fuzzer drive the same code the guest runs.
@@ -22,6 +22,7 @@ step and the reply code only.
 | [`Address`](#address) | struct | A patron's address, checked. |
 | [`HostPort`](#hostport) | struct | A TCP destination. |
 | [`MailContent`](#mailcontent) | struct | What goes into one email. |
+| [`InlineImage`](#inlineimage) | struct | An image sent inside the message and shown by the HTML as `cid:<content_id>`, so it appears even when the library is not reachable from the recipient's network and no remote image is fetched. |
 | [`Credentials`](#credentials) | struct | Credentials for `AUTH`. |
 | [`SessionOptions`](#sessionoptions) | struct | What one session sends. |
 | [`Session`](#session) | struct | The client side of one SMTP submission: greeting, EHLO, STARTTLS and EHLO again, AUTH, MAIL, one RCPT per recipient, DATA, the message, QUIT. |
@@ -37,7 +38,8 @@ step and the reply code only.
 | [`encode_header_text`](#encode_header_text) | function | Encodes header text: printable ASCII as is, other text as RFC 2047 `B` encoded words of at most 72 characters, folded onto continuation lines. |
 | [`mailbox`](#mailbox) | function | Formats a `From` mailbox: the address alone, or a display name (quoted, or as encoded words when not ASCII) and the address in angle brackets. |
 | [`rfc5322_date`](#rfc5322_date) | function | Formats a Unix time as an RFC 5322 date, in UTC. |
-| [`build_message`](#build_message) | function | Builds the message: RFC 5322 headers, then the text alone or a `multipart/alternative` of the text and the HTML. Every line is ASCII and ends in CRLF; bodies are base64, so no line runs past 998 characters. |
+| [`encode_quoted_printable`](#encode_quoted_printable) | function | Encodes text as quoted-printable (RFC 2045 section 6.7): printable ASCII stays readable, so filters that dock base64-encoded text don't, and every other byte becomes `=XX`. Lines end in CRLF and run at most 76 characters, breaking with a soft `=` where they would run longer; a space or tab at a line's end is encoded, and so is the `F` of a line that starts `From `, so no relay rewrites it. |
+| [`build_message`](#build_message) | function | Builds the message: RFC 5322 headers, then the text alone or a `multipart/alternative` of the text and the HTML; with inline images, the HTML and the images form a `multipart/related` inside it. Every line is ASCII, ends in CRLF and runs at most 76 characters in a body. |
 | [`message_id`](#message_id) | function | Makes a stable `Message-ID`: the notification and destination ids (only their safe characters) at the sender's domain, so every retry of one send carries the same id. |
 | [`escape_html`](#escape_html) | function | Escapes text for HTML. |
 | [`dot_stuff`](#dot_stuff) | function | Applies SMTP's transparency rule (RFC 5321 section 4.5.2) and the end of data: a line starting with `.` gets another, and the data ends in `CRLF.CRLF`. |
@@ -137,6 +139,7 @@ pub struct MailContent<'a> {
     pub subject: &'a str,
     pub text: &'a str,
     pub html: Option<&'a str>,
+    pub images: &'a [InlineImage<'a>],
     pub message_id: &'a str,
     pub date: &'a str,
     pub boundary: &'a str,
@@ -153,12 +156,38 @@ What goes into one email.
 - `subject`: Subject line.
 - `text`: Plain-text body.
 - `html`: HTML body, when there is one.
+- `images`: Images the HTML shows by `cid:` reference; ignored without HTML.
 - `message_id`: Stable id across retries, so receivers can drop a repeat; without
   angle brackets.
 - `date`: When it is sent, as an RFC 5322 date.
 - `boundary`: MIME boundary; random in the guest, fixed in tests.
 
 Implements: `Clone`, `Debug`
+
+### InlineImage
+
+```rust
+pub struct InlineImage<'a> {
+    pub content_id: &'a str,
+    pub content_type: &'a str,
+    pub filename: &'a str,
+    pub bytes: &'a [u8],
+}
+```
+
+An image sent inside the message and shown by the HTML as
+`cid:<content_id>`, so it appears even when the library is not reachable
+from the recipient's network and no remote image is fetched.
+
+**Fields**
+
+- `content_id`: The `Content-ID`, without angle brackets; ASCII letters, digits, `.`,
+  `-`, `_` and one `@`.
+- `content_type`: Media type, such as `image/png`.
+- `filename`: File name offered when the recipient saves it; ASCII.
+- `bytes`: The image file's bytes.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
 ### Credentials
 
@@ -532,6 +561,27 @@ Formats a Unix time as an RFC 5322 date, in UTC.
 
 `Mon, 23 Nov 2026 05:00:00 +0000`.
 
+### encode_quoted_printable
+
+```rust
+pub fn encode_quoted_printable(body: &str) -> String
+```
+
+Encodes text as quoted-printable (RFC 2045 section 6.7): printable ASCII
+stays readable, so filters that dock base64-encoded text don't, and
+every other byte becomes `=XX`. Lines end in CRLF and run at most 76
+characters, breaking with a soft `=` where they would run longer; a
+space or tab at a line's end is encoded, and so is the `F` of a line
+that starts `From `, so no relay rewrites it.
+
+#### Arguments
+
+* `body` - The text; any line ending becomes CRLF.
+
+#### Returns
+
+The encoded body, ASCII only.
+
 ### build_message
 
 ```rust
@@ -539,9 +589,9 @@ pub fn build_message(mail: &MailContent<'_>) -> String
 ```
 
 Builds the message: RFC 5322 headers, then the text alone or a
-`multipart/alternative` of the text and the HTML. Every line is ASCII
-and ends in CRLF; bodies are base64, so no line runs past 998
-characters.
+`multipart/alternative` of the text and the HTML; with inline images,
+the HTML and the images form a `multipart/related` inside it. Every
+line is ASCII, ends in CRLF and runs at most 76 characters in a body.
 
 #### Arguments
 

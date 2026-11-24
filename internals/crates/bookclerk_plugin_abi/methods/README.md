@@ -40,6 +40,7 @@ drift tests. Flat `UPPER_SNAKE` aliases live under [`names`](names.md).
 - [`parse`](parse.md): What one metadata file says (Cap'n Proto `MetadataFiles.parse`).
 - [`render`](render.md): A metadata file's bytes with chosen fields rewritten (Cap'n Proto `MetadataFiles.render`).
 - [`validate_destination`](validate_destination.md): Normalise and check a patron's address on a notifier (Cap'n Proto `Notifier.validateDestination`).
+- [`check_deliverability`](check_deliverability.md): Run the operator's deliverability check on a notifier (Cap'n Proto `Notifier.checkDeliverability`).
 - [`raise`](raise.md): Raise a notification type the plugin declared (Cap'n Proto `NotificationRaiser.raise`).
 - [`models`](models.md): List the models a plugin serves (Cap'n Proto `AiModels.models`).
 - [`run`](run.md): Run one model on one input (Cap'n Proto `AiModels.run` on a model plugin, `AiRunner.run` on the `AI` binding).

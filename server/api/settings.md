@@ -147,6 +147,7 @@ Status `200`: The settings.
         "memory_ceiling_bytes": 536870912,
         "models": []
       },
+      "deliverability_check": true,
       "present_on": [
         "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a"
       ]
@@ -777,6 +778,11 @@ Schema:
                 "type": "null"
               }
             ]
+          },
+          "deliverability_check": {
+            "type": "boolean",
+            "description": "True when the plugin is a notifier with a deliverability check\n(`[notifier].deliverability_check`), so the instance's settings offer\n`POST /api/notifications/notifiers/{id}/deliverability`.",
+            "example": true
           },
           "present_on": {
             "type": "array",
@@ -1133,6 +1139,7 @@ Status `200`: The settings after the change.
         "memory_ceiling_bytes": 536870912,
         "models": []
       },
+      "deliverability_check": true,
       "present_on": [
         "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a"
       ]
@@ -1763,6 +1770,11 @@ Schema:
                 "type": "null"
               }
             ]
+          },
+          "deliverability_check": {
+            "type": "boolean",
+            "description": "True when the plugin is a notifier with a deliverability check\n(`[notifier].deliverability_check`), so the instance's settings offer\n`POST /api/notifications/notifiers/{id}/deliverability`.",
+            "example": true
           },
           "present_on": {
             "type": "array",

@@ -213,6 +213,13 @@ pub trait Integration: Send + Sync {
     where
         Self: 'async_trait,
         'life0: 'async_trait,;
+    fn notify_check_deliverability<'life0, 'async_trait>(
+        &'life0 self,
+        _params: NotifyDeliverabilityParams,
+    ) -> Pin<Box<dyn Future<Output = Result<Result<NotifyDeliverabilityReport, PluginError>>> + Send + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
     fn notifier_unsupported(&self) -> IntegrationError;
     fn diagnose<'life0, 'async_trait>(
         &'life0 self,
@@ -731,6 +738,31 @@ Normalises a patron's address document through
 
 The guest's own answer: the normalised document or the error it
 raised (`invalid_params` for an address it refuses).
+
+##### Errors
+
+An [`IntegrationError`](#integrationerror) when the guest could not be reached, or by
+default.
+
+#### Integration::notify_check_deliverability
+
+```rust
+fn notify_check_deliverability<'life0, 'async_trait>(
+    &'life0 self,
+    _params: NotifyDeliverabilityParams,
+) -> Pin<Box<dyn Future<Output = Result<Result<NotifyDeliverabilityReport, PluginError>>> + Send + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Runs the operator's deliverability check through
+`Notifier.checkDeliverability`.
+
+##### Returns
+
+The guest's own answer: the checked report, or the error it raised
+(`unsupported` when it has no check).
 
 ##### Errors
 

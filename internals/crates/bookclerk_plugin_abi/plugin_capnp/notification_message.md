@@ -175,6 +175,18 @@ pub fn has_alert_key(&self) -> bool
 pub fn get_sensitive(self) -> bool
 ```
 
+#### Reader::get_library_origin
+
+```rust
+pub fn get_library_origin(self) -> Result<Reader<'a>>
+```
+
+#### Reader::has_library_origin
+
+```rust
+pub fn has_library_origin(&self) -> bool
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -483,6 +495,30 @@ pub fn get_sensitive(self) -> bool
 
 ```rust
 pub fn set_sensitive(&mut self, value: bool)
+```
+
+#### Builder::get_library_origin
+
+```rust
+pub fn get_library_origin(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_library_origin
+
+```rust
+pub fn set_library_origin(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_library_origin
+
+```rust
+pub fn init_library_origin(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_library_origin
+
+```rust
+pub fn has_library_origin(&self) -> bool
 ```
 
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`

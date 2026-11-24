@@ -324,6 +324,7 @@ Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, 
 pub struct NotifierManifest {
     pub destinations: Vec<NotifierDestination>,
     pub account_mail: bool,
+    pub deliverability_check: bool,
     pub formats: Vec<NotifierFormat>,
     pub address_fields: Vec<NotifierAddressField>,
 }
@@ -338,6 +339,8 @@ entrypoint and forbidden without it.
 - `account_mail`: Whether administrators may mark an instance for account mail
   (invites, password resets). Needs a `personal` destination with an
   `email` address field.
+- `deliverability_check`: Whether the plugin implements `Notifier.checkDeliverability`, so the
+  instance's settings offer the operator a deliverability check.
 - `formats`: Body formats the plugin renders; must include `text`.
 - `address_fields`: Fields a personal destination's address holds; required exactly
   when `destinations` names `personal`.

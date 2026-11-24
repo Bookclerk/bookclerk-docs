@@ -3783,6 +3783,42 @@ Re-exports [NotifyBinding](env.md#notifybinding)
 
 ***
 
+### NotifyCheckOutcome
+
+Re-exports [NotifyCheckOutcome](abi.md#notifycheckoutcome)
+
+***
+
+### NotifyDeliverabilityAdvice
+
+Re-exports [NotifyDeliverabilityAdvice](generated.md#notifydeliverabilityadvice)
+
+***
+
+### NotifyDeliverabilityCheck
+
+Re-exports [NotifyDeliverabilityCheck](generated.md#notifydeliverabilitycheck)
+
+***
+
+### NotifyDeliverabilityParams
+
+Re-exports [NotifyDeliverabilityParams](generated.md#notifydeliverabilityparams)
+
+***
+
+### NotifyDeliverabilityReply
+
+Re-exports [NotifyDeliverabilityReply](generated.md#notifydeliverabilityreply)
+
+***
+
+### NotifyDeliverabilityReport
+
+Re-exports [NotifyDeliverabilityReport](generated.md#notifydeliverabilityreport)
+
+***
+
 ### NotifyDestination
 
 Re-exports [NotifyDestination](generated.md#notifydestination)

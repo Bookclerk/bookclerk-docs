@@ -316,6 +316,12 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`NotifyValidated`](#notifyvalidated) | class | Success payload of `Notifier.validateDestination`. |
 | [`NotifyValidateReplyOk`](#notifyvalidatereplyok) | class | `NotifyValidateReply` member `ok`. |
 | [`NotifyValidateReplyErr`](#notifyvalidatereplyerr) | class | `NotifyValidateReply` member `err`. |
+| [`NotifyDeliverabilityParams`](#notifydeliverabilityparams) | class | Params of `Notifier.checkDeliverability`. |
+| [`NotifyDeliverabilityCheck`](#notifydeliverabilitycheck) | class | One checker's result. |
+| [`NotifyDeliverabilityAdvice`](#notifydeliverabilityadvice) | class | One thing the operator can do, merged from every check. |
+| [`NotifyDeliverabilityReport`](#notifydeliverabilityreport) | class | Success payload of `Notifier.checkDeliverability`. |
+| [`NotifyDeliverabilityReplyOk`](#notifydeliverabilityreplyok) | class | `NotifyDeliverabilityReply` member `ok`. |
+| [`NotifyDeliverabilityReplyErr`](#notifydeliverabilityreplyerr) | class | `NotifyDeliverabilityReply` member `err`. |
 | [`NotifyRaiseParams`](#notifyraiseparams) | class | Params of `NotificationRaiser.raise`. |
 | [`NotifyRaised`](#notifyraised) | class | Success payload of `NotificationRaiser.raise`. |
 | [`NotifyRaiseReplyOk`](#notifyraisereplyok) | class | `NotifyRaiseReply` member `ok`. |
@@ -480,6 +486,7 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`NotificationAudience`](#notificationaudience) | constant | Who a notification type is for. The account audience is reserved to the host; a plugin may declare only operational and patron types. |
 | [`NotificationAlertAction`](#notificationalertaction) | constant | Lifecycle step of an alert, for services such as PagerDuty that open and close incidents. |
 | [`NotifyDestinationKind`](#notifydestinationkind) | constant | Kind of destination a `Notifier` sends to. |
+| [`NotifyCheckOutcome`](#notifycheckoutcome) | constant | How one deliverability check or piece of advice came out. |
 | [`AiTask`](#aitask) | constant | What a model does. A model has exactly one task, and the task fixes the shape of `AiRunParams.input` and of the reply. |
 | [`AiTextRole`](#aitextrole) | constant | What a text is to an embedding model. Some models embed a search query differently from the documents it is matched against. |
 | [`ProvisionGrantKind`](#provisiongrantkind) | constant | What kind of grant the operator gave a guided setup (`ProvisionGrant`). |
@@ -548,6 +555,7 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`MetadataFileRenderReply`](#metadatafilerenderreply) | constant | Result union of `MetadataFiles.render`. |
 | [`NotifySendReply`](#notifysendreply) | constant | Result union of `Notifier.send`. |
 | [`NotifyValidateReply`](#notifyvalidatereply) | constant | Result union of `Notifier.validateDestination`. An address the plugin refuses is `invalid_params`. |
+| [`NotifyDeliverabilityReply`](#notifydeliverabilityreply) | constant | Result union of `Notifier.checkDeliverability`. |
 | [`NotifyRaiseReply`](#notifyraisereply) | constant | Result union of `NotificationRaiser.raise`. |
 | [`AiModelsReply`](#aimodelsreply) | constant | Result union of `AiModels.models`. |
 | [`AiRunReply`](#airunreply) | constant | Result union of `AiModels.run` and `AiRunner.run`. A model the plugin does not serve is `not_found`; an input for another task is `invalid_params`; a caller without the grant gets `forbidden`. |
@@ -4015,6 +4023,29 @@ saves it.
 
 `NotifyValidateReply`
 
+#### Notifier.check_deliverability
+
+```python
+async def check_deliverability(
+    self,
+    params: NotifyDeliverabilityParams,
+) -> NotifyDeliverabilityReply
+```
+
+Operator's deliverability check: send a sample the way real messages go,
+ask checker services how it scores, and merge their findings into
+advice. Only plugins that declare `[notifier].deliverability_check`
+implement it (others answer `unsupported`); it may run up to
+`deliverabilityCheckDeadlineMs`.
+
+**Args**
+
+- `params`: Sample message to check.
+
+**Returns**
+
+`NotifyDeliverabilityReply`
+
 ### NotificationRaiser
 
 ```python
@@ -6501,6 +6532,7 @@ from the library's public origin, never from a request.
 - `alertAction`: Alert lifecycle step; `none` for a one-off message.
 - `alertKey`: Alert this message opens or closes; required unless `alertAction` is `none`. Omitted when absent (wire zero value).
 - `sensitive`: True when the body carries a secret (an account-mail link): the plugin and SDKs must never log it.
+- `libraryOrigin`: The library's home page (`https://library.example.com/`), built from its public origin like `link`; absent when no public origin is set. Email footers link to it. Omitted when absent (wire zero value).
 
 ### NotifyDestination
 
@@ -6625,6 +6657,91 @@ Typed failure; `code` is a `PluginErrorCode` wire string.
 
 - `kind`: Always `"err"`.
 - `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
+
+### NotifyDeliverabilityParams
+
+```python
+class NotifyDeliverabilityParams(TypedDict)
+```
+
+Params of `Notifier.checkDeliverability`.
+
+**Attributes**
+
+- `message`: The host's `test` notification, rendered as a real one is, so the checkers score the plugin's real output.
+
+### NotifyDeliverabilityCheck
+
+```python
+class NotifyDeliverabilityCheck(TypedDict)
+```
+
+One checker's result.
+
+**Attributes**
+
+- `service`: Service name (`Postmark spam check`); at most `maxNotificationTitleBytes`.
+- `outcome`: How it came out.
+- `summary`: One-line result (`SpamAssassin score 0.8; under 5 passes`); at most `maxNotificationFieldBytes`.
+- `reportUrl`: Absolute `https` link to the service's full report, when it has one. Omitted when absent (wire zero value).
+
+### NotifyDeliverabilityAdvice
+
+```python
+class NotifyDeliverabilityAdvice(TypedDict)
+```
+
+One thing the operator can do, merged from every check.
+
+**Attributes**
+
+- `outcome`: `failed` is a fix, `warning` an improvement, `passed` what is already right; never `skipped`.
+- `title`: Short heading; at most `maxNotificationTitleBytes`.
+- `detail`: What to change and where; at most `maxNotificationFieldBytes`.
+- `sources`: The `service` names of the checks that raised it.
+
+### NotifyDeliverabilityReport
+
+```python
+class NotifyDeliverabilityReport(TypedDict)
+```
+
+Success payload of `Notifier.checkDeliverability`.
+
+**Attributes**
+
+- `checks`: One entry per checker, at most `maxDeliverabilityChecks`.
+- `advice`: Merged advice, most urgent first; at most `maxDeliverabilityAdvice`.
+
+### NotifyDeliverabilityReplyOk
+
+```python
+class NotifyDeliverabilityReplyOk(TypedDict)
+```
+
+`NotifyDeliverabilityReply` member `ok`.
+
+The report.
+
+**Attributes**
+
+- `kind`: Always `"ok"`.
+- `value`: The report.
+
+### NotifyDeliverabilityReplyErr
+
+```python
+class NotifyDeliverabilityReplyErr(TypedDict)
+```
+
+`NotifyDeliverabilityReply` member `err`.
+
+Typed failure; `unsupported` when the plugin has no check.
+
+**Attributes**
+
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `unsupported` when the plugin has no check.
 
 ### NotifyRaiseParams
 
@@ -9147,6 +9264,14 @@ NotifyDestinationKind = Literal['channel', 'personal']
 
 Kind of destination a `Notifier` sends to.
 
+### NotifyCheckOutcome
+
+```python
+NotifyCheckOutcome = Literal['passed', 'warning', 'failed', 'skipped']
+```
+
+How one deliverability check or piece of advice came out.
+
 ### AiTask
 
 ```python
@@ -9704,6 +9829,14 @@ NotifyValidateReply = Union[NotifyValidateReplyOk, NotifyValidateReplyErr]
 
 Result union of `Notifier.validateDestination`. An address the plugin
 refuses is `invalid_params`.
+
+### NotifyDeliverabilityReply
+
+```python
+NotifyDeliverabilityReply = Union[NotifyDeliverabilityReplyOk, NotifyDeliverabilityReplyErr]
+```
+
+Result union of `Notifier.checkDeliverability`.
 
 ### NotifyRaiseReply
 

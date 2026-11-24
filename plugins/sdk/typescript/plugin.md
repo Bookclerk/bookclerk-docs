@@ -3362,6 +3362,30 @@ Method result.
 
 [`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-7)
 
+##### checkDeliverability()
+
+```ts
+checkDeliverability(_params): Promise<NotifyDeliverabilityReport>;
+```
+
+Runs the operator's deliverability check: sends `params.message` the
+way real messages go, asks checker services how it scores and merges
+their findings into advice, most urgent first. Only plugins that declare
+`[notifier] deliverability_check = true` implement it; the default
+throws `unsupported`.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `_params` | [`NotifyDeliverabilityParams`](generated.md#notifydeliverabilityparams) | The host's rendered `test` notification. |
+
+###### Returns
+
+`Promise`\<[`NotifyDeliverabilityReport`](generated.md#notifydeliverabilityreport)\>
+
+One entry per checker and the merged advice.
+
 ##### fetch()
 
 ```ts
@@ -8400,6 +8424,18 @@ Re-exports [NotificationMessage](generated.md#notificationmessage)
 ### NotificationSeverity
 
 Re-exports [NotificationSeverity](abi.md#notificationseverity)
+
+***
+
+### NotifyDeliverabilityParams
+
+Re-exports [NotifyDeliverabilityParams](generated.md#notifydeliverabilityparams)
+
+***
+
+### NotifyDeliverabilityReport
+
+Re-exports [NotifyDeliverabilityReport](generated.md#notifydeliverabilityreport)
 
 ***
 

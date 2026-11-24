@@ -7404,6 +7404,17 @@ html?: string;
 Minimal HTML body for email; at most `maxNotificationHtmlBytes`.
 Omitted when absent (wire zero value).
 
+##### libraryOrigin?
+
+```ts
+libraryOrigin?: string;
+```
+
+The library's home page (`https://library.example.com/`), built from its
+public origin like `link`; absent when no public origin is set. Email
+footers link to it.
+Omitted when absent (wire zero value).
+
 ##### link?
 
 ```ts
@@ -7518,6 +7529,30 @@ destination.
 
 #### Methods
 
+##### checkDeliverability()
+
+```ts
+checkDeliverability(params): Promise<NotifyDeliverabilityReply>;
+```
+
+Operator's deliverability check: send a sample the way real messages go,
+ask checker services how it scores, and merge their findings into
+advice. Only plugins that declare `[notifier].deliverability_check`
+implement it (others answer `unsupported`); it may run up to
+`deliverabilityCheckDeadlineMs`.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `params` | [`NotifyDeliverabilityParams`](#notifydeliverabilityparams) | Sample message to check. |
+
+###### Returns
+
+`Promise`\<[`NotifyDeliverabilityReply`](#notifydeliverabilityreply)\>
+
+[NotifyDeliverabilityReply](#notifydeliverabilityreply)
+
 ##### health()
 
 ```ts
@@ -7572,6 +7607,130 @@ saves it.
 `Promise`\<[`NotifyValidateReply`](#notifyvalidatereply)\>
 
 [NotifyValidateReply](#notifyvalidatereply)
+
+***
+
+### NotifyDeliverabilityAdvice
+
+One thing the operator can do, merged from every check.
+
+#### Properties
+
+##### detail
+
+```ts
+detail: string;
+```
+
+What to change and where; at most `maxNotificationFieldBytes`.
+
+##### outcome
+
+```ts
+outcome: "warning" | "passed" | "failed" | "skipped";
+```
+
+`failed` is a fix, `warning` an improvement, `passed` what is already
+right; never `skipped`.
+
+##### sources
+
+```ts
+sources: string[];
+```
+
+The `service` names of the checks that raised it.
+
+##### title
+
+```ts
+title: string;
+```
+
+Short heading; at most `maxNotificationTitleBytes`.
+
+***
+
+### NotifyDeliverabilityCheck
+
+One checker's result.
+
+#### Properties
+
+##### outcome
+
+```ts
+outcome: "warning" | "passed" | "failed" | "skipped";
+```
+
+How it came out.
+
+##### reportUrl?
+
+```ts
+reportUrl?: string;
+```
+
+Absolute `https` link to the service's full report, when it has one.
+Omitted when absent (wire zero value).
+
+##### service
+
+```ts
+service: string;
+```
+
+Service name (`Postmark spam check`); at most `maxNotificationTitleBytes`.
+
+##### summary
+
+```ts
+summary: string;
+```
+
+One-line result (`SpamAssassin score 0.8; under 5 passes`); at most
+`maxNotificationFieldBytes`.
+
+***
+
+### NotifyDeliverabilityParams
+
+Params of `Notifier.checkDeliverability`.
+
+#### Properties
+
+##### message
+
+```ts
+message: NotificationMessage;
+```
+
+The host's `test` notification, rendered as a real one is, so the
+checkers score the plugin's real output.
+
+***
+
+### NotifyDeliverabilityReport
+
+Success payload of `Notifier.checkDeliverability`.
+
+#### Properties
+
+##### advice
+
+```ts
+advice: NotifyDeliverabilityAdvice[];
+```
+
+Merged advice, most urgent first; at most `maxDeliverabilityAdvice`.
+
+##### checks
+
+```ts
+checks: NotifyDeliverabilityCheck[];
+```
+
+One entry per checker, at most `maxDeliverabilityChecks`.
 
 ***
 
@@ -12955,6 +13114,24 @@ Result union of `Destination.move`.
 
 ***
 
+### NotifyDeliverabilityReply
+
+```ts
+type NotifyDeliverabilityReply = 
+  | {
+  kind: "ok";
+  value: NotifyDeliverabilityReport;
+}
+  | {
+  kind: "err";
+  value: PluginError;
+};
+```
+
+Result union of `Notifier.checkDeliverability`.
+
+***
+
 ### NotifyRaiseReply
 
 ```ts
@@ -13729,6 +13906,12 @@ Re-exports [NotificationAudience](abi.md#notificationaudience)
 ### NotificationSeverity
 
 Re-exports [NotificationSeverity](abi.md#notificationseverity)
+
+***
+
+### NotifyCheckOutcome
+
+Re-exports [NotifyCheckOutcome](abi.md#notifycheckoutcome)
 
 ***
 

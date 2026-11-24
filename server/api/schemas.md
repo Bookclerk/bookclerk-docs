@@ -764,6 +764,12 @@ on the edition's timeline ([`ChapterList::spans`]).
 - `end_ms` *integer (int64)*, **required** — End, in milliseconds: the next chapter's start, or the end of the timeline for the last chapter; never before `start_ms`. At least 0.
 - `depth` *integer (int32)*, **required** — Nesting depth; 0 for a top-level chapter. A chapter at depth n + 1 is nested under the nearest earlier chapter at depth n. At least 0.
 
+## CheckOutcomeJson
+
+How a deliverability check or piece of advice came out.
+
+Type: one of `passed`, `warning`, `failed`, `skipped`
+
 ## ChoiceBody
 
 Body of `PUT /api/me/notifications/choices/{type}`.
@@ -1172,6 +1178,31 @@ each named switch; an absent switch keeps its stored value.
 - `fix_catalog` *boolean or null* — New default for [`AdminControl::FixCatalog`].
 - `invite_branches` *boolean or null* — New default for [`AdminControl::InviteBranches`].
 - `approve_requests` *boolean or null* — New default for [`AdminControl::ApproveRequests`].
+
+## DeliverabilityAdviceJson
+
+One thing to do, merged from every check.
+
+- `outcome` *[`CheckOutcomeJson`](#checkoutcomejson)*, **required** — `failed` is a fix, `warning` an improvement, `passed` what is already right.
+- `title` *string*, **required** — Short heading.
+- `detail` *string*, **required** — What to change and where.
+- `sources` *array of string*, **required** — The checks that raised it.
+
+## DeliverabilityCheckJson
+
+One checker's result.
+
+- `service` *string*, **required** — The checker.
+- `outcome` *[`CheckOutcomeJson`](#checkoutcomejson)*, **required** — How it came out.
+- `summary` *string*, **required** — One line on the result.
+- `report_url` *string or null* — The checker's full report, an `https` link, when it has one.
+
+## DeliverabilityReportJson
+
+The answer to a deliverability check.
+
+- `checks` *array of [`DeliverabilityCheckJson`](#deliverabilitycheckjson)*, **required** — One entry per checker.
+- `advice` *array of [`DeliverabilityAdviceJson`](#deliverabilityadvicejson)*, **required** — What to do, most urgent first.
 
 ## DeliveryBacklog
 
@@ -3888,6 +3919,7 @@ Settings UI group for one discovered or loaded plugin.
 - `placement` *[`PlacementView`](#placementview) or null* — Scheduler placement; absent when the instance is hand-managed (the Enabled switch applies only then).
 - `storage_sync` *[`StorageSyncView`](#storagesyncview) or null* — How outside changes at this destination are followed; absent for other plugins and before a destination's first sync pass.
 - `models` *[`PluginModelsView`](#pluginmodelsview) or null* — The models a model plugin offers and where each stands on this node; absent for other plugins and while the plugin is not deployed here.
+- `deliverability_check` *boolean* — True when the plugin is a notifier with a deliverability check (`[notifier].deliverability_check`), so the instance's settings offer `POST /api/notifications/notifiers/{id}/deliverability`.
 - `present_on` *array of string* — Nodes whose deployment of the instance is `present`.
 
 ## PluginUninstalled

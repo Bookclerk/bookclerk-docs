@@ -295,6 +295,7 @@ Channels, routing rules, patron offers, the delivery log, and each user's own no
 | [`PATCH /api/notifications/channels/{id}`](notifications.md#patch-apinotificationschannelsid) | Renames a channel. |
 | [`POST /api/notifications/channels/{id}/resume`](notifications.md#post-apinotificationschannelsidresume) | Resumes a channel repeated failures paused, and clears its failure count. |
 | [`POST /api/notifications/channels/{id}/test`](notifications.md#post-apinotificationschannelsidtest) | Sends a test notification to one channel, whatever the routes say. |
+| [`POST /api/notifications/notifiers/{id}/deliverability`](notifications.md#post-apinotificationsnotifiersiddeliverability) | Runs a notifier instance's deliverability check. |
 | [`GET /api/notifications/routes`](notifications.md#get-apinotificationsroutes) | Lists every routing rule. |
 | [`PUT /api/notifications/routes/{type}`](notifications.md#put-apinotificationsroutestype) | Replaces the routes of one operational type. |
 | [`GET /api/notifications/offers`](notifications.md#get-apinotificationsoffers) | Lists which notifiers patrons may pick for each patron type. |

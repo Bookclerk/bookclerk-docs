@@ -19,6 +19,10 @@ code that the fuzz targets and the host share:
   a declared type id, labelled fields, an optional patron and a path
   inside the library.
 
+- **A notifier's deliverability report** ([`check_deliverability_report`](#check_deliverability_report)):
+  the checks and advice shown to the operator, bounded and cut to
+  single lines, with report links kept only when they are `https`.
+
 The host also checks every message it renders ([`check_message`](#check_message))
 before a notifier sees it, so a bug in a renderer cannot hand a plugin
 an oversized body or a link to somewhere other than the library.
@@ -45,9 +49,14 @@ an oversized body or a link to somewhere other than the library.
 | [`check_raise_params`](#check_raise_params) | function | Checks a raise a plugin sent on its `NOTIFY` binding. Whether the type is one the plugin declared, and whether the patron is inside the invocation's account scope, are the host's checks, since only it knows the manifest and the scope. |
 | [`classify_send_reply`](#classify_send_reply) | function | Turns a `Notifier.send` reply into what the host does next. |
 | [`sanitize_reason`](#sanitize_reason) | function | Cuts a notifier's error text to one line of at most `MAX_NOTIFY_REASON_BYTES` bytes: control characters become spaces and the cut falls on a character boundary. |
+| [`cut_line`](#cut_line) | function | Cuts text to one line of at most `cap` bytes: control, line-separator and bidi characters become spaces, and the text ends before the first character that would pass the cap. The same rule as `sanitize_reason`, at another cap. |
+| [`is_report_url`](#is_report_url) | function | Whether a report link may be shown to the operator as a link: an absolute `https` URL with a host, no credentials, no space or control character, at most `MAX_NOTIFICATION_FIELD_BYTES`. |
+| [`check_deliverability_report`](#check_deliverability_report) | function | Checks a notifier's deliverability report before the operator sees it: at most `MAX_DELIVERABILITY_CHECKS` checks and `MAX_DELIVERABILITY_ADVICE` pieces of advice; every text cut to one line at its cap (`cut_line`); a report link kept only when `is_report_url` accepts it; advice marked `skipped` shown as a `warning`; and at most `MAX_DELIVERABILITY_CHECKS` sources per piece of advice. |
 | [`severity_rank`](#severity_rank) | function | Rank of a severity for comparing against a rule's minimum: info 0, warning 1, critical 2. |
 | [`decode_notify_send_reply_bytes`](#decode_notify_send_reply_bytes) | function | Decodes a `NotifySendReply` from an unpacked Cap'n Proto message, the form a notifier's reply crosses the plugin boundary in. |
 | [`encode_notify_send_reply_bytes`](#encode_notify_send_reply_bytes) | function | Encodes a `NotifySendReply`, the inverse of `decode_notify_send_reply_bytes`. |
+| [`decode_notify_deliverability_reply_bytes`](#decode_notify_deliverability_reply_bytes) | function | Decodes a `NotifyDeliverabilityReply` from an unpacked Cap'n Proto message, the form a notifier's report crosses the plugin boundary in. |
+| [`encode_notify_deliverability_reply_bytes`](#encode_notify_deliverability_reply_bytes) | function | Encodes a `NotifyDeliverabilityReply`, the inverse of `decode_notify_deliverability_reply_bytes`. |
 | [`decode_notify_raise_params_bytes`](#decode_notify_raise_params_bytes) | function | Decodes `NotifyRaiseParams` from an unpacked Cap'n Proto message, the form a plugin's raise crosses the plugin boundary in. |
 | [`encode_notify_raise_params_bytes`](#encode_notify_raise_params_bytes) | function | Encodes `NotifyRaiseParams`, the inverse of `decode_notify_raise_params_bytes`. |
 | [`MAX_NOTIFY_ID_BYTES`](#max_notify_id_bytes) | constant | Longest notification id, destination id or patron id, in bytes. Ids are printable ASCII without spaces. |
@@ -163,6 +172,7 @@ pub enum NotificationError {
     MissingAddressField(String),
     UnknownAddressField(String),
     AddressKindMismatch,
+    TooManyDeliverabilityEntries,
 }
 ```
 
@@ -187,6 +197,9 @@ Why a notification request, message or reply was refused.
 - `MissingAddressField`: An address document lacks a field the notifier requires.
 - `UnknownAddressField`: An address document carries a field the notifier does not declare.
 - `AddressKindMismatch`: A channel destination carried an address, or a personal one none.
+- `TooManyDeliverabilityEntries`: A deliverability report lists more than
+  [`MAX_DELIVERABILITY_CHECKS`](README.md#max_deliverability_checks) checks or
+  [`MAX_DELIVERABILITY_ADVICE`](README.md#max_deliverability_advice) pieces of advice.
 
 Implements: `Clone`, `Debug`, `Display`, `Eq`, `Error`, `From<NotificationError>`, `PartialEq`
 
@@ -343,8 +356,8 @@ Checks a message the host rendered before any notifier sees it.
 #### Errors
 
 The first [`NotificationError`](#notificationerror) the message breaks: a bad id or type,
-a blank or oversized title, an oversized body, a link outside the
-rules, too many fields, or a mismatched alert.
+a blank or oversized title, an oversized body, a link or library origin
+outside the rules, too many fields, or a mismatched alert.
 
 ### parse_address_document
 
@@ -519,6 +532,69 @@ the cut falls on a character boundary.
 
 The cut text.
 
+### cut_line
+
+```rust
+pub fn cut_line(text: &str, cap: usize) -> String
+```
+
+Cuts text to one line of at most `cap` bytes: control, line-separator
+and bidi characters become spaces, and the text ends before the first
+character that would pass the cap. The same rule as [`sanitize_reason`](#sanitize_reason),
+at another cap.
+
+#### Arguments
+
+* `text` - Text from a plugin.
+* `cap` - Most bytes kept.
+
+#### Returns
+
+The cut text.
+
+### is_report_url
+
+```rust
+pub fn is_report_url(url: &str) -> bool
+```
+
+Whether a report link may be shown to the operator as a link: an
+absolute `https` URL with a host, no credentials, no space or control
+character, at most [`MAX_NOTIFICATION_FIELD_BYTES`](README.md#max_notification_field_bytes).
+
+#### Arguments
+
+* `url` - The link a plugin gave.
+
+### check_deliverability_report
+
+```rust
+pub fn check_deliverability_report(
+    report: NotifyDeliverabilityReport,
+) -> Result<NotifyDeliverabilityReport, NotificationError>
+```
+
+Checks a notifier's deliverability report before the operator sees it:
+at most [`MAX_DELIVERABILITY_CHECKS`](README.md#max_deliverability_checks) checks and
+[`MAX_DELIVERABILITY_ADVICE`](README.md#max_deliverability_advice) pieces of advice; every text cut to one
+line at its cap ([`cut_line`](#cut_line)); a report link kept only when
+[`is_report_url`](#is_report_url) accepts it; advice marked `skipped` shown as a
+`warning`; and at most [`MAX_DELIVERABILITY_CHECKS`](README.md#max_deliverability_checks) sources per piece
+of advice.
+
+#### Arguments
+
+* `report` - The plugin's report.
+
+#### Returns
+
+The report as the operator sees it.
+
+#### Errors
+
+[`NotificationError::TooManyDeliverabilityEntries`](#notificationerror) when a list is over
+its cap.
+
 ### severity_rank
 
 ```rust
@@ -569,6 +645,52 @@ pub fn encode_notify_send_reply_bytes(
 
 Encodes a `NotifySendReply`, the inverse of
 [`decode_notify_send_reply_bytes`](#decode_notify_send_reply_bytes).
+
+#### Arguments
+
+* `reply` - The reply to encode.
+
+#### Returns
+
+The message bytes.
+
+#### Errors
+
+Returns the Cap'n Proto error the builder reports.
+
+### decode_notify_deliverability_reply_bytes
+
+```rust
+pub fn decode_notify_deliverability_reply_bytes(
+    bytes: &[u8],
+) -> Result<Result<NotifyDeliverabilityReport, PluginError>>
+```
+
+Decodes a `NotifyDeliverabilityReply` from an unpacked Cap'n Proto
+message, the form a notifier's report crosses the plugin boundary in.
+
+#### Arguments
+
+* `bytes` - The message bytes.
+
+#### Returns
+
+The report, or the notifier's typed error.
+
+#### Errors
+
+Returns the Cap'n Proto error the reader reports.
+
+### encode_notify_deliverability_reply_bytes
+
+```rust
+pub fn encode_notify_deliverability_reply_bytes(
+    reply: &Result<NotifyDeliverabilityReport, PluginError>,
+) -> Result<Vec<u8>>
+```
+
+Encodes a `NotifyDeliverabilityReply`, the inverse of
+[`decode_notify_deliverability_reply_bytes`](#decode_notify_deliverability_reply_bytes).
 
 #### Arguments
 

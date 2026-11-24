@@ -35,6 +35,7 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | [`NotificationAudience`](#notificationaudience) | enum |  |
 | [`NotificationAlertAction`](#notificationalertaction) | enum |  |
 | [`NotifyDestinationKind`](#notifydestinationkind) | enum |  |
+| [`NotifyCheckOutcome`](#notifycheckoutcome) | enum |  |
 | [`AiTask`](#aitask) | enum |  |
 | [`AiTextRole`](#aitextrole) | enum |  |
 | [`ProvisionGrantKind`](#provisiongrantkind) | enum |  |
@@ -75,6 +76,9 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | [`MAX_NOTIFICATION_FIELDS`](#max_notification_fields) | constant |  |
 | [`MAX_NOTIFICATION_FIELD_BYTES`](#max_notification_field_bytes) | constant |  |
 | [`MAX_NOTIFIER_ADDRESS_BYTES`](#max_notifier_address_bytes) | constant |  |
+| [`MAX_DELIVERABILITY_CHECKS`](#max_deliverability_checks) | constant |  |
+| [`MAX_DELIVERABILITY_ADVICE`](#max_deliverability_advice) | constant |  |
+| [`DELIVERABILITY_CHECK_DEADLINE_MS`](#deliverability_check_deadline_ms) | constant |  |
 | [`MAX_AI_MODEL_NAME_BYTES`](#max_ai_model_name_bytes) | constant |  |
 | [`MAX_AI_MODELS`](#max_ai_models) | constant |  |
 | [`MAX_AI_EMBED_TEXTS`](#max_ai_embed_texts) | constant |  |
@@ -375,6 +379,11 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`notify_validate_params`](notify_validate_params.md)
 - [`notify_validated`](notify_validated.md)
 - [`notify_validate_reply`](notify_validate_reply.md)
+- [`notify_deliverability_params`](notify_deliverability_params.md)
+- [`notify_deliverability_check`](notify_deliverability_check.md)
+- [`notify_deliverability_advice`](notify_deliverability_advice.md)
+- [`notify_deliverability_report`](notify_deliverability_report.md)
+- [`notify_deliverability_reply`](notify_deliverability_reply.md)
 - [`notify_raise_params`](notify_raise_params.md)
 - [`notify_raised`](notify_raised.md)
 - [`notify_raise_reply`](notify_raise_reply.md)
@@ -883,6 +892,19 @@ pub enum NotifyDestinationKind {
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<NotifyDestinationKind>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
 
+### NotifyCheckOutcome
+
+```rust
+pub enum NotifyCheckOutcome {
+    Passed = 0,
+    Warning = 1,
+    Failed = 2,
+    Skipped = 3,
+}
+```
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<NotifyCheckOutcome>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
+
 ### AiTask
 
 ```rust
@@ -1181,6 +1203,24 @@ pub const MAX_NOTIFICATION_FIELD_BYTES: u32 = 1024;
 
 ```rust
 pub const MAX_NOTIFIER_ADDRESS_BYTES: u32 = 4096;
+```
+
+### MAX_DELIVERABILITY_CHECKS
+
+```rust
+pub const MAX_DELIVERABILITY_CHECKS: u32 = 8;
+```
+
+### MAX_DELIVERABILITY_ADVICE
+
+```rust
+pub const MAX_DELIVERABILITY_ADVICE: u32 = 32;
+```
+
+### DELIVERABILITY_CHECK_DEADLINE_MS
+
+```rust
+pub const DELIVERABILITY_CHECK_DEADLINE_MS: u32 = 120000;
 ```
 
 ### MAX_AI_MODEL_NAME_BYTES

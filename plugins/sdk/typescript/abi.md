@@ -252,6 +252,16 @@ Union of `NOTIFICATION_SEVERITYS` wire names.
 
 ***
 
+### NotifyCheckOutcome
+
+```ts
+type NotifyCheckOutcome = typeof NOTIFY_CHECK_OUTCOMES[number];
+```
+
+Union of `NOTIFY_CHECK_OUTCOMES` wire names.
+
+***
+
 ### NotifyDestinationKind
 
 ```ts
@@ -527,6 +537,17 @@ Universal database cell/parameter domain. Engine-native arrays, enums,
 unsigned integers, and JSON text sentinels are not baseline ABI values.
 
 Ordinal-ordered `DbType` wire names (index = Cap'n Proto ordinal).
+
+***
+
+### DELIVERABILITY\_CHECK\_DEADLINE\_MS
+
+```ts
+const DELIVERABILITY_CHECK_DEADLINE_MS: 120000;
+```
+
+Longest `Notifier.checkDeliverability` may run, in milliseconds: checkers
+that read a delivered message need time for it to arrive.
 
 ***
 
@@ -894,6 +915,26 @@ const MAX_CRON_BYTES: 128;
 ```
 
 Maximum `[triggers] crons` source length (bytes), as in `ScheduledController.cron`.
+
+***
+
+### MAX\_DELIVERABILITY\_ADVICE
+
+```ts
+const MAX_DELIVERABILITY_ADVICE: 32;
+```
+
+Most `NotifyDeliverabilityAdvice` entries one deliverability report lists.
+
+***
+
+### MAX\_DELIVERABILITY\_CHECKS
+
+```ts
+const MAX_DELIVERABILITY_CHECKS: 8;
+```
+
+Most `NotifyDeliverabilityCheck`s one deliverability report lists.
 
 ***
 
@@ -1549,6 +1590,18 @@ const NOTIFICATION_SEVERITYS: readonly ["info", "warning", "critical"];
 How urgent a notification is. Routing rules carry a minimum severity.
 
 Ordinal-ordered `NotificationSeverity` wire names (index = Cap'n Proto ordinal).
+
+***
+
+### NOTIFY\_CHECK\_OUTCOMES
+
+```ts
+const NOTIFY_CHECK_OUTCOMES: readonly ["passed", "warning", "failed", "skipped"];
+```
+
+How one deliverability check or piece of advice came out.
+
+Ordinal-ordered `NotifyCheckOutcome` wire names (index = Cap'n Proto ordinal).
 
 ***
 

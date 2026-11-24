@@ -16,7 +16,9 @@ runs TLS itself with rustls, either from the first byte or after
 
 ## Modules
 
+- [`checkers`](checkers.md): Reaches the deliverability checkers over HTTPS.
 - [`client`](client.md): Moves an SMTP `Session`'s bytes over a connection.
 - [`compose`](compose.md): Turns a rendered notification into an email, with no I/O of its own.
+- [`deliverability`](deliverability.md): The operator's deliverability check, with no I/O of its own.
 - [`notifier`](notifier.md): The instance's settings and the `notifier` entrypoint.
 - [`smtp`](smtp.md): SMTP submission, with no I/O of its own.

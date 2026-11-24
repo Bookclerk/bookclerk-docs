@@ -312,11 +312,16 @@ the audience.
 #### NewNotification::message
 
 ```rust
-pub fn message(&self, notification_id: &str, link: Option<String>) -> NotificationMessage
+pub fn message(
+    &self,
+    notification_id: &str,
+    link: Option<String>,
+    library_origin: Option<String>,
+) -> NotificationMessage
 ```
 
-The message a notifier is sent, with `link` already built from the
-public origin.
+The message a notifier is sent, with `link` and `library_origin`
+already built from the public origin ([`link_for`](#link_for)).
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 

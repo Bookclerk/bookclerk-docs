@@ -108,6 +108,10 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`NotifySent`](#notifysent) | struct | Success payload of `Notifier.send`. |
 | [`NotifyValidateParams`](#notifyvalidateparams) | struct | Params of `Notifier.validateDestination`. |
 | [`NotifyValidated`](#notifyvalidated) | struct | Success payload of `Notifier.validateDestination`. |
+| [`NotifyDeliverabilityParams`](#notifydeliverabilityparams) | struct | Params of `Notifier.checkDeliverability`. |
+| [`NotifyDeliverabilityCheck`](#notifydeliverabilitycheck) | struct | One checker's result. |
+| [`NotifyDeliverabilityAdvice`](#notifydeliverabilityadvice) | struct | One thing the operator can do, merged from every check. |
+| [`NotifyDeliverabilityReport`](#notifydeliverabilityreport) | struct | Success payload of `Notifier.checkDeliverability`. |
 | [`NotifyRaiseParams`](#notifyraiseparams) | struct | Params of `NotificationRaiser.raise`. |
 | [`NotifyRaised`](#notifyraised) | struct | Success payload of `NotificationRaiser.raise`. |
 | [`AiModel`](#aimodel) | struct | One model an `ai` plugin serves. |
@@ -171,6 +175,7 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`NotificationAudience`](#notificationaudience) | enum | Who a notification type is for. The account audience is reserved to the host; a plugin may declare only operational and patron types. |
 | [`NotificationAlertAction`](#notificationalertaction) | enum | Lifecycle step of an alert, for services such as PagerDuty that open and close incidents. |
 | [`NotifyDestinationKind`](#notifydestinationkind) | enum | Kind of destination a `Notifier` sends to. |
+| [`NotifyCheckOutcome`](#notifycheckoutcome) | enum | How one deliverability check or piece of advice came out. |
 | [`AiTask`](#aitask) | enum | What a model does. A model has exactly one task, and the task fixes the shape of `AiRunParams.input` and of the reply. |
 | [`AiTextRole`](#aitextrole) | enum | What a text is to an embedding model. Some models embed a search query differently from the documents it is matched against. |
 | [`ProvisionGrantKind`](#provisiongrantkind) | enum | What kind of grant the operator gave a guided setup (`ProvisionGrant`). |
@@ -436,6 +441,16 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`read_notify_validated`](#read_notify_validated) | function | Decode a `NotifyValidated` from a Cap'n Proto reader. |
 | [`write_notify_validate_reply`](#write_notify_validate_reply) | function | Encode a `NotifyValidateReply` union from a typed result. |
 | [`read_notify_validate_reply`](#read_notify_validate_reply) | function | Decode a `NotifyValidateReply` union into a typed result. |
+| [`write_notify_deliverability_params`](#write_notify_deliverability_params) | function | Encode a `NotifyDeliverabilityParams` onto a Cap'n Proto builder. |
+| [`read_notify_deliverability_params`](#read_notify_deliverability_params) | function | Decode a `NotifyDeliverabilityParams` from a Cap'n Proto reader. |
+| [`write_notify_deliverability_check`](#write_notify_deliverability_check) | function | Encode a `NotifyDeliverabilityCheck` onto a Cap'n Proto builder. |
+| [`read_notify_deliverability_check`](#read_notify_deliverability_check) | function | Decode a `NotifyDeliverabilityCheck` from a Cap'n Proto reader. |
+| [`write_notify_deliverability_advice`](#write_notify_deliverability_advice) | function | Encode a `NotifyDeliverabilityAdvice` onto a Cap'n Proto builder. |
+| [`read_notify_deliverability_advice`](#read_notify_deliverability_advice) | function | Decode a `NotifyDeliverabilityAdvice` from a Cap'n Proto reader. |
+| [`write_notify_deliverability_report`](#write_notify_deliverability_report) | function | Encode a `NotifyDeliverabilityReport` onto a Cap'n Proto builder. |
+| [`read_notify_deliverability_report`](#read_notify_deliverability_report) | function | Decode a `NotifyDeliverabilityReport` from a Cap'n Proto reader. |
+| [`write_notify_deliverability_reply`](#write_notify_deliverability_reply) | function | Encode a `NotifyDeliverabilityReply` union from a typed result. |
+| [`read_notify_deliverability_reply`](#read_notify_deliverability_reply) | function | Decode a `NotifyDeliverabilityReply` union into a typed result. |
 | [`write_notify_raise_params`](#write_notify_raise_params) | function | Encode a `NotifyRaiseParams` onto a Cap'n Proto builder. |
 | [`read_notify_raise_params`](#read_notify_raise_params) | function | Decode a `NotifyRaiseParams` from a Cap'n Proto reader. |
 | [`write_notify_raised`](#write_notify_raised) | function | Encode a `NotifyRaised` onto a Cap'n Proto builder. |
@@ -2996,6 +3011,7 @@ pub struct NotificationMessage {
     pub alert_action: NotificationAlertAction,
     pub alert_key: Option<String>,
     pub sensitive: bool,
+    pub library_origin: Option<String>,
 }
 ```
 
@@ -3025,6 +3041,10 @@ from the library's public origin, never from a request.
   `None` when absent (wire zero value).
 - `sensitive`: True when the body carries a secret (an account-mail link): the plugin
   and SDKs must never log it.
+- `library_origin`: The library's home page (`https://library.example.com/`), built from its
+  public origin like `link`; absent when no public origin is set. Email
+  footers link to it.
+  `None` when absent (wire zero value).
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -3119,6 +3139,88 @@ Success payload of `Notifier.validateDestination`.
   `maxNotifierAddressBytes`.
 - `label`: Short label shown to the patron (`a***@example.com`); never a secret.
   `None` when absent (wire zero value).
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### NotifyDeliverabilityParams
+
+```rust
+pub struct NotifyDeliverabilityParams {
+    pub message: NotificationMessage,
+}
+```
+
+Params of `Notifier.checkDeliverability`.
+
+**Fields**
+
+- `message`: The host's `test` notification, rendered as a real one is, so the
+  checkers score the plugin's real output.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### NotifyDeliverabilityCheck
+
+```rust
+pub struct NotifyDeliverabilityCheck {
+    pub service: String,
+    pub outcome: NotifyCheckOutcome,
+    pub summary: String,
+    pub report_url: Option<String>,
+}
+```
+
+One checker's result.
+
+**Fields**
+
+- `service`: Service name (`Postmark spam check`); at most `maxNotificationTitleBytes`.
+- `outcome`: How it came out.
+- `summary`: One-line result (`SpamAssassin score 0.8; under 5 passes`); at most
+  `maxNotificationFieldBytes`.
+- `report_url`: Absolute `https` link to the service's full report, when it has one.
+  `None` when absent (wire zero value).
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### NotifyDeliverabilityAdvice
+
+```rust
+pub struct NotifyDeliverabilityAdvice {
+    pub outcome: NotifyCheckOutcome,
+    pub title: String,
+    pub detail: String,
+    pub sources: Vec<String>,
+}
+```
+
+One thing the operator can do, merged from every check.
+
+**Fields**
+
+- `outcome`: `failed` is a fix, `warning` an improvement, `passed` what is already
+  right; never `skipped`.
+- `title`: Short heading; at most `maxNotificationTitleBytes`.
+- `detail`: What to change and where; at most `maxNotificationFieldBytes`.
+- `sources`: The `service` names of the checks that raised it.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### NotifyDeliverabilityReport
+
+```rust
+pub struct NotifyDeliverabilityReport {
+    pub checks: Vec<NotifyDeliverabilityCheck>,
+    pub advice: Vec<NotifyDeliverabilityAdvice>,
+}
+```
+
+Success payload of `Notifier.checkDeliverability`.
+
+**Fields**
+
+- `checks`: One entry per checker, at most `maxDeliverabilityChecks`.
+- `advice`: Merged advice, most urgent first; at most `maxDeliverabilityAdvice`.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -4951,6 +5053,44 @@ pub fn from_wire_name(name: &str) -> Option<Self>
 Parse a wire name; `None` for unknown strings.
 
 Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<NotifyDestinationKind>`, `Hash`, `PartialEq`, `Serialize`
+
+### NotifyCheckOutcome
+
+```rust
+pub enum NotifyCheckOutcome {
+    Passed,
+    Warning,
+    Failed,
+    Skipped,
+}
+```
+
+How one deliverability check or piece of advice came out.
+
+**Variants**
+
+- `Passed`: Passed; nothing to change.
+- `Warning`: Works, but could be better.
+- `Failed`: Likely to land in spam or be refused; fix it first.
+- `Skipped`: Not run: not set up, not approved, or the service did not answer.
+
+#### NotifyCheckOutcome::wire_name
+
+```rust
+pub fn wire_name(self) -> &'static str
+```
+
+Wire name of this enumerant (matches the TypeScript / Python SDK literal).
+
+#### NotifyCheckOutcome::from_wire_name
+
+```rust
+pub fn from_wire_name(name: &str) -> Option<Self>
+```
+
+Parse a wire name; `None` for unknown strings.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<NotifyCheckOutcome>`, `Hash`, `PartialEq`, `Serialize`
 
 ### AiTask
 
@@ -8372,6 +8512,151 @@ Decode a `NotifyValidateReply` union into a typed result.
 
 Returns a Cap'n Proto error when the union is unset or a field is malformed.
 
+### write_notify_deliverability_params
+
+```rust
+pub fn write_notify_deliverability_params(
+    b: Builder<'_>,
+    v: &NotifyDeliverabilityParams,
+) -> Result<()>
+```
+
+Encode a [`NotifyDeliverabilityParams`](#notifydeliverabilityparams) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_notify_deliverability_params
+
+```rust
+pub fn read_notify_deliverability_params(
+    r: Reader<'_>,
+) -> Result<NotifyDeliverabilityParams>
+```
+
+Decode a [`NotifyDeliverabilityParams`](#notifydeliverabilityparams) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_notify_deliverability_check
+
+```rust
+pub fn write_notify_deliverability_check(
+    b: Builder<'_>,
+    v: &NotifyDeliverabilityCheck,
+) -> Result<()>
+```
+
+Encode a [`NotifyDeliverabilityCheck`](#notifydeliverabilitycheck) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_notify_deliverability_check
+
+```rust
+pub fn read_notify_deliverability_check(
+    r: Reader<'_>,
+) -> Result<NotifyDeliverabilityCheck>
+```
+
+Decode a [`NotifyDeliverabilityCheck`](#notifydeliverabilitycheck) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_notify_deliverability_advice
+
+```rust
+pub fn write_notify_deliverability_advice(
+    b: Builder<'_>,
+    v: &NotifyDeliverabilityAdvice,
+) -> Result<()>
+```
+
+Encode a [`NotifyDeliverabilityAdvice`](#notifydeliverabilityadvice) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_notify_deliverability_advice
+
+```rust
+pub fn read_notify_deliverability_advice(
+    r: Reader<'_>,
+) -> Result<NotifyDeliverabilityAdvice>
+```
+
+Decode a [`NotifyDeliverabilityAdvice`](#notifydeliverabilityadvice) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_notify_deliverability_report
+
+```rust
+pub fn write_notify_deliverability_report(
+    b: Builder<'_>,
+    v: &NotifyDeliverabilityReport,
+) -> Result<()>
+```
+
+Encode a [`NotifyDeliverabilityReport`](#notifydeliverabilityreport) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_notify_deliverability_report
+
+```rust
+pub fn read_notify_deliverability_report(
+    r: Reader<'_>,
+) -> Result<NotifyDeliverabilityReport>
+```
+
+Decode a [`NotifyDeliverabilityReport`](#notifydeliverabilityreport) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_notify_deliverability_reply
+
+```rust
+pub fn write_notify_deliverability_reply(
+    b: Builder<'_>,
+    v: &Result<NotifyDeliverabilityReport, PluginError>,
+) -> Result<()>
+```
+
+Encode a `NotifyDeliverabilityReply` union from a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when a nested field cannot be encoded.
+
+### read_notify_deliverability_reply
+
+```rust
+pub fn read_notify_deliverability_reply(
+    r: Reader<'_>,
+) -> Result<Result<NotifyDeliverabilityReport, PluginError>>
+```
+
+Decode a `NotifyDeliverabilityReply` union into a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when the union is unset or a field is malformed.
+
 ### write_notify_raise_params
 
 ```rust
@@ -9724,7 +10009,7 @@ when the decoded value does not survive `write_*` then `read_*` intact.
 ### READ_ANY_COUNT
 
 ```rust
-pub const READ_ANY_COUNT: u8 = 181;
+pub const READ_ANY_COUNT: u8 = 186;
 ```
 
 Number of root structs [`read_any_message`](#read_any_message) can decode; selectors are

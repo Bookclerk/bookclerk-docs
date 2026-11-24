@@ -944,6 +944,110 @@ The version of the default; a write sends it back as `expected_version`.
 
 ***
 
+### DeliverabilityAdvice
+
+One thing to do, merged from every check.
+
+#### Properties
+
+##### detail
+
+```ts
+detail: string;
+```
+
+What to change and where.
+
+##### outcome
+
+```ts
+outcome: DeliverabilityOutcome;
+```
+
+`failed` is a fix, `warning` an improvement, `passed` already right.
+
+##### sources
+
+```ts
+sources: string[];
+```
+
+The checks that raised it.
+
+##### title
+
+```ts
+title: string;
+```
+
+Short heading.
+
+***
+
+### DeliverabilityCheck
+
+One checker's result in a deliverability report.
+
+#### Properties
+
+##### outcome
+
+```ts
+outcome: DeliverabilityOutcome;
+```
+
+How it came out.
+
+##### report\_url?
+
+```ts
+report_url?: string;
+```
+
+The checker's full report, when it has one.
+
+##### service
+
+```ts
+service: string;
+```
+
+The checker's name.
+
+##### summary
+
+```ts
+summary: string;
+```
+
+One line on the result.
+
+***
+
+### DeliverabilityReport
+
+What a notifier's deliverability check found.
+
+#### Properties
+
+##### advice
+
+```ts
+advice: DeliverabilityAdvice[];
+```
+
+What to do, most urgent first.
+
+##### checks
+
+```ts
+checks: DeliverabilityCheck[];
+```
+
+One entry per checker.
+
+***
+
 ### DiagnosticsReport
 
 One diagnostics report this install sent (`GET /api/diagnostics/reports`).
@@ -4826,6 +4930,14 @@ config_revision?: number;
 
 Instance document revision for compare-and-swap writes.
 
+##### deliverability\_check?
+
+```ts
+deliverability_check?: boolean;
+```
+
+True when the plugin is a notifier that can check its own deliverability.
+
 ##### deployment?
 
 ```ts
@@ -7864,6 +7976,17 @@ A processed cover size the daemon serves: thumbnail, card, or full size.
 
 ***
 
+### DeliverabilityOutcome
+
+```ts
+type DeliverabilityOutcome = "passed" | "warning" | "failed" | "skipped";
+```
+
+How one deliverability check or piece of advice came out: `failed` needs a
+fix, `warning` could be better, `skipped` did not run.
+
+***
+
 ### DiscoverFeedState
 
 ```ts
@@ -8716,6 +8839,30 @@ Requests cancel of a pending job or cooperative stop of a running job.
 `Promise`\<[`ActionResponse`](#actionresponse)\>
 
 Action ack including the job id.
+
+***
+
+### checkNotifierDeliverability()
+
+```ts
+function checkNotifierDeliverability(instanceId): Promise<DeliverabilityReport>;
+```
+
+Asks a notifier to check how well its messages would be delivered: it
+sends a sample through each checker it supports and merges the results.
+Takes up to two minutes.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `instanceId` | `string` | The notifier's plugin instance id. |
+
+#### Returns
+
+`Promise`\<[`DeliverabilityReport`](#deliverabilityreport)\>
+
+The checks and the merged advice.
 
 ***
 
