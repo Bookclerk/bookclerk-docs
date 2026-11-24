@@ -91,10 +91,10 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`MetadataRecords`](#metadatarecords) | struct | Success payload of `MetadataProvider.lookup` / `search`. |
 | [`MetadataChapter`](#metadatachapter) | struct | One chapter in a provider's chapter layout. Chapters are listed in pre-order: a chapter with `depth` n + 1 is nested under the nearest earlier chapter with `depth` n. |
 | [`MetadataChapters`](#metadatachapters) | struct | Success payload of `MetadataProvider.chapters`. |
-| [`CoverFetchParams`](#coverfetchparams) | struct | Params of `CoverFetcher.fetchCovers`. |
-| [`CoverCondition`](#covercondition) | struct | Validators the host already holds for one URL, sent as conditional request headers so an unchanged image costs a `304` instead of its body. |
-| [`CoverImage`](#coverimage) | struct | What happened to one requested URL. |
-| [`CoverImages`](#coverimages) | struct | Success payload of `CoverFetcher.fetchCovers`. |
+| [`MediaDownloadParams`](#mediadownloadparams) | struct | Params of `MediaDownloader.downloadMedia`. |
+| [`DownloadCondition`](#downloadcondition) | struct | Validators the host already holds for one URL, sent as conditional request headers so an unchanged image costs a `304` instead of its body. |
+| [`DownloadResult`](#downloadresult) | struct | What happened to one requested URL. |
+| [`DownloadResults`](#downloadresults) | struct | Success payload of `MediaDownloader.downloadMedia`. |
 | [`MetadataFileRecord`](#metadatafilerecord) | struct | What one metadata file says about the edition it sits beside. A field the file does not state is left out of `present` and means "unknown", never "cleared"; a field in `present` with an empty value means the file states that it is empty. The host checks every value against the `maxMetadataFile*` caps and refuses a record that states a field its dialect does not carry. |
 | [`MetadataFileParseParams`](#metadatafileparseparams) | struct | Params of `MetadataFiles.parse`. |
 | [`MetadataFileParsed`](#metadatafileparsed) | struct | Success payload of `MetadataFiles.parse`. |
@@ -169,7 +169,7 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`OfferedCodec`](#offeredcodec) | enum | Audio codec of a stream a store offers (`QualityOffer.codec`). Spelled as the host's probed codecs are, so an offer compares with a held file. |
 | [`OfferedAacProfile`](#offeredaacprofile) | enum | AAC profile of an offered AAC stream (`QualityOffer.aacProfile`). |
 | [`InvocationPurpose`](#invocationpurpose) | enum | Why the host opens a plugin's entrypoints (`Invocation.purpose`). |
-| [`RemoteMedia`](#remotemedia) | enum | The kind of public media `CoverFetcher.fetchCovers` downloads. |
+| [`RemoteMedia`](#remotemedia) | enum | The kind of public media `MediaDownloader.downloadMedia` downloads. |
 | [`MetadataField`](#metadatafield) | enum | A field of a `MetadataFileRecord`. Dialects declare in the manifest which fields their format carries; a parsed record lists the ones its file states, and a render request lists the ones to write. |
 | [`NotificationSeverity`](#notificationseverity) | enum | How urgent a notification is. Routing rules carry a minimum severity. |
 | [`NotificationAudience`](#notificationaudience) | enum | Who a notification type is for. The account audience is reserved to the host; a plugin may declare only operational and patron types. |
@@ -397,16 +397,16 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`read_metadata_chapters`](#read_metadata_chapters) | function | Decode a `MetadataChapters` from a Cap'n Proto reader. |
 | [`write_metadata_chapters_reply`](#write_metadata_chapters_reply) | function | Encode a `MetadataChaptersReply` union from a typed result. |
 | [`read_metadata_chapters_reply`](#read_metadata_chapters_reply) | function | Decode a `MetadataChaptersReply` union into a typed result. |
-| [`write_cover_fetch_params`](#write_cover_fetch_params) | function | Encode a `CoverFetchParams` onto a Cap'n Proto builder. |
-| [`read_cover_fetch_params`](#read_cover_fetch_params) | function | Decode a `CoverFetchParams` from a Cap'n Proto reader. |
-| [`write_cover_condition`](#write_cover_condition) | function | Encode a `CoverCondition` onto a Cap'n Proto builder. |
-| [`read_cover_condition`](#read_cover_condition) | function | Decode a `CoverCondition` from a Cap'n Proto reader. |
-| [`write_cover_image`](#write_cover_image) | function | Encode a `CoverImage` onto a Cap'n Proto builder. |
-| [`read_cover_image`](#read_cover_image) | function | Decode a `CoverImage` from a Cap'n Proto reader. |
-| [`write_cover_images`](#write_cover_images) | function | Encode a `CoverImages` onto a Cap'n Proto builder. |
-| [`read_cover_images`](#read_cover_images) | function | Decode a `CoverImages` from a Cap'n Proto reader. |
-| [`write_cover_images_reply`](#write_cover_images_reply) | function | Encode a `CoverImagesReply` union from a typed result. |
-| [`read_cover_images_reply`](#read_cover_images_reply) | function | Decode a `CoverImagesReply` union into a typed result. |
+| [`write_media_download_params`](#write_media_download_params) | function | Encode a `MediaDownloadParams` onto a Cap'n Proto builder. |
+| [`read_media_download_params`](#read_media_download_params) | function | Decode a `MediaDownloadParams` from a Cap'n Proto reader. |
+| [`write_download_condition`](#write_download_condition) | function | Encode a `DownloadCondition` onto a Cap'n Proto builder. |
+| [`read_download_condition`](#read_download_condition) | function | Decode a `DownloadCondition` from a Cap'n Proto reader. |
+| [`write_download_result`](#write_download_result) | function | Encode a `DownloadResult` onto a Cap'n Proto builder. |
+| [`read_download_result`](#read_download_result) | function | Decode a `DownloadResult` from a Cap'n Proto reader. |
+| [`write_download_results`](#write_download_results) | function | Encode a `DownloadResults` onto a Cap'n Proto builder. |
+| [`read_download_results`](#read_download_results) | function | Decode a `DownloadResults` from a Cap'n Proto reader. |
+| [`write_download_results_reply`](#write_download_results_reply) | function | Encode a `DownloadResultsReply` union from a typed result. |
+| [`read_download_results_reply`](#read_download_results_reply) | function | Decode a `DownloadResultsReply` union into a typed result. |
 | [`write_metadata_file_record`](#write_metadata_file_record) | function | Encode a `MetadataFileRecord` onto a Cap'n Proto builder. |
 | [`read_metadata_file_record`](#read_metadata_file_record) | function | Decode a `MetadataFileRecord` from a Cap'n Proto reader. |
 | [`write_metadata_file_parse_params`](#write_metadata_file_parse_params) | function | Encode a `MetadataFileParseParams` onto a Cap'n Proto builder. |
@@ -1732,7 +1732,7 @@ One catalog / candidate hit returned by `searchCatalog`,
 - `sample_url`: Absolute `https://` URL of a short audio sample of this edition that
   the storefront offers publicly (a few minutes, in any format the media
   worker decodes). The host never hands it to a client: a book's details
-  play it through a same-origin path, fetched by a `covers` plugin with
+  play it through a same-origin path, fetched by a `mediaDownload` plugin with
   `media = audio` and re-encoded in the media worker. Empty when the store
   has none.
   `None` when absent (wire zero value).
@@ -2692,25 +2692,25 @@ Success payload of `MetadataProvider.chapters`.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
-### CoverFetchParams
+### MediaDownloadParams
 
 ```rust
-pub struct CoverFetchParams {
+pub struct MediaDownloadParams {
     pub urls: Vec<String>,
     pub max_bytes: u32,
-    pub conditions: Vec<CoverCondition>,
+    pub conditions: Vec<DownloadCondition>,
     pub media: RemoteMedia,
 }
 ```
 
-Params of `CoverFetcher.fetchCovers`.
+Params of `MediaDownloader.downloadMedia`.
 
 **Fields**
 
-- `urls`: Absolute `https://` URLs to fetch, at most `maxCoverUrls`; never empty.
+- `urls`: Absolute `https://` URLs to fetch, at most `maxDownloadUrls`; never empty.
   The host has already checked each one against its URL policy.
-- `max_bytes`: Largest body, in bytes, the host accepts for one image; at most
-  `maxCoverBytes`. The sink refuses a larger body, which fails that URL
+- `max_bytes`: Largest body, in bytes, the host accepts for one URL; at most
+  `maxImageBytes` for images and `maxAudioBytes` for audio. The sink refuses a larger body, which fails that URL
   only.
 - `conditions`: Conditional request headers per URL, in the same order as `urls`, from
   the host's cached copy. Empty, or shorter than `urls`, means the
@@ -2722,10 +2722,10 @@ Params of `CoverFetcher.fetchCovers`.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
-### CoverCondition
+### DownloadCondition
 
 ```rust
-pub struct CoverCondition {
+pub struct DownloadCondition {
     pub if_none_match: Option<String>,
     pub if_modified_since: Option<String>,
 }
@@ -2745,10 +2745,10 @@ headers so an unchanged image costs a `304` instead of its body.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
-### CoverImage
+### DownloadResult
 
 ```rust
-pub struct CoverImage {
+pub struct DownloadResult {
     pub url: String,
     pub stored: bool,
     pub content_type: Option<String>,
@@ -2791,19 +2791,19 @@ What happened to one requested URL.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
-### CoverImages
+### DownloadResults
 
 ```rust
-pub struct CoverImages {
-    pub images: Vec<CoverImage>,
+pub struct DownloadResults {
+    pub downloads: Vec<DownloadResult>,
 }
 ```
 
-Success payload of `CoverFetcher.fetchCovers`.
+Success payload of `MediaDownloader.downloadMedia`.
 
 **Fields**
 
-- `images`: One entry per requested URL, in request order.
+- `downloads`: One entry per requested URL, in request order.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -4035,7 +4035,7 @@ pub enum Entrypoint {
     Cli,
     Oidc,
     Metadata,
-    Covers,
+    MediaDownload,
     MetadataFiles,
     Notifier,
     Ingress,
@@ -4059,7 +4059,7 @@ the default entrypoint (`event`, `job`) are declared separately.
 - `Oidc`: OIDC bridge: relying-party client templates and `authenticateUser`.
 - `Metadata`: Metadata provider: `lookup`, `search` and `chapters`
   (`MetadataProvider`).
-- `Covers`: Cover fetcher: `fetchCovers` (`CoverFetcher`).
+- `MediaDownload`: Public media downloader: `downloadMedia` (`MediaDownloader`).
 - `MetadataFiles`: Metadata file dialects: `parse` and `render` (`MetadataFiles`).
 - `Notifier`: Notification delivery: `send` and `validateDestination` (`Notifier`).
 - `Ingress`: Public address provider: `start`, `health` and `stop` (`Ingress`).
@@ -4820,7 +4820,7 @@ pub enum RemoteMedia {
 }
 ```
 
-The kind of public media `CoverFetcher.fetchCovers` downloads.
+The kind of public media `MediaDownloader.downloadMedia` downloads.
 
 **Variants**
 
@@ -7951,124 +7951,126 @@ Decode a `MetadataChaptersReply` union into a typed result.
 
 Returns a Cap'n Proto error when the union is unset or a field is malformed.
 
-### write_cover_fetch_params
+### write_media_download_params
 
 ```rust
-pub fn write_cover_fetch_params(b: Builder<'_>, v: &CoverFetchParams) -> Result<()>
+pub fn write_media_download_params(b: Builder<'_>, v: &MediaDownloadParams) -> Result<()>
 ```
 
-Encode a [`CoverFetchParams`](#coverfetchparams) onto a Cap'n Proto builder.
+Encode a [`MediaDownloadParams`](#mediadownloadparams) onto a Cap'n Proto builder.
 
 #### Errors
 
 Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
 
-### read_cover_fetch_params
+### read_media_download_params
 
 ```rust
-pub fn read_cover_fetch_params(r: Reader<'_>) -> Result<CoverFetchParams>
+pub fn read_media_download_params(r: Reader<'_>) -> Result<MediaDownloadParams>
 ```
 
-Decode a [`CoverFetchParams`](#coverfetchparams) from a Cap'n Proto reader.
+Decode a [`MediaDownloadParams`](#mediadownloadparams) from a Cap'n Proto reader.
 
 #### Errors
 
 Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
 
-### write_cover_condition
+### write_download_condition
 
 ```rust
-pub fn write_cover_condition(b: Builder<'_>, v: &CoverCondition) -> Result<()>
+pub fn write_download_condition(b: Builder<'_>, v: &DownloadCondition) -> Result<()>
 ```
 
-Encode a [`CoverCondition`](#covercondition) onto a Cap'n Proto builder.
+Encode a [`DownloadCondition`](#downloadcondition) onto a Cap'n Proto builder.
 
 #### Errors
 
 Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
 
-### read_cover_condition
+### read_download_condition
 
 ```rust
-pub fn read_cover_condition(r: Reader<'_>) -> Result<CoverCondition>
+pub fn read_download_condition(r: Reader<'_>) -> Result<DownloadCondition>
 ```
 
-Decode a [`CoverCondition`](#covercondition) from a Cap'n Proto reader.
+Decode a [`DownloadCondition`](#downloadcondition) from a Cap'n Proto reader.
 
 #### Errors
 
 Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
 
-### write_cover_image
+### write_download_result
 
 ```rust
-pub fn write_cover_image(b: Builder<'_>, v: &CoverImage) -> Result<()>
+pub fn write_download_result(b: Builder<'_>, v: &DownloadResult) -> Result<()>
 ```
 
-Encode a [`CoverImage`](#coverimage) onto a Cap'n Proto builder.
+Encode a [`DownloadResult`](#downloadresult) onto a Cap'n Proto builder.
 
 #### Errors
 
 Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
 
-### read_cover_image
+### read_download_result
 
 ```rust
-pub fn read_cover_image(r: Reader<'_>) -> Result<CoverImage>
+pub fn read_download_result(r: Reader<'_>) -> Result<DownloadResult>
 ```
 
-Decode a [`CoverImage`](#coverimage) from a Cap'n Proto reader.
+Decode a [`DownloadResult`](#downloadresult) from a Cap'n Proto reader.
 
 #### Errors
 
 Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
 
-### write_cover_images
+### write_download_results
 
 ```rust
-pub fn write_cover_images(b: Builder<'_>, v: &CoverImages) -> Result<()>
+pub fn write_download_results(b: Builder<'_>, v: &DownloadResults) -> Result<()>
 ```
 
-Encode a [`CoverImages`](#coverimages) onto a Cap'n Proto builder.
+Encode a [`DownloadResults`](#downloadresults) onto a Cap'n Proto builder.
 
 #### Errors
 
 Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
 
-### read_cover_images
+### read_download_results
 
 ```rust
-pub fn read_cover_images(r: Reader<'_>) -> Result<CoverImages>
+pub fn read_download_results(r: Reader<'_>) -> Result<DownloadResults>
 ```
 
-Decode a [`CoverImages`](#coverimages) from a Cap'n Proto reader.
+Decode a [`DownloadResults`](#downloadresults) from a Cap'n Proto reader.
 
 #### Errors
 
 Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
 
-### write_cover_images_reply
+### write_download_results_reply
 
 ```rust
-pub fn write_cover_images_reply(
+pub fn write_download_results_reply(
     b: Builder<'_>,
-    v: &Result<CoverImages, PluginError>,
+    v: &Result<DownloadResults, PluginError>,
 ) -> Result<()>
 ```
 
-Encode a `CoverImagesReply` union from a typed result.
+Encode a `DownloadResultsReply` union from a typed result.
 
 #### Errors
 
 Returns a Cap'n Proto error when a nested field cannot be encoded.
 
-### read_cover_images_reply
+### read_download_results_reply
 
 ```rust
-pub fn read_cover_images_reply(r: Reader<'_>) -> Result<Result<CoverImages, PluginError>>
+pub fn read_download_results_reply(
+    r: Reader<'_>,
+) -> Result<Result<DownloadResults, PluginError>>
 ```
 
-Decode a `CoverImagesReply` union into a typed result.
+Decode a `DownloadResultsReply` union into a typed result.
 
 #### Errors
 

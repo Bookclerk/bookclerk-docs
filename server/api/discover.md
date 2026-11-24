@@ -485,7 +485,7 @@ Serves one size of a cover the API linked to.
 
 The path comes from a `cover_path` field in a Discover or catalog
 response; append `/128`, `/360` or `/full`. The first request fetches the
-image through the `covers` plugin and re-encodes it in the confined media
+image through the `media_download` plugin and re-encodes it in the confined media
 worker; later ones are served from the node's cover cache. Responses are
 immutable, since a path always names the same image, and carry an `ETag`
 so a client revalidating anyway gets `304 Not Modified`.
@@ -1464,11 +1464,11 @@ Plays a storefront's sample of a title.
 ### Parameters
 
 - `token` (path) *string*, **required** — Opaque token from a `sample_path`.
-- `Range` (header) *string or null* — One byte range (`bytes=A-B`, `bytes=A-` or `bytes=-N`); anything else reads the whole sample.
+- `Range` (header) *string or null* — One byte range (`bytes=A-B`, `bytes=A-` or `bytes=-N`) of a sample already kept; anything else, or a sample still being cut, reads the whole sample.
 
 ### Responses
 
-- `200` — The sample, re-encoded: mono MP3. Body: [`BinaryBody`](schemas.md#binarybody) (`audio/mpeg`)
+- `200` — The sample, re-encoded: mono MP3. A sample not kept yet streams as the media worker encodes it, without `Content-Length`. Body: [`BinaryBody`](schemas.md#binarybody) (`audio/mpeg`)
 - `206` — The requested byte range, with `Content-Range`. Body: [`BinaryBody`](schemas.md#binarybody) (`audio/mpeg`)
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
@@ -1484,7 +1484,7 @@ Plays a storefront's sample of a title.
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `422` — The store's sample could not be downloaded or decoded (`no_sample`). Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — No `covers` plugin or confined media worker is available; retry (`unavailable`). When the sign-in could not be checked because the library did not answer in time, the answer is `session_check_unavailable` instead, with `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorMessage`](schemas.md#errormessage) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `503` — No `mediaDownload` plugin or confined media worker is available; retry (`unavailable`). When the sign-in could not be checked because the library did not answer in time, the answer is `session_check_unavailable` instead, with `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorMessage`](schemas.md#errormessage) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -1528,7 +1528,7 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The sample, re-encoded: mono MP3. The body is binary (`audio/mpeg`).
+Status `200`: The sample, re-encoded: mono MP3. A sample not kept yet streams as the media worker encodes it, without `Content-Length`. The body is binary (`audio/mpeg`).
 
 Schema:
 
@@ -1709,7 +1709,7 @@ Schema:
 }
 ```
 
-Status `503`: No `covers` plugin or confined media worker is available; retry (`unavailable`). When the sign-in could not be checked because the library did not answer in time, the answer is `session_check_unavailable` instead, with `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: No `mediaDownload` plugin or confined media worker is available; retry (`unavailable`). When the sign-in could not be checked because the library did not answer in time, the answer is `session_check_unavailable` instead, with `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {

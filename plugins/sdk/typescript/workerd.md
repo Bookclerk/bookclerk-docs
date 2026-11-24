@@ -693,30 +693,6 @@ Re-exports [CopyResult](plugin.md#copyresult)
 
 ***
 
-### CoverEntrypoint
-
-Re-exports [CoverEntrypoint](plugin.md#coverentrypoint)
-
-***
-
-### CoverFetchParams
-
-Re-exports [CoverFetchParams](generated.md#coverfetchparams)
-
-***
-
-### CoverImage
-
-Re-exports [CoverImage](generated.md#coverimage)
-
-***
-
-### CoverImages
-
-Re-exports [CoverImages](generated.md#coverimages)
-
-***
-
 ### createDatabaseBinding
 
 Re-exports [createDatabaseBinding](db-execute.md#createdatabasebinding)
@@ -876,6 +852,18 @@ Re-exports [Destination](plugin.md#destination)
 ### DomainEvent
 
 Re-exports [DomainEvent](generated.md#domainevent)
+
+***
+
+### DownloadResult
+
+Re-exports [DownloadResult](generated.md#downloadresult)
+
+***
+
+### DownloadResults
+
+Re-exports [DownloadResults](generated.md#downloadresults)
 
 ***
 
@@ -1458,6 +1446,18 @@ Re-exports [MAX_STREAM_WINDOW_BYTES](abi.md#max_stream_window_bytes)
 ### MAX\_WRITE\_KEY\_BYTES
 
 Re-exports [MAX_WRITE_KEY_BYTES](db-execute.md#max_write_key_bytes)
+
+***
+
+### MediaDownloadEntrypoint
+
+Re-exports [MediaDownloadEntrypoint](plugin.md#mediadownloadentrypoint)
+
+***
+
+### MediaDownloadParams
+
+Re-exports [MediaDownloadParams](generated.md#mediadownloadparams)
 
 ***
 

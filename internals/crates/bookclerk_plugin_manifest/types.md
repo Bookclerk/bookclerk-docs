@@ -1733,7 +1733,7 @@ are lowercase (`source`, `integration`, `output`, `database`, `ingress`).
 
 - `Source`: Storefront / library source (`Storefront` entrypoint).
 - `Integration`: Event consumer, job runner, remote library, CLI, OIDC bridge,
-  metadata provider, cover fetcher, metadata file dialects,
+  metadata provider, media downloader, metadata file dialects,
   notifier, or model plugin.
 - `Output`: Destination / output backend (`Storage` entrypoint).
 - `Database`: Library database backend (`DatabaseAdapter` entrypoint).

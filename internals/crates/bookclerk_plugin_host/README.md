@@ -3997,13 +3997,13 @@ runtime.
 Returns a plugin error when the guest did not export `metadata` or the
 method fails.
 
-#### PluginSession::covers
+#### PluginSession::media_download
 
 ```rust
-pub async fn covers<T, F, Fut>(&self, call: F) -> Result<T>
+pub async fn media_download<T, F, Fut>(&self, call: F) -> Result<T>
 where
     T: Send + 'static,
-    F: FnOnce(Box<dyn CoverFetcher>) -> Fut + Send + 'static,
+    F: FnOnce(Box<dyn MediaDownloader>) -> Fut + Send + 'static,
     Fut: Future<Output = Result<T, PluginError>> + 'static,
 ```
 

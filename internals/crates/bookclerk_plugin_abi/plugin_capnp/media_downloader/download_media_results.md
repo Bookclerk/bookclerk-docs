@@ -1,4 +1,4 @@
-# bookclerk_plugin_abi::plugin_capnp::cover_fetcher::health_results
+# bookclerk_plugin_abi::plugin_capnp::media_downloader::download_media_results
 
 | Item | Kind | Summary |
 | --- | --- | --- |

@@ -233,7 +233,7 @@ pub trait CoverImages: Send + Sync {
 Turns a cover URL a metadata provider named into an image the acquire can
 embed, without the acquire itself requesting the URL.
 
-The daemon implements this with its cover service: a `covers` plugin
+The daemon implements this with its cover service: a `media_download` plugin
 downloads the image and the confined media worker re-encodes it, so what
 reaches the tagger is a JPEG the host produced.
 

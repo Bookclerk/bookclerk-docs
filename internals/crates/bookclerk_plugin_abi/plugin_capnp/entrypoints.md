@@ -169,16 +169,16 @@ pub fn get_metadata(self) -> Result<Client>
 pub fn has_metadata(&self) -> bool
 ```
 
-#### Reader::get_covers
+#### Reader::get_media_download
 
 ```rust
-pub fn get_covers(self) -> Result<Client>
+pub fn get_media_download(self) -> Result<Client>
 ```
 
-#### Reader::has_covers
+#### Reader::has_media_download
 
 ```rust
-pub fn has_covers(&self) -> bool
+pub fn has_media_download(&self) -> bool
 ```
 
 #### Reader::get_socket_handler
@@ -497,22 +497,22 @@ pub fn set_metadata(&mut self, value: Client)
 pub fn has_metadata(&self) -> bool
 ```
 
-#### Builder::get_covers
+#### Builder::get_media_download
 
 ```rust
-pub fn get_covers(self) -> Result<Client>
+pub fn get_media_download(self) -> Result<Client>
 ```
 
-#### Builder::set_covers
+#### Builder::set_media_download
 
 ```rust
-pub fn set_covers(&mut self, value: Client)
+pub fn set_media_download(&mut self, value: Client)
 ```
 
-#### Builder::has_covers
+#### Builder::has_media_download
 
 ```rust
-pub fn has_covers(&self) -> bool
+pub fn has_media_download(&self) -> bool
 ```
 
 #### Builder::get_socket_handler
@@ -717,10 +717,10 @@ pub fn get_scheduled_handler(&self) -> Client
 pub fn get_metadata(&self) -> Client
 ```
 
-#### Pipeline::get_covers
+#### Pipeline::get_media_download
 
 ```rust
-pub fn get_covers(&self) -> Client
+pub fn get_media_download(&self) -> Client
 ```
 
 #### Pipeline::get_socket_handler

@@ -11,7 +11,7 @@ The default export is a module-level `Default` class extending
 [`BookclerkEntrypoint`](#bookclerkentrypoint) with optional `event(batch)` / `job(job)`
 triggers. Named entrypoints from `plugin.toml` `entrypoints` are module-level
 classes named after the wire name (`Storefront`, `Storage`, `RemoteLibrary`,
-`DatabaseAdapter`, `Cli`, `Oidc`, `Metadata`, `Covers`, `MetadataFiles`, `Notifier`, `Ai`) extending the matching `*Entrypoint`
+`DatabaseAdapter`, `Cli`, `Oidc`, `Metadata`, `MediaDownload`, `MetadataFiles`, `Notifier`, `Ai`) extending the matching `*Entrypoint`
 base. The launcher's adapter isolate reaches them only through the
 `bookclerk*` dispatch methods; authors neither call nor override those.
 
@@ -33,7 +33,7 @@ Outside the isolate (authoring / unit tests), lightweight stubs stand in for
 | [`HostWebSocket`](#hostwebsocket) | class | One host-held WebSocket, shaped like a hibernatable Workers `WebSocket`. |
 | [`JobController`](#jobcontroller) | class | Everything one job invocation may touch. |
 | [`KvNamespace`](#kvnamespace) | class | `[[kv_namespaces]]` binding (`env.<BINDING>`): Workers `KVNamespace`-shaped storage. |
-| [`CoverEntrypoint`](#coverentrypoint) | class | `covers` entrypoint: downloads cover images for the host. |
+| [`MediaDownloadEntrypoint`](#mediadownloadentrypoint) | class | `covers` entrypoint: downloads cover images for the host. |
 | [`MetadataFilesEntrypoint`](#metadatafilesentrypoint) | class | `metadataFiles` entrypoint: reads and writes metadata files for the host. |
 | [`IngressEntrypoint`](#ingressentrypoint) | class | `ingress` entrypoint: gives the library a public `https` address. |
 | [`ProvisioningEntrypoint`](#provisioningentrypoint) | class | `provisioning` entrypoint: guided setup at a cloud provider. |
@@ -1028,19 +1028,19 @@ List keys in lexical order, one page at a time.
 
 `{"keys": [{"name", "expiration"?, "metadata"?}], "list_complete": bool, "cursor"?: str}`.
 
-### CoverEntrypoint
+### MediaDownloadEntrypoint
 
 ```python
-class CoverEntrypoint(NamedEntrypoint)
+class MediaDownloadEntrypoint(NamedEntrypoint)
 ```
 
 `covers` entrypoint: downloads cover images for the host.
 
 The host passes a `sink` destination; put the body for `urls[i]` under
-the key `str(i)` and return one `CoverImage` per URL, in request
+the key `str(i)` and return one `DownloadResult` per URL, in request
 order. The host sniffs, decodes and re-encodes every body.
 
-#### CoverEntrypoint.health
+#### MediaDownloadEntrypoint.health
 
 ```python
 async def health(self) -> abi.HealthOk
@@ -1048,17 +1048,17 @@ async def health(self) -> abi.HealthOk
 
 Liveness / readiness probe (`HealthOk`).
 
-#### CoverEntrypoint.fetchCovers
+#### MediaDownloadEntrypoint.downloadMedia
 
 ```python
-async def fetchCovers(
+async def downloadMedia(
     self,
-    _params: abi.CoverFetchParams,
+    _params: abi.MediaDownloadParams,
     _sink: Any,
-) -> list[abi.CoverImage]
+) -> list[abi.DownloadResult]
 ```
 
-Fetch each URL into `_sink` under its index (list of `CoverImage`).
+Fetch each URL into `_sink` under its index (list of `DownloadResult`).
 
 ### MetadataFilesEntrypoint
 

@@ -28791,11 +28791,11 @@ Plays a few minutes of an edition this node holds.
 ### Parameters
 
 - `id` (path) *string*, **required** — Edition id (an `id` in a work's `editions`).
-- `Range` (header) *string or null* — One byte range (`bytes=A-B`, `bytes=A-` or `bytes=-N`); anything else reads the whole sample.
+- `Range` (header) *string or null* — One byte range (`bytes=A-B`, `bytes=A-` or `bytes=-N`) of a sample already kept; anything else, or a sample still being cut, reads the whole sample.
 
 ### Responses
 
-- `200` — The sample: mono MP3, five minutes or the rest of the first file. Body: [`BinaryBody`](schemas.md#binarybody) (`audio/mpeg`)
+- `200` — The sample: mono MP3, five minutes or the rest of the first file. A sample not kept yet streams as the media worker encodes it, without `Content-Length`. Body: [`BinaryBody`](schemas.md#binarybody) (`audio/mpeg`)
 - `206` — The requested byte range, with `Content-Range`. Body: [`BinaryBody`](schemas.md#binarybody) (`audio/mpeg`)
 - `401` — The session ended. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
@@ -28852,7 +28852,7 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The sample: mono MP3, five minutes or the rest of the first file. The body is binary (`audio/mpeg`).
+Status `200`: The sample: mono MP3, five minutes or the rest of the first file. A sample not kept yet streams as the media worker encodes it, without `Content-Length`. The body is binary (`audio/mpeg`).
 
 Schema:
 

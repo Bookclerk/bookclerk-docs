@@ -46,7 +46,7 @@ extending its base:
 | `entrypoints = ["cli"]` | `Cli` | `CliEntrypoint` |
 | `entrypoints = ["oidc"]` | `Oidc` | `OidcEntrypoint` |
 | `entrypoints = ["metadata"]` | `Metadata` | `MetadataEntrypoint` |
-| `entrypoints = ["covers"]` | `Covers` | `CoverEntrypoint` |
+| `entrypoints = ["mediaDownload"]` | `MediaDownload` | `MediaDownloadEntrypoint` |
 | `entrypoints = ["metadataFiles"]` | `MetadataFiles` | `MetadataFilesEntrypoint` |
 | `entrypoints = ["notifier"]` | `Notifier` | `NotifierEntrypoint` |
 | `entrypoints = ["ingress"]` | `Ingress` | `IngressEntrypoint` |
@@ -3846,48 +3846,6 @@ Re-exports [CopyResult](plugin.md#copyresult)
 
 ***
 
-### CoverCondition
-
-Re-exports [CoverCondition](generated.md#covercondition)
-
-***
-
-### CoverEntrypoint
-
-Re-exports [CoverEntrypoint](plugin.md#coverentrypoint)
-
-***
-
-### CoverFetcher
-
-Re-exports [CoverFetcher](generated.md#coverfetcher)
-
-***
-
-### CoverFetchParams
-
-Re-exports [CoverFetchParams](generated.md#coverfetchparams)
-
-***
-
-### CoverImage
-
-Re-exports [CoverImage](generated.md#coverimage)
-
-***
-
-### CoverImages
-
-Re-exports [CoverImages](generated.md#coverimages)
-
-***
-
-### CoverImagesReply
-
-Re-exports [CoverImagesReply](generated.md#coverimagesreply)
-
-***
-
 ### createDatabaseBinding
 
 Re-exports [createDatabaseBinding](db-execute.md#createdatabasebinding)
@@ -4125,6 +4083,30 @@ Re-exports [DiagnoseResult](generated.md#diagnoseresult)
 ### DomainEvent
 
 Re-exports [DomainEvent](generated.md#domainevent)
+
+***
+
+### DownloadCondition
+
+Re-exports [DownloadCondition](generated.md#downloadcondition)
+
+***
+
+### DownloadResult
+
+Re-exports [DownloadResult](generated.md#downloadresult)
+
+***
+
+### DownloadResults
+
+Re-exports [DownloadResults](generated.md#downloadresults)
+
+***
+
+### DownloadResultsReply
+
+Re-exports [DownloadResultsReply](generated.md#downloadresultsreply)
 
 ***
 
@@ -5055,6 +5037,24 @@ Re-exports [MAX_STREAM_WINDOW_BYTES](abi.md#max_stream_window_bytes)
 ### MAX\_WRITE\_KEY\_BYTES
 
 Re-exports [MAX_WRITE_KEY_BYTES](db-execute.md#max_write_key_bytes)
+
+***
+
+### MediaDownloadEntrypoint
+
+Re-exports [MediaDownloadEntrypoint](plugin.md#mediadownloadentrypoint)
+
+***
+
+### MediaDownloader
+
+Re-exports [MediaDownloader](generated.md#mediadownloader)
+
+***
+
+### MediaDownloadParams
+
+Re-exports [MediaDownloadParams](generated.md#mediadownloadparams)
 
 ***
 

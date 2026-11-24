@@ -15,7 +15,7 @@ vat thread via a command channel.
 | Item | Kind | Summary |
 | --- | --- | --- |
 | [`GrantedListener`](#grantedlistener) | trait | Accept loop abstraction (unix or tcp). |
-| [`GrantedSlot`](#grantedslot) | struct | One grant token's host stubs (vat-thread only): a `JobRunner.job` invocation, a `CoverFetcher.fetchCovers` sink, a named database binding, or an `EVENTS` publisher. |
+| [`GrantedSlot`](#grantedslot) | struct | One grant token's host stubs (vat-thread only): a `JobRunner.job` invocation, a `MediaDownloader.downloadMedia` sink, a named database binding, or an `EVENTS` publisher. |
 | [`spawn_granted`](#spawn_granted) | function | Starts the Send HTTP accept loop and the vat-thread command dispatcher. |
 | [`parse_event_read_body`](#parse_event_read_body) | function | Parses a `/events/read` body: the JSON form of `EventReadRequest` (`bookclerk_plugin_abi::parse_event_read_json`). Bounds and consent are checked later by the host publisher (`bookclerk_plugin_abi::validate_event_read_request`). |
 | [`GrantedTable`](#grantedtable) | type alias | Invocation-id → granted stubs. |
@@ -87,14 +87,14 @@ pub struct GrantedSlot {
 ```
 
 One grant token's host stubs (vat-thread only): a `JobRunner.job`
-invocation, a `CoverFetcher.fetchCovers` sink, a named database binding,
+invocation, a `MediaDownloader.downloadMedia` sink, a named database binding,
 or an `EVENTS` publisher.
 
 **Fields**
 
 - `input`: Host-granted input source.
 - `output`: Host-granted output destination. Shared, so several `PUT /put`
-  requests on one grant may stream at once (a cover fetcher puts each
+  requests on one grant may stream at once (a media downloader puts each
   image as it arrives).
 - `progress`: Progress sink.
 - `cancel`: Host cancellation stub behind the `/cancel` long poll.

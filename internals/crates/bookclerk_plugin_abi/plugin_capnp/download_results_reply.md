@@ -1,4 +1,4 @@
-# bookclerk_plugin_abi::plugin_capnp::cover_images
+# bookclerk_plugin_abi::plugin_capnp::download_results_reply
 
 | Item | Kind | Summary |
 | --- | --- | --- |
@@ -6,6 +6,9 @@
 | [`Reader`](#reader) | struct |  |
 | [`Builder`](#builder) | struct |  |
 | [`Pipeline`](#pipeline) | struct |  |
+| [`Which`](#which) | enum |  |
+| [`WhichReader`](#whichreader) | type alias |  |
+| [`WhichBuilder`](#whichbuilder) | type alias |  |
 
 ## Structs
 
@@ -37,16 +40,22 @@ pub fn reborrow(&self) -> Reader<'_>
 pub fn total_size(&self) -> Result<MessageSize>
 ```
 
-#### Reader::get_images
+#### Reader::has_ok
 
 ```rust
-pub fn get_images(self) -> Result<Reader<'a, Owned>>
+pub fn has_ok(&self) -> bool
 ```
 
-#### Reader::has_images
+#### Reader::has_err
 
 ```rust
-pub fn has_images(&self) -> bool
+pub fn has_err(&self) -> bool
+```
+
+#### Reader::which
+
+```rust
+pub fn which(self) -> Result<WhichReader<'a>, NotInSchema>
 ```
 
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
@@ -83,28 +92,46 @@ pub fn reborrow_as_reader(&self) -> Reader<'_>
 pub fn total_size(&self) -> Result<MessageSize>
 ```
 
-#### Builder::get_images
+#### Builder::set_ok
 
 ```rust
-pub fn get_images(self) -> Result<Builder<'a, Owned>>
+pub fn set_ok(&mut self, value: Reader<'_>) -> Result<()>
 ```
 
-#### Builder::set_images
+#### Builder::init_ok
 
 ```rust
-pub fn set_images(&mut self, value: Reader<'_, Owned>) -> Result<()>
+pub fn init_ok(self) -> Builder<'a>
 ```
 
-#### Builder::init_images
+#### Builder::has_ok
 
 ```rust
-pub fn init_images(self, size: u32) -> Builder<'a, Owned>
+pub fn has_ok(&self) -> bool
 ```
 
-#### Builder::has_images
+#### Builder::set_err
 
 ```rust
-pub fn has_images(&self) -> bool
+pub fn set_err(&mut self, value: Reader<'_>) -> Result<()>
+```
+
+#### Builder::init_err
+
+```rust
+pub fn init_err(self) -> Builder<'a>
+```
+
+#### Builder::has_err
+
+```rust
+pub fn has_err(&self) -> bool
+```
+
+#### Builder::which
+
+```rust
+pub fn which(self) -> Result<WhichBuilder<'a>, NotInSchema>
 ```
 
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
@@ -118,3 +145,28 @@ pub struct Pipeline {
 ```
 
 Implements: `FromTypelessPipeline`
+
+## Enums
+
+### Which
+
+```rust
+pub enum Which<A0, A1> {
+    Ok(A0),
+    Err(A1),
+}
+```
+
+## Type aliases
+
+### WhichReader
+
+```rust
+pub type WhichReader<'a> = Which<Result<Reader<'a>>, Result<Reader<'a>>>;
+```
+
+### WhichBuilder
+
+```rust
+pub type WhichBuilder<'a> = Which<Result<Builder<'a>>, Result<Builder<'a>>>;
+```

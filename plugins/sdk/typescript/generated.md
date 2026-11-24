@@ -1366,7 +1366,7 @@ sampleUrl?: string;
 Absolute `https://` URL of a short audio sample of this edition that
 the storefront offers publicly (a few minutes, in any format the media
 worker decodes). The host never hands it to a client: a book's details
-play it through a same-origin path, fetched by a `covers` plugin with
+play it through a same-origin path, fetched by a `mediaDownload` plugin with
 `media = audio` and re-encoded in the media worker. Empty when the store
 has none.
 Omitted when absent (wire zero value).
@@ -2184,255 +2184,6 @@ bytesCopied: number;
 ```
 
 Bytes copied.
-
-***
-
-### CoverCondition
-
-Validators the host already holds for one URL, sent as conditional request
-headers so an unchanged image costs a `304` instead of its body.
-
-#### Properties
-
-##### ifModifiedSince?
-
-```ts
-ifModifiedSince?: string;
-```
-
-`If-Modified-Since` value: the `Last-Modified` the host stored,
-verbatim; empty for none.
-Omitted when absent (wire zero value).
-
-##### ifNoneMatch?
-
-```ts
-ifNoneMatch?: string;
-```
-
-`If-None-Match` value: the `ETag` the host stored, verbatim; empty for
-none.
-Omitted when absent (wire zero value).
-
-***
-
-### CoverFetcher
-
-`covers` entrypoint: downloads cover images on the host's behalf, so the
-host itself never makes an outbound request to a URL a plugin or a store
-supplied. The fetcher only transports bytes: the host sniffs, decodes and
-re-encodes every image in its media worker before anything stores or
-serves it. Network access is limited to what the manifest's
-`[capabilities.network]` declares.
-
-#### Methods
-
-##### fetchCovers()
-
-```ts
-fetchCovers(params, sink): Promise<CoverImagesReply>;
-```
-
-Fetches every URL concurrently and streams each body into `sink` under
-its index in `params.urls` (`"0"`, `"1"`, ...). The reply says, per URL,
-whether its body was stored.
-
-###### Parameters
-
-| Parameter | Type | Description |
-| ------ | ------ | ------ |
-| `params` | [`CoverFetchParams`](#coverfetchparams) | URLs and the per-image byte cap. |
-| `sink` | [`Destination`](#destination) | Host-served store that accepts only those keys. |
-
-###### Returns
-
-`Promise`\<[`CoverImagesReply`](#coverimagesreply)\>
-
-[CoverImagesReply](#coverimagesreply)
-
-##### health()
-
-```ts
-health(): Promise<HealthReply>;
-```
-
-Liveness / readiness probe.
-
-###### Returns
-
-`Promise`\<[`HealthReply`](#healthreply)\>
-
-[HealthReply](#healthreply)
-
-***
-
-### CoverFetchParams
-
-Params of `CoverFetcher.fetchCovers`.
-
-#### Properties
-
-##### conditions
-
-```ts
-conditions: CoverCondition[];
-```
-
-Conditional request headers per URL, in the same order as `urls`, from
-the host's cached copy. Empty, or shorter than `urls`, means the
-remaining URLs are fetched unconditionally.
-
-##### maxBytes
-
-```ts
-maxBytes: number;
-```
-
-Largest body, in bytes, the host accepts for one image; at most
-`maxCoverBytes`. The sink refuses a larger body, which fails that URL
-only.
-
-##### media
-
-```ts
-media: "audio" | "image";
-```
-
-What the URLs name: cover art (the default) or a storefront's audio
-sample (`CatalogHit.sampleUrl`). A fetcher sends a matching `Accept`
-header and refuses a body whose `Content-Type` names something else;
-the host checks and re-encodes either kind regardless.
-
-##### urls
-
-```ts
-urls: string[];
-```
-
-Absolute `https://` URLs to fetch, at most `maxCoverUrls`; never empty.
-The host has already checked each one against its URL policy.
-
-***
-
-### CoverImage
-
-What happened to one requested URL.
-
-#### Properties
-
-##### age?
-
-```ts
-age?: string;
-```
-
-`Age` the server (or a cache in front of it) sent, verbatim.
-Omitted when absent (wire zero value).
-
-##### cacheControl?
-
-```ts
-cacheControl?: string;
-```
-
-`Cache-Control` the server sent, verbatim (several lines joined with
-`, `).
-Omitted when absent (wire zero value).
-
-##### contentType?
-
-```ts
-contentType?: string;
-```
-
-`Content-Type` the server sent. Advisory: the host sniffs the bytes.
-Omitted when absent (wire zero value).
-
-##### date?
-
-```ts
-date?: string;
-```
-
-`Date` the server sent, verbatim.
-Omitted when absent (wire zero value).
-
-##### error?
-
-```ts
-error?: string;
-```
-
-Why nothing was stored (HTTP status, size cap, timeout, refused host).
-Omitted when absent (wire zero value).
-
-##### etag?
-
-```ts
-etag?: string;
-```
-
-`ETag` the server sent, verbatim. Advisory: the host parses and caps it.
-Omitted when absent (wire zero value).
-
-##### expires?
-
-```ts
-expires?: string;
-```
-
-`Expires` the server sent, verbatim.
-Omitted when absent (wire zero value).
-
-##### lastModified?
-
-```ts
-lastModified?: string;
-```
-
-`Last-Modified` the server sent, verbatim.
-Omitted when absent (wire zero value).
-
-##### notModified
-
-```ts
-notModified: boolean;
-```
-
-The server answered `304 Not Modified` to the URL's conditions: nothing
-was put into the sink and the host's copy is still current.
-
-##### stored
-
-```ts
-stored: boolean;
-```
-
-Whether the body was put into the sink under this URL's index.
-
-##### url
-
-```ts
-url: string;
-```
-
-The requested URL, verbatim.
-
-***
-
-### CoverImages
-
-Success payload of `CoverFetcher.fetchCovers`.
-
-#### Properties
-
-##### images
-
-```ts
-images: CoverImage[];
-```
-
-One entry per requested URL, in request order.
 
 ***
 
@@ -3514,6 +3265,157 @@ Append-only. Producer plugin id; empty when unknown.
 
 ***
 
+### DownloadCondition
+
+Validators the host already holds for one URL, sent as conditional request
+headers so an unchanged image costs a `304` instead of its body.
+
+#### Properties
+
+##### ifModifiedSince?
+
+```ts
+ifModifiedSince?: string;
+```
+
+`If-Modified-Since` value: the `Last-Modified` the host stored,
+verbatim; empty for none.
+Omitted when absent (wire zero value).
+
+##### ifNoneMatch?
+
+```ts
+ifNoneMatch?: string;
+```
+
+`If-None-Match` value: the `ETag` the host stored, verbatim; empty for
+none.
+Omitted when absent (wire zero value).
+
+***
+
+### DownloadResult
+
+What happened to one requested URL.
+
+#### Properties
+
+##### age?
+
+```ts
+age?: string;
+```
+
+`Age` the server (or a cache in front of it) sent, verbatim.
+Omitted when absent (wire zero value).
+
+##### cacheControl?
+
+```ts
+cacheControl?: string;
+```
+
+`Cache-Control` the server sent, verbatim (several lines joined with
+`, `).
+Omitted when absent (wire zero value).
+
+##### contentType?
+
+```ts
+contentType?: string;
+```
+
+`Content-Type` the server sent. Advisory: the host sniffs the bytes.
+Omitted when absent (wire zero value).
+
+##### date?
+
+```ts
+date?: string;
+```
+
+`Date` the server sent, verbatim.
+Omitted when absent (wire zero value).
+
+##### error?
+
+```ts
+error?: string;
+```
+
+Why nothing was stored (HTTP status, size cap, timeout, refused host).
+Omitted when absent (wire zero value).
+
+##### etag?
+
+```ts
+etag?: string;
+```
+
+`ETag` the server sent, verbatim. Advisory: the host parses and caps it.
+Omitted when absent (wire zero value).
+
+##### expires?
+
+```ts
+expires?: string;
+```
+
+`Expires` the server sent, verbatim.
+Omitted when absent (wire zero value).
+
+##### lastModified?
+
+```ts
+lastModified?: string;
+```
+
+`Last-Modified` the server sent, verbatim.
+Omitted when absent (wire zero value).
+
+##### notModified
+
+```ts
+notModified: boolean;
+```
+
+The server answered `304 Not Modified` to the URL's conditions: nothing
+was put into the sink and the host's copy is still current.
+
+##### stored
+
+```ts
+stored: boolean;
+```
+
+Whether the body was put into the sink under this URL's index.
+
+##### url
+
+```ts
+url: string;
+```
+
+The requested URL, verbatim.
+
+***
+
+### DownloadResults
+
+Success payload of `MediaDownloader.downloadMedia`.
+
+#### Properties
+
+##### downloads
+
+```ts
+downloads: DownloadResult[];
+```
+
+One entry per requested URL, in request order.
+
+***
+
 ### Entrypoints
 
 Exported entrypoints returned by `PluginWorker.open`. One capability per
@@ -3538,15 +3440,6 @@ cli?: PluginCli | null;
 ```
 
 `cli` entrypoint.
-Null when the guest does not export this capability.
-
-##### covers?
-
-```ts
-covers?: CoverFetcher | null;
-```
-
-`covers` entrypoint.
 Null when the guest does not export this capability.
 
 ##### databaseAdapter?
@@ -3583,6 +3476,15 @@ jobRunner?: JobRunner | null;
 ```
 
 `[triggers] jobs` trigger: `job(controller)` handler.
+Null when the guest does not export this capability.
+
+##### mediaDownload?
+
+```ts
+mediaDownload?: MediaDownloader | null;
+```
+
+`mediaDownload` entrypoint.
 Null when the guest does not export this capability.
 
 ##### metadata?
@@ -6068,6 +5970,104 @@ url: string;
 ```
 
 Browser URL the operator should open to complete OAuth.
+
+***
+
+### MediaDownloader
+
+`mediaDownload` entrypoint: downloads public media (cover images and
+storefronts' audio samples) on the host's behalf, so the host itself never
+makes an outbound request to a URL a plugin or a store supplied. The
+downloader only transports bytes: the host sniffs, decodes and re-encodes
+every body in its media worker before anything stores or serves it. Network access is limited to what the manifest's
+`[capabilities.network]` declares.
+
+#### Methods
+
+##### downloadMedia()
+
+```ts
+downloadMedia(params, sink): Promise<DownloadResultsReply>;
+```
+
+Fetches every URL concurrently and streams each body into `sink` under
+its index in `params.urls` (`"0"`, `"1"`, ...). The reply says, per URL,
+whether its body was stored.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `params` | [`MediaDownloadParams`](#mediadownloadparams) | URLs, media kind and the per-body byte cap. |
+| `sink` | [`Destination`](#destination) | Host-served store that accepts only those keys. |
+
+###### Returns
+
+`Promise`\<[`DownloadResultsReply`](#downloadresultsreply)\>
+
+[DownloadResultsReply](#downloadresultsreply)
+
+##### health()
+
+```ts
+health(): Promise<HealthReply>;
+```
+
+Liveness / readiness probe.
+
+###### Returns
+
+`Promise`\<[`HealthReply`](#healthreply)\>
+
+[HealthReply](#healthreply)
+
+***
+
+### MediaDownloadParams
+
+Params of `MediaDownloader.downloadMedia`.
+
+#### Properties
+
+##### conditions
+
+```ts
+conditions: DownloadCondition[];
+```
+
+Conditional request headers per URL, in the same order as `urls`, from
+the host's cached copy. Empty, or shorter than `urls`, means the
+remaining URLs are fetched unconditionally.
+
+##### maxBytes
+
+```ts
+maxBytes: number;
+```
+
+Largest body, in bytes, the host accepts for one URL; at most
+`maxImageBytes` for images and `maxAudioBytes` for audio. The sink refuses a larger body, which fails that URL
+only.
+
+##### media
+
+```ts
+media: "audio" | "image";
+```
+
+What the URLs name: cover art (the default) or a storefront's audio
+sample (`CatalogHit.sampleUrl`). A fetcher sends a matching `Accept`
+header and refuses a body whose `Content-Type` names something else;
+the host checks and re-encodes either kind regardless.
+
+##### urls
+
+```ts
+urls: string[];
+```
+
+Absolute `https://` URLs to fetch, at most `maxDownloadUrls`; never empty.
+The host has already checked each one against its URL policy.
 
 ***
 
@@ -8598,7 +8598,7 @@ entrypoints: (
   | "cli"
   | "oidc"
   | "metadata"
-  | "covers"
+  | "mediaDownload"
   | "metadataFiles"
   | "notifier"
   | "ingress"
@@ -12292,24 +12292,6 @@ Result union of `Destination.copy`.
 
 ***
 
-### CoverImagesReply
-
-```ts
-type CoverImagesReply = 
-  | {
-  kind: "ok";
-  value: CoverImages;
-}
-  | {
-  kind: "err";
-  value: PluginError;
-};
-```
-
-Result union of `CoverFetcher.fetchCovers`.
-
-***
-
 ### DbBootstrapReply
 
 ```ts
@@ -12431,6 +12413,24 @@ type DiagnoseReply =
 ```
 
 Result union of `diagnose`.
+
+***
+
+### DownloadResultsReply
+
+```ts
+type DownloadResultsReply = 
+  | {
+  kind: "ok";
+  value: DownloadResults;
+}
+  | {
+  kind: "err";
+  value: PluginError;
+};
+```
+
+Result union of `MediaDownloader.downloadMedia`.
 
 ***
 

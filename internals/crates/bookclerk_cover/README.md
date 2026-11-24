@@ -31,7 +31,7 @@ holds the validators those answers carry.
 | [`CoverError`](#covererror) | enum | Why `process` refused a cover. |
 | [`sniff`](#sniff) | function | Reads the file signature of `bytes`. |
 | [`process`](#process) | function | Sniffs, decodes, resizes and re-encodes one untrusted cover. |
-| [`MAX_INPUT_BYTES`](#max_input_bytes) | constant | Largest input accepted, in bytes. Matches the plugin ABI's `maxCoverBytes`, the most a cover fetcher may hand the host. |
+| [`MAX_INPUT_BYTES`](#max_input_bytes) | constant | Largest input accepted, in bytes. Matches the plugin ABI's `maxImageBytes`, the most a media downloader may hand the host. |
 | [`MAX_DIMENSION`](#max_dimension) | constant | Widest or tallest image decoded, in pixels. Store covers are at most a few thousand pixels on a side; anything larger is refused before decoding. |
 | [`MAX_DECODE_ALLOC`](#max_decode_alloc) | constant | Most memory the decoder may allocate for one image, in bytes. |
 | [`FULL_MAX_EDGE`](#full_max_edge) | constant | Longest edge of the `CoverSize::Full` output, in pixels. |
@@ -236,7 +236,7 @@ pub const MAX_INPUT_BYTES: usize = _;
 ```
 
 Largest input accepted, in bytes. Matches the plugin ABI's
-`maxCoverBytes`, the most a cover fetcher may hand the host.
+`maxImageBytes`, the most a media downloader may hand the host.
 
 ### MAX_DIMENSION
 

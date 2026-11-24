@@ -1,4 +1,4 @@
-# bookclerk_plugin_abi::plugin_capnp::cover_fetcher
+# bookclerk_plugin_abi::plugin_capnp::media_downloader
 
 | Item | Kind | Summary |
 | --- | --- | --- |
@@ -8,15 +8,15 @@
 | [`ServerDispatch`](#serverdispatch) | struct |  |
 | [`HealthParams`](#healthparams) | type alias |  |
 | [`HealthResults`](#healthresults) | type alias |  |
-| [`FetchCoversParams`](#fetchcoversparams) | type alias |  |
-| [`FetchCoversResults`](#fetchcoversresults) | type alias |  |
+| [`DownloadMediaParams`](#downloadmediaparams) | type alias |  |
+| [`DownloadMediaResults`](#downloadmediaresults) | type alias |  |
 
 ## Modules
 
 - [`health_params`](health_params.md)
 - [`health_results`](health_results.md)
-- [`fetch_covers_params`](fetch_covers_params.md)
-- [`fetch_covers_results`](fetch_covers_results.md)
+- [`download_media_params`](download_media_params.md)
+- [`download_media_results`](download_media_results.md)
 
 ## Traits
 
@@ -29,10 +29,10 @@ pub trait Server: 'static {
         _: HealthParams,
         _: HealthResults,
     ) -> impl Future<Output = Result<(), Error>> + 'static;
-    fn fetch_covers(
+    fn download_media(
         self: Rc<Self>,
-        _: FetchCoversParams,
-        _: FetchCoversResults,
+        _: DownloadMediaParams,
+        _: DownloadMediaResults,
     ) -> impl Future<Output = Result<(), Error>> + 'static;
 }
 ```
@@ -47,13 +47,13 @@ fn health(
 ) -> impl Future<Output = Result<(), Error>> + 'static
 ```
 
-#### Server::fetch_covers
+#### Server::download_media
 
 ```rust
-fn fetch_covers(
+fn download_media(
     self: Rc<Self>,
-    _: FetchCoversParams,
-    _: FetchCoversResults,
+    _: DownloadMediaParams,
+    _: DownloadMediaResults,
 ) -> impl Future<Output = Result<(), Error>> + 'static
 ```
 
@@ -73,10 +73,10 @@ pub struct Client {
 pub fn health_request(&self) -> Request<Owned, Owned>
 ```
 
-#### Client::fetch_covers_request
+#### Client::download_media_request
 
 ```rust
-pub fn fetch_covers_request(&self) -> Request<Owned, Owned>
+pub fn download_media_request(&self) -> Request<Owned, Owned>
 ```
 
 Implements: `Clone`, `FromClientHook`, `FromPointerBuilder<'a>`, `FromPointerReader<'a>`, `FromServer<_S>`, `HasTypeId`, `SetterInput<Owned>`
@@ -124,14 +124,14 @@ pub type HealthParams = Params<Owned>;
 pub type HealthResults = Results<Owned>;
 ```
 
-### FetchCoversParams
+### DownloadMediaParams
 
 ```rust
-pub type FetchCoversParams = Params<Owned>;
+pub type DownloadMediaParams = Params<Owned>;
 ```
 
-### FetchCoversResults
+### DownloadMediaResults
 
 ```rust
-pub type FetchCoversResults = Results<Owned>;
+pub type DownloadMediaResults = Results<Owned>;
 ```

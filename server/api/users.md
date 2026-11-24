@@ -7424,7 +7424,7 @@ A `text/plain` body: a string.
 Serves a user's Gravatar as a 128 px JPEG through the cover service.
 
 The `gravatar_hash` of a user (from `/api/auth/me` or `/api/users`) names
-the picture. Bookclerk downloads it through the `covers` plugin, so the
+the picture. Bookclerk downloads it through the `media_download` plugin, so the
 browser never contacts Gravatar.
 
 **Access:** The operator, or any library session, including a library card (refused with 403 `transport_insecure` off loopback without TLS, or `clerk_sign_in_unavailable` where remote installs are not served).

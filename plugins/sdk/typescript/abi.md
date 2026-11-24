@@ -554,7 +554,7 @@ that read a delivered message need time for it to arrive.
 ### ENTRYPOINTS
 
 ```ts
-const ENTRYPOINTS: readonly ["storefront", "storage", "databaseAdapter", "remoteLibrary", "cli", "oidc", "metadata", "covers", "metadataFiles", "notifier", "ingress", "ai", "provisioning"];
+const ENTRYPOINTS: readonly ["storefront", "storage", "databaseAdapter", "remoteLibrary", "cli", "oidc", "metadata", "mediaDownload", "metadataFiles", "notifier", "ingress", "ai", "provisioning"];
 ```
 
 Named entrypoint a plugin exports (Cloudflare Workers named-entrypoint
@@ -825,6 +825,18 @@ Most models one `AiModels.models` reply lists.
 
 ***
 
+### MAX\_AUDIO\_BYTES
+
+```ts
+const MAX_AUDIO_BYTES: 33554432;
+```
+
+Largest audio body `MediaDownloader.downloadMedia` may return for one URL
+(`media = audio`): a storefront's sample of up to ten minutes at a store's
+own bitrate.
+
+***
+
 ### MAX\_BATCH\_KEYS
 
 ```ts
@@ -876,38 +888,6 @@ Maximum granted config payload size (bytes).
 
 ***
 
-### MAX\_COVER\_BYTES
-
-```ts
-const MAX_COVER_BYTES: 10485760;
-```
-
-Largest image body `CoverFetcher.fetchCovers` may return for one URL.
-
-***
-
-### MAX\_COVER\_HEADER\_BYTES
-
-```ts
-const MAX_COVER_HEADER_BYTES: 1024;
-```
-
-Longest cache header value, in bytes, `CoverFetcher.fetchCovers` carries in
-either direction (a condition the host sends, a header the server sent).
-The host ignores a longer header the fetcher returns.
-
-***
-
-### MAX\_COVER\_URLS
-
-```ts
-const MAX_COVER_URLS: 32;
-```
-
-Most URLs in one `CoverFetcher.fetchCovers` call.
-
-***
-
 ### MAX\_CRON\_BYTES
 
 ```ts
@@ -938,6 +918,28 @@ Most `NotifyDeliverabilityCheck`s one deliverability report lists.
 
 ***
 
+### MAX\_DOWNLOAD\_HEADER\_BYTES
+
+```ts
+const MAX_DOWNLOAD_HEADER_BYTES: 1024;
+```
+
+Longest cache header value, in bytes, `MediaDownloader.downloadMedia` carries in
+either direction (a condition the host sends, a header the server sent).
+The host ignores a longer header the fetcher returns.
+
+***
+
+### MAX\_DOWNLOAD\_URLS
+
+```ts
+const MAX_DOWNLOAD_URLS: 32;
+```
+
+Most URLs in one `MediaDownloader.downloadMedia` call.
+
+***
+
 ### MAX\_EVENT\_CURSOR\_BYTES
 
 ```ts
@@ -965,6 +967,17 @@ const MAX_IDENTIFIER_BYTES: 64;
 ```
 
 Maximum plugin / account identifier length (bytes).
+
+***
+
+### MAX\_IMAGE\_BYTES
+
+```ts
+const MAX_IMAGE_BYTES: 10485760;
+```
+
+Largest image body `MediaDownloader.downloadMedia` may return for one URL
+(`media = image`).
 
 ***
 
@@ -1721,7 +1734,7 @@ Ordinal-ordered `ProvisionGrantKind` wire names (index = Cap'n Proto ordinal).
 const REMOTE_MEDIAS: readonly ["image", "audio"];
 ```
 
-The kind of public media `CoverFetcher.fetchCovers` downloads.
+The kind of public media `MediaDownloader.downloadMedia` downloads.
 
 Ordinal-ordered `RemoteMedia` wire names (index = Cap'n Proto ordinal).
 

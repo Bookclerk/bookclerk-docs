@@ -1,4 +1,4 @@
-# bookclerk_plugin_abi::plugin_capnp::cover_image
+# bookclerk_plugin_abi::plugin_capnp::download_result
 
 | Item | Kind | Summary |
 | --- | --- | --- |

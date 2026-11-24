@@ -20,9 +20,9 @@ First-party adapters (e.g. Audiobookshelf) live in
 | [`ProvidedOidcClient`](#providedoidcclient) | struct | Host-side copy of a guest `oidcClients` template (no ABI crate dependency). |
 | [`QueueSubscription`](#queuesubscription) | struct | Declared `[[queues.consumers]]` row (mirrors `plugin.toml`): the queue the integration's `queue(batch)` trigger consumes and its redelivery policy. |
 | [`ScheduledInvocation`](#scheduledinvocation) | struct | One fire of a `[triggers] crons` schedule, as the host delivers it to the `scheduled(controller)` trigger. |
-| [`CoverHeaders`](#coverheaders) | struct | The caching headers an image server sent with one answer, verbatim as the `covers` plugin passed them on (each at most the ABI's `maxCoverHeaderBytes`); `None` for a header it did not send. |
+| [`CoverHeaders`](#coverheaders) | struct | The caching headers an image server sent with one answer, verbatim as the `media_download` plugin passed them on (each at most the ABI's `maxDownloadHeaderBytes`); `None` for a header it did not send. |
 | [`ExternalUser`](#externaluser) | struct | External user resolved via integration credential login or watcher. |
-| [`FetchedCover`](#fetchedcover) | struct | One image a `covers` plugin downloaded, or why it could not. |
+| [`FetchedMedia`](#fetchedmedia) | struct | One image a `media_download` plugin downloaded, or why it could not. |
 | [`IntegrationHealth`](#integrationhealth-1) | struct | Health snapshot for one integration. |
 | [`ListeningProgressSnapshot`](#listeningprogresssnapshot) | struct | One listening / progress row from any integration (ABS, plugins, …). |
 | [`SyncListeningProviderResult`](#synclisteningproviderresult) | struct | Per-integration outcome from `crate::IntegrationRegistry::sync_listening_progress_all`. |
@@ -176,11 +176,11 @@ pub trait Integration: Send + Sync {
         Self: 'async_trait,
         'life0: 'async_trait,;
     fn metadata_unsupported(&self) -> IntegrationError;
-    fn supports_covers(&self) -> bool;
-    fn fetch_covers<'life0, 'async_trait>(
+    fn supports_media_download(&self) -> bool;
+    fn download_media<'life0, 'async_trait>(
         &'life0 self,
-        _params: CoverFetchParams,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<FetchedCover>>> + Send + 'async_trait>>
+        _params: MediaDownloadParams,
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<FetchedMedia>>> + Send + 'async_trait>>
     where
         Self: 'async_trait,
         'life0: 'async_trait,;
@@ -602,35 +602,35 @@ fn metadata_unsupported(&self) -> IntegrationError
 
 The error the default metadata methods return.
 
-#### Integration::supports_covers
+#### Integration::supports_media_download
 
 ```rust
-fn supports_covers(&self) -> bool
+fn supports_media_download(&self) -> bool
 ```
 
-Whether this integration exports the `covers` entrypoint (downloads
+Whether this integration exports the `mediaDownload` entrypoint (downloads
 cover images on the host's behalf).
 
 Default: `false`.
 
-#### Integration::fetch_covers
+#### Integration::download_media
 
 ```rust
-fn fetch_covers<'life0, 'async_trait>(
+fn download_media<'life0, 'async_trait>(
     &'life0 self,
-    _params: CoverFetchParams,
-) -> Pin<Box<dyn Future<Output = Result<Vec<FetchedCover>>> + Send + 'async_trait>>
+    _params: MediaDownloadParams,
+) -> Pin<Box<dyn Future<Output = Result<Vec<FetchedMedia>>> + Send + 'async_trait>>
 where
     Self: 'async_trait,
     'life0: 'async_trait,
 ```
 
-Downloads `params.urls` through the `covers` entrypoint
-(`CoverFetcher.fetchCovers`), refusing any body over
+Downloads `params.urls` through the `mediaDownload` entrypoint
+(`MediaDownloader.downloadMedia`), refusing any body over
 `params.max_bytes` and sending each URL's conditions, when it has
 any, as conditional request headers.
 
-Returns one [`FetchedCover`](#fetchedcover) per URL, in request order; a URL that
+Returns one [`FetchedMedia`](#fetchedmedia) per URL, in request order; a URL that
 failed carries `error` instead of failing the call, and one the
 server answered `304 Not Modified` carries `not_modified`.
 
@@ -1196,13 +1196,13 @@ pub fn model_plugins(&self) -> Vec<Arc<dyn Integration>>
 
 Integrations that export the `ai` entrypoint, in registration order.
 
-#### IntegrationRegistry::cover_fetchers
+#### IntegrationRegistry::media_downloaders
 
 ```rust
-pub fn cover_fetchers(&self) -> Vec<Arc<dyn Integration>>
+pub fn media_downloaders(&self) -> Vec<Arc<dyn Integration>>
 ```
 
-Integrations that export the `covers` entrypoint, in registration order.
+Integrations that export the `mediaDownload` entrypoint, in registration order.
 
 #### IntegrationRegistry::sync_listening_progress_all
 
@@ -1395,8 +1395,8 @@ pub struct CoverHeaders {
 ```
 
 The caching headers an image server sent with one answer, verbatim as
-the `covers` plugin passed them on (each at most the ABI's
-`maxCoverHeaderBytes`); `None` for a header it did not send.
+the `media_download` plugin passed them on (each at most the ABI's
+`maxDownloadHeaderBytes`); `None` for a header it did not send.
 
 **Fields**
 
@@ -1431,10 +1431,10 @@ External user resolved via integration credential login or watcher.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
 
-### FetchedCover
+### FetchedMedia
 
 ```rust
-pub struct FetchedCover {
+pub struct FetchedMedia {
     pub url: String,
     pub body: Option<Vec<u8>>,
     pub content_type: Option<String>,
@@ -1444,7 +1444,7 @@ pub struct FetchedCover {
 }
 ```
 
-One image a `covers` plugin downloaded, or why it could not.
+One image a `media_download` plugin downloaded, or why it could not.
 
 The body is untrusted bytes as the remote server sent them: callers must
 sniff, decode and re-encode it before storing or serving it.

@@ -150,7 +150,7 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`PluginCli`](#plugincli) | class | `cli` entrypoint: guest commands under `bookclerk plugins <id> <command>`. |
 | [`Oidc`](#oidc) | class | `oidc` entrypoint: relying-party client templates and credential verification on behalf of the host authorization server. |
 | [`MetadataProvider`](#metadataprovider) | class | `metadata` entrypoint: bibliographic lookups against a public catalog (OpenLibrary, Audnexus, ...). A provider describes what it finds as edition records; the host decides identity and never trusts a record to name an existing library row. Network access is limited to the domains the manifest's `[capabilities.network]` declares. |
-| [`CoverFetcher`](#coverfetcher) | class | `covers` entrypoint: downloads cover images on the host's behalf, so the host itself never makes an outbound request to a URL a plugin or a store supplied. The fetcher only transports bytes: the host sniffs, decodes and re-encodes every image in its media worker before anything stores or serves it. Network access is limited to what the manifest's `[capabilities.network]` declares. |
+| [`MediaDownloader`](#mediadownloader) | class | `mediaDownload` entrypoint: downloads public media (cover images and storefronts' audio samples) on the host's behalf, so the host itself never makes an outbound request to a URL a plugin or a store supplied. The downloader only transports bytes: the host sniffs, decodes and re-encodes every body in its media worker before anything stores or serves it. Network access is limited to what the manifest's `[capabilities.network]` declares. |
 | [`MetadataFiles`](#metadatafiles) | class | `metadataFiles` entrypoint: reads and writes metadata files that sit next to an edition's media (sidecars such as `metadata.json`, OPF, NFO or CUE), one dialect per format. The plugin only converts bytes: the host reads the file, chooses every path and writes the result, so a dialect plugin needs no network or file grants. The manifest's `[metadata_files]` table names each dialect, the file names it reads and the fields it carries, so the host routes a file to a sleeping plugin without starting it. |
 | [`Notifier`](#notifier) | class | `notifier` entrypoint: delivers one host-rendered message to one destination (an email address, a chat webhook, a push subscription). The host decides what is worth a notification, who gets it and which instance carries it; the plugin only sends. Each send is one claimed `notify.send` job, so the host owns retries: a reply of `rate_limited`, `unavailable`, `deadline_exceeded` or `cancelled` is retried (`rate_limited` honouring `details.retryAfterMs`), any other error is a permanent failure for that destination. |
 | [`NotificationRaiser`](#notificationraiser) | class | `NOTIFY` binding: raises a notification type the plugin declared in `[[notifications.types]]`. The host router applies the administrators' routing and each patron's preferences; the raising plugin never learns where the notification went. |
@@ -289,12 +289,12 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`MetadataChapters`](#metadatachapters) | class | Success payload of `MetadataProvider.chapters`. |
 | [`MetadataChaptersReplyOk`](#metadatachaptersreplyok) | class | `MetadataChaptersReply` member `ok`. |
 | [`MetadataChaptersReplyErr`](#metadatachaptersreplyerr) | class | `MetadataChaptersReply` member `err`. |
-| [`CoverFetchParams`](#coverfetchparams) | class | Params of `CoverFetcher.fetchCovers`. |
-| [`CoverCondition`](#covercondition) | class | Validators the host already holds for one URL, sent as conditional request headers so an unchanged image costs a `304` instead of its body. |
-| [`CoverImage`](#coverimage) | class | What happened to one requested URL. |
-| [`CoverImages`](#coverimages) | class | Success payload of `CoverFetcher.fetchCovers`. |
-| [`CoverImagesReplyOk`](#coverimagesreplyok) | class | `CoverImagesReply` member `ok`. |
-| [`CoverImagesReplyErr`](#coverimagesreplyerr) | class | `CoverImagesReply` member `err`. |
+| [`MediaDownloadParams`](#mediadownloadparams) | class | Params of `MediaDownloader.downloadMedia`. |
+| [`DownloadCondition`](#downloadcondition) | class | Validators the host already holds for one URL, sent as conditional request headers so an unchanged image costs a `304` instead of its body. |
+| [`DownloadResult`](#downloadresult) | class | What happened to one requested URL. |
+| [`DownloadResults`](#downloadresults) | class | Success payload of `MediaDownloader.downloadMedia`. |
+| [`DownloadResultsReplyOk`](#downloadresultsreplyok) | class | `DownloadResultsReply` member `ok`. |
+| [`DownloadResultsReplyErr`](#downloadresultsreplyerr) | class | `DownloadResultsReply` member `err`. |
 | [`MetadataFileRecord`](#metadatafilerecord) | class | What one metadata file says about the edition it sits beside. A field the file does not state is left out of `present` and means "unknown", never "cleared"; a field in `present` with an empty value means the file states that it is empty. The host checks every value against the `maxMetadataFile*` caps and refuses a record that states a field its dialect does not carry. |
 | [`MetadataFileParseParams`](#metadatafileparseparams) | class | Params of `MetadataFiles.parse`. |
 | [`MetadataFileParsed`](#metadatafileparsed) | class | Success payload of `MetadataFiles.parse`. |
@@ -480,7 +480,7 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`OfferedCodec`](#offeredcodec) | constant | Audio codec of a stream a store offers (`QualityOffer.codec`). Spelled as the host's probed codecs are, so an offer compares with a held file. |
 | [`OfferedAacProfile`](#offeredaacprofile) | constant | AAC profile of an offered AAC stream (`QualityOffer.aacProfile`). |
 | [`InvocationPurpose`](#invocationpurpose) | constant | Why the host opens a plugin's entrypoints (`Invocation.purpose`). |
-| [`RemoteMedia`](#remotemedia) | constant | The kind of public media `CoverFetcher.fetchCovers` downloads. |
+| [`RemoteMedia`](#remotemedia) | constant | The kind of public media `MediaDownloader.downloadMedia` downloads. |
 | [`MetadataField`](#metadatafield) | constant | A field of a `MetadataFileRecord`. Dialects declare in the manifest which fields their format carries; a parsed record lists the ones its file states, and a render request lists the ones to write. |
 | [`NotificationSeverity`](#notificationseverity) | constant | How urgent a notification is. Routing rules carry a minimum severity. |
 | [`NotificationAudience`](#notificationaudience) | constant | Who a notification type is for. The account audience is reserved to the host; a plugin may declare only operational and patron types. |
@@ -550,7 +550,7 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`KvListReply`](#kvlistreply) | constant | Result union of `KvNamespace.list`. |
 | [`MetadataRecordsReply`](#metadatarecordsreply) | constant | Result union of `MetadataProvider.lookup` / `search`. |
 | [`MetadataChaptersReply`](#metadatachaptersreply) | constant | Result union of `MetadataProvider.chapters`. |
-| [`CoverImagesReply`](#coverimagesreply) | constant | Result union of `CoverFetcher.fetchCovers`. |
+| [`DownloadResultsReply`](#downloadresultsreply) | constant | Result union of `MediaDownloader.downloadMedia`. |
 | [`MetadataFileParseReply`](#metadatafileparsereply) | constant | Result union of `MetadataFiles.parse`. A file the dialect cannot read is `invalid_params`, so the host records it as unreadable and moves on. |
 | [`MetadataFileRenderReply`](#metadatafilerenderreply) | constant | Result union of `MetadataFiles.render`. |
 | [`NotifySendReply`](#notifysendreply) | constant | Result union of `Notifier.send`. |
@@ -1122,7 +1122,7 @@ refuses an entrypoint the manifest or operator grant did not allow.
 - `queueConsumer`: `[[queues.consumers]]` trigger: `queue(batch)` handler. Null when the guest does not export this capability.
 - `scheduledHandler`: `[triggers] crons` trigger: `scheduled(controller)` handler. Null when the guest does not export this capability.
 - `metadata`: `metadata` entrypoint. Null when the guest does not export this capability.
-- `covers`: `covers` entrypoint. Null when the guest does not export this capability.
+- `mediaDownload`: `mediaDownload` entrypoint. Null when the guest does not export this capability.
 - `socketHandler`: `[sockets]` handler: messages and closes on host-brokered sockets. Null when the guest does not export this capability.
 - `metadataFiles`: `metadataFiles` entrypoint. Null when the guest does not export this capability.
 - `notifier`: `notifier` entrypoint. Null when the guest does not export this capability.
@@ -3856,20 +3856,20 @@ Chapter layout of the edition the given identifiers name.
 
 `MetadataChaptersReply`
 
-### CoverFetcher
+### MediaDownloader
 
 ```python
-class CoverFetcher(Protocol)
+class MediaDownloader(Protocol)
 ```
 
-`covers` entrypoint: downloads cover images on the host's behalf, so the
-host itself never makes an outbound request to a URL a plugin or a store
-supplied. The fetcher only transports bytes: the host sniffs, decodes and
-re-encodes every image in its media worker before anything stores or
-serves it. Network access is limited to what the manifest's
+`mediaDownload` entrypoint: downloads public media (cover images and
+storefronts' audio samples) on the host's behalf, so the host itself never
+makes an outbound request to a URL a plugin or a store supplied. The
+downloader only transports bytes: the host sniffs, decodes and re-encodes
+every body in its media worker before anything stores or serves it. Network access is limited to what the manifest's
 `[capabilities.network]` declares.
 
-#### CoverFetcher.health
+#### MediaDownloader.health
 
 ```python
 async def health(self) -> HealthReply
@@ -3881,14 +3881,14 @@ Liveness / readiness probe.
 
 `HealthReply`
 
-#### CoverFetcher.fetch_covers
+#### MediaDownloader.download_media
 
 ```python
-async def fetch_covers(
+async def download_media(
     self,
-    params: CoverFetchParams,
+    params: MediaDownloadParams,
     sink: Destination,
-) -> CoverImagesReply
+) -> DownloadResultsReply
 ```
 
 Fetches every URL concurrently and streams each body into `sink` under
@@ -3897,12 +3897,12 @@ whether its body was stored.
 
 **Args**
 
-- `params`: URLs and the per-image byte cap.
+- `params`: URLs, media kind and the per-body byte cap.
 - `sink`: Host-served store that accepts only those keys.
 
 **Returns**
 
-`CoverImagesReply`
+`DownloadResultsReply`
 
 ### MetadataFiles
 
@@ -5090,7 +5090,7 @@ One catalog / candidate hit returned by `searchCatalog`,
 - `parentProductId`: Product id of the parent podcast show, for a podcast episode. Omitted when absent (wire zero value).
 - `rankHint`: The storefront's own rank for this hit in `searchCatalog` results 1-based position in the store's ordering for the requested sort across all pages (page 2 of 20-hit pages starts at 21), or a store-wide popularity rank when the store has one. 0 means unranked. Catalog search merges stores by it for relevance and popularity sorts and puts unranked hits after ranked ones. Other catalog methods leave it 0. Omitted when absent (wire zero value).
 - `explicitness`: Whether the storefront marks the edition explicit (adult) content.
-- `sampleUrl`: Absolute `https://` URL of a short audio sample of this edition that the storefront offers publicly (a few minutes, in any format the media worker decodes). The host never hands it to a client: a book's details play it through a same-origin path, fetched by a `covers` plugin with `media = audio` and re-encoded in the media worker. Empty when the store has none. Omitted when absent (wire zero value).
+- `sampleUrl`: Absolute `https://` URL of a short audio sample of this edition that the storefront offers publicly (a few minutes, in any format the media worker decodes). The host never hands it to a client: a book's details play it through a same-origin path, fetched by a `mediaDownload` plugin with `media = audio` and re-encoded in the media worker. Empty when the store has none. Omitted when absent (wire zero value).
 
 ### CatalogHits
 
@@ -6241,25 +6241,25 @@ Typed failure; `code` is a `PluginErrorCode` wire string.
 - `kind`: Always `"err"`.
 - `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-### CoverFetchParams
+### MediaDownloadParams
 
 ```python
-class CoverFetchParams(TypedDict)
+class MediaDownloadParams(TypedDict)
 ```
 
-Params of `CoverFetcher.fetchCovers`.
+Params of `MediaDownloader.downloadMedia`.
 
 **Attributes**
 
-- `urls`: Absolute `https://` URLs to fetch, at most `maxCoverUrls`; never empty. The host has already checked each one against its URL policy.
-- `maxBytes`: Largest body, in bytes, the host accepts for one image; at most `maxCoverBytes`. The sink refuses a larger body, which fails that URL only.
+- `urls`: Absolute `https://` URLs to fetch, at most `maxDownloadUrls`; never empty. The host has already checked each one against its URL policy.
+- `maxBytes`: Largest body, in bytes, the host accepts for one URL; at most `maxImageBytes` for images and `maxAudioBytes` for audio. The sink refuses a larger body, which fails that URL only.
 - `conditions`: Conditional request headers per URL, in the same order as `urls`, from the host's cached copy. Empty, or shorter than `urls`, means the remaining URLs are fetched unconditionally.
 - `media`: What the URLs name: cover art (the default) or a storefront's audio sample (`CatalogHit.sampleUrl`). A fetcher sends a matching `Accept` header and refuses a body whose `Content-Type` names something else; the host checks and re-encodes either kind regardless.
 
-### CoverCondition
+### DownloadCondition
 
 ```python
-class CoverCondition(TypedDict)
+class DownloadCondition(TypedDict)
 ```
 
 Validators the host already holds for one URL, sent as conditional request
@@ -6270,10 +6270,10 @@ headers so an unchanged image costs a `304` instead of its body.
 - `ifNoneMatch`: `If-None-Match` value: the `ETag` the host stored, verbatim; empty for none. Omitted when absent (wire zero value).
 - `ifModifiedSince`: `If-Modified-Since` value: the `Last-Modified` the host stored, verbatim; empty for none. Omitted when absent (wire zero value).
 
-### CoverImage
+### DownloadResult
 
 ```python
-class CoverImage(TypedDict)
+class DownloadResult(TypedDict)
 ```
 
 What happened to one requested URL.
@@ -6292,25 +6292,25 @@ What happened to one requested URL.
 - `date`: `Date` the server sent, verbatim. Omitted when absent (wire zero value).
 - `age`: `Age` the server (or a cache in front of it) sent, verbatim. Omitted when absent (wire zero value).
 
-### CoverImages
+### DownloadResults
 
 ```python
-class CoverImages(TypedDict)
+class DownloadResults(TypedDict)
 ```
 
-Success payload of `CoverFetcher.fetchCovers`.
+Success payload of `MediaDownloader.downloadMedia`.
 
 **Attributes**
 
-- `images`: One entry per requested URL, in request order.
+- `downloads`: One entry per requested URL, in request order.
 
-### CoverImagesReplyOk
+### DownloadResultsReplyOk
 
 ```python
-class CoverImagesReplyOk(TypedDict)
+class DownloadResultsReplyOk(TypedDict)
 ```
 
-`CoverImagesReply` member `ok`.
+`DownloadResultsReply` member `ok`.
 
 Success: one entry per requested URL.
 
@@ -6319,13 +6319,13 @@ Success: one entry per requested URL.
 - `kind`: Always `"ok"`.
 - `value`: Success: one entry per requested URL.
 
-### CoverImagesReplyErr
+### DownloadResultsReplyErr
 
 ```python
-class CoverImagesReplyErr(TypedDict)
+class DownloadResultsReplyErr(TypedDict)
 ```
 
-`CoverImagesReply` member `err`.
+`DownloadResultsReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
@@ -9218,7 +9218,7 @@ Why the host opens a plugin's entrypoints (`Invocation.purpose`).
 RemoteMedia = Literal['image', 'audio']
 ```
 
-The kind of public media `CoverFetcher.fetchCovers` downloads.
+The kind of public media `MediaDownloader.downloadMedia` downloads.
 
 ### MetadataField
 
@@ -9788,13 +9788,13 @@ MetadataChaptersReply = Union[MetadataChaptersReplyOk, MetadataChaptersReplyErr]
 
 Result union of `MetadataProvider.chapters`.
 
-### CoverImagesReply
+### DownloadResultsReply
 
 ```python
-CoverImagesReply = Union[CoverImagesReplyOk, CoverImagesReplyErr]
+DownloadResultsReply = Union[DownloadResultsReplyOk, DownloadResultsReplyErr]
 ```
 
-Result union of `CoverFetcher.fetchCovers`.
+Result union of `MediaDownloader.downloadMedia`.
 
 ### MetadataFileParseReply
 

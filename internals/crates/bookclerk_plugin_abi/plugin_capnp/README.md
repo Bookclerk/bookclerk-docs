@@ -62,9 +62,10 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | [`MAX_CONFIG_PAYLOAD_BYTES`](#max_config_payload_bytes) | constant |  |
 | [`MAX_EVENT_PAYLOAD_BYTES`](#max_event_payload_bytes) | constant |  |
 | [`MAX_KV_VALUE_BYTES`](#max_kv_value_bytes) | constant |  |
-| [`MAX_COVER_URLS`](#max_cover_urls) | constant |  |
-| [`MAX_COVER_BYTES`](#max_cover_bytes) | constant |  |
-| [`MAX_COVER_HEADER_BYTES`](#max_cover_header_bytes) | constant |  |
+| [`MAX_DOWNLOAD_URLS`](#max_download_urls) | constant |  |
+| [`MAX_IMAGE_BYTES`](#max_image_bytes) | constant |  |
+| [`MAX_AUDIO_BYTES`](#max_audio_bytes) | constant |  |
+| [`MAX_DOWNLOAD_HEADER_BYTES`](#max_download_header_bytes) | constant |  |
 | [`MAX_METADATA_FILE_BYTES`](#max_metadata_file_bytes) | constant |  |
 | [`MAX_METADATA_FILE_DESCRIPTION_BYTES`](#max_metadata_file_description_bytes) | constant |  |
 | [`MAX_METADATA_FILE_TEXT_BYTES`](#max_metadata_file_text_bytes) | constant |  |
@@ -243,7 +244,7 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`plugin_cli`](plugin_cli/README.md)
 - [`oidc`](oidc/README.md)
 - [`metadata_provider`](metadata_provider/README.md)
-- [`cover_fetcher`](cover_fetcher/README.md)
+- [`media_downloader`](media_downloader/README.md)
 - [`metadata_files`](metadata_files/README.md)
 - [`notifier`](notifier/README.md)
 - [`notification_raiser`](notification_raiser/README.md)
@@ -357,11 +358,11 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`metadata_chapter`](metadata_chapter.md)
 - [`metadata_chapters`](metadata_chapters.md)
 - [`metadata_chapters_reply`](metadata_chapters_reply.md)
-- [`cover_fetch_params`](cover_fetch_params.md)
-- [`cover_condition`](cover_condition.md)
-- [`cover_image`](cover_image.md)
-- [`cover_images`](cover_images.md)
-- [`cover_images_reply`](cover_images_reply.md)
+- [`media_download_params`](media_download_params.md)
+- [`download_condition`](download_condition.md)
+- [`download_result`](download_result.md)
+- [`download_results`](download_results.md)
+- [`download_results_reply`](download_results_reply.md)
 - [`metadata_file_record`](metadata_file_record.md)
 - [`metadata_file_parse_params`](metadata_file_parse_params.md)
 - [`metadata_file_parsed`](metadata_file_parsed.md)
@@ -555,7 +556,7 @@ pub enum Entrypoint {
     Cli = 4,
     Oidc = 5,
     Metadata = 6,
-    Covers = 7,
+    MediaDownload = 7,
     MetadataFiles = 8,
     Notifier = 9,
     Ingress = 10,
@@ -1121,22 +1122,28 @@ pub const MAX_EVENT_PAYLOAD_BYTES: u32 = 65536;
 pub const MAX_KV_VALUE_BYTES: u32 = 1048576;
 ```
 
-### MAX_COVER_URLS
+### MAX_DOWNLOAD_URLS
 
 ```rust
-pub const MAX_COVER_URLS: u32 = 32;
+pub const MAX_DOWNLOAD_URLS: u32 = 32;
 ```
 
-### MAX_COVER_BYTES
+### MAX_IMAGE_BYTES
 
 ```rust
-pub const MAX_COVER_BYTES: u32 = 10485760;
+pub const MAX_IMAGE_BYTES: u32 = 10485760;
 ```
 
-### MAX_COVER_HEADER_BYTES
+### MAX_AUDIO_BYTES
 
 ```rust
-pub const MAX_COVER_HEADER_BYTES: u32 = 1024;
+pub const MAX_AUDIO_BYTES: u32 = 33554432;
+```
+
+### MAX_DOWNLOAD_HEADER_BYTES
+
+```rust
+pub const MAX_DOWNLOAD_HEADER_BYTES: u32 = 1024;
 ```
 
 ### MAX_METADATA_FILE_BYTES

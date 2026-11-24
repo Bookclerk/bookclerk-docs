@@ -957,7 +957,7 @@ the tests drive the same code as [`ChirpSource::catalog_detail`](#chirpsourcecat
 #### Errors
 
 Returns an error when the audiobook object is not a catalog record (no
-string `id`, or a field of the wrong type).
+string `id`, a blank `id`, or a field of the wrong type).
 
 ### audiobook_to_scan_book
 

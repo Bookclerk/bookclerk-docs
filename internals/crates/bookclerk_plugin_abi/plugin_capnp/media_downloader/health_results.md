@@ -1,4 +1,4 @@
-# bookclerk_plugin_abi::plugin_capnp::cover_fetcher::health_params
+# bookclerk_plugin_abi::plugin_capnp::media_downloader::health_results
 
 | Item | Kind | Summary |
 | --- | --- | --- |
@@ -37,6 +37,18 @@ pub fn reborrow(&self) -> Reader<'_>
 pub fn total_size(&self) -> Result<MessageSize>
 ```
 
+#### Reader::get_result
+
+```rust
+pub fn get_result(self) -> Result<Reader<'a>>
+```
+
+#### Reader::has_result
+
+```rust
+pub fn has_result(&self) -> bool
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -71,6 +83,30 @@ pub fn reborrow_as_reader(&self) -> Reader<'_>
 pub fn total_size(&self) -> Result<MessageSize>
 ```
 
+#### Builder::get_result
+
+```rust
+pub fn get_result(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_result
+
+```rust
+pub fn set_result(&mut self, value: Reader<'_>) -> Result<()>
+```
+
+#### Builder::init_result
+
+```rust
+pub fn init_result(self) -> Builder<'a>
+```
+
+#### Builder::has_result
+
+```rust
+pub fn has_result(&self) -> bool
+```
+
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
 
 ### Pipeline
@@ -79,6 +115,12 @@ Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<
 pub struct Pipeline {
     /* private fields */
 }
+```
+
+#### Pipeline::get_result
+
+```rust
+pub fn get_result(&self) -> Pipeline
 ```
 
 Implements: `FromTypelessPipeline`

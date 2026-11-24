@@ -34,7 +34,7 @@ independent oracle.
 | [`FRESHNESS_FLOOR`](#freshness_floor) | constant | Shortest time a fetched image stays fresh, whatever upstream says: an image host asking for `no-cache` or `max-age=0` is asked again after an hour, not on every view. |
 | [`FRESHNESS_DEFAULT`](#freshness_default) | constant | How long a fetched image stays fresh when upstream sends no `max-age`, `s-maxage` or `Expires`. |
 | [`FRESHNESS_CEILING`](#freshness_ceiling) | constant | Longest time a fetched image stays fresh, whatever upstream says, so a changed profile picture or logo shows within a week. |
-| [`MAX_RESPONSE_HEADER_BYTES`](#max_response_header_bytes) | constant | Longest upstream header value read, in bytes (the plugin ABI's `maxCoverHeaderBytes`); a longer value is treated as absent. |
+| [`MAX_RESPONSE_HEADER_BYTES`](#max_response_header_bytes) | constant | Longest upstream header value read, in bytes (the plugin ABI's `maxDownloadHeaderBytes`); a longer value is treated as absent. |
 
 ## Structs
 
@@ -318,4 +318,4 @@ pub const MAX_RESPONSE_HEADER_BYTES: usize = 1024;
 ```
 
 Longest upstream header value read, in bytes (the plugin ABI's
-`maxCoverHeaderBytes`); a longer value is treated as absent.
+`maxDownloadHeaderBytes`); a longer value is treated as absent.

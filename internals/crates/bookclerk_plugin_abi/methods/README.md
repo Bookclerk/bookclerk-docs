@@ -4,7 +4,7 @@ Role capability method names (camelCase on the wire).
 
 Each submodule exposes a single [`NAME`](health.md#name) constant equal to
 the corresponding `ContentSource` / `RemoteLibrary` / `Oidc` /
-`MetadataProvider` / `CoverFetcher` / `MetadataFiles` / `Notifier` /
+`MetadataProvider` / `MediaDownloader` / `MetadataFiles` / `Notifier` /
 `NotificationRaiser` / `AiModels` / `AiRunner` / `Provisioning` / `Cli` /
 `EventConsumer` / `EventPublisher` / `QueueConsumer` / `QueueProducer` /
 `PluginWorker` method in
@@ -36,7 +36,7 @@ drift tests. Flat `UPPER_SNAKE` aliases live under [`names`](names.md).
 - [`lookup`](lookup.md): Edition records for a set of identifiers (Cap'n Proto `MetadataProvider.lookup`).
 - [`search`](search.md): Edition records matching a title and author (Cap'n Proto `MetadataProvider.search`).
 - [`chapters`](chapters.md): Chapter layout of one edition (Cap'n Proto `MetadataProvider.chapters`).
-- [`fetch_covers`](fetch_covers.md): Cover image bodies streamed into a host sink (Cap'n Proto `CoverFetcher.fetchCovers`).
+- [`download_media`](download_media.md): Cover image bodies streamed into a host sink (Cap'n Proto `MediaDownloader.downloadMedia`).
 - [`parse`](parse.md): What one metadata file says (Cap'n Proto `MetadataFiles.parse`).
 - [`render`](render.md): A metadata file's bytes with chosen fields rewritten (Cap'n Proto `MetadataFiles.render`).
 - [`validate_destination`](validate_destination.md): Normalise and check a patron's address on a notifier (Cap'n Proto `Notifier.validateDestination`).

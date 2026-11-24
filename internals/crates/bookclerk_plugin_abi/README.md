@@ -72,7 +72,6 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`AiRunner`](#airunner) | trait | `AI` binding: runs a model served by a deployed model plugin (`Bindings::ai`). |
 | [`Cancellation`](#cancellation) | trait | Transport cancellation. SDKs project this into a locally created `AbortSignal` (AbortSignal is not a serializable Workers RPC value). |
 | [`ContentSource`](#contentsource) | trait | Storefront content source (not byte `Source`). |
-| [`CoverFetcher`](#coverfetcher) | trait | `covers` entrypoint: downloads cover images on the host's behalf. |
 | [`Database`](#database) | trait | Database factory. Sessions cannot survive suspension. |
 | [`Destination`](#destination) | trait | Destination capability (storage). |
 | [`EventConsumer`](#eventconsumer) | trait | `[[events.consumers]]` handler (`Entrypoints::event_consumer`). |
@@ -81,6 +80,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`Ingress`](#ingress) | trait | `ingress` entrypoint: a public address provider (a relay, or a dynamic DNS name). The library runs at most one at a time. |
 | [`JobRunner`](#jobrunner) | trait | `[triggers] jobs` handler (`Entrypoints::job_runner`). |
 | [`KvNamespace`](#kvnamespace) | trait | Durable key/value namespace: Workers `KVNamespace`-shaped binding the host serves from the library database, scoped to the plugin and the namespace a `[[kv_namespaces]]` row names. Values live in the library, so an instance moved to another host reads its own keys. |
+| [`MediaDownloader`](#mediadownloader) | trait | `mediaDownload` entrypoint: downloads cover images on the host's behalf. |
 | [`MetadataFiles`](#metadatafiles) | trait | `metadataFiles` entrypoint: converts metadata files (sidecars) next to an edition's media to and from `crate::MetadataFileRecord`s. |
 | [`MetadataProvider`](#metadataprovider) | trait | `metadata` entrypoint: bibliographic lookups against a public catalog. |
 | [`NotificationRaiser`](#notificationraiser) | trait | `NOTIFY` binding: raises the notification types the plugin declares in `[[notifications.types]]` (`Bindings::notify`). |
@@ -131,7 +131,6 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`AiModelsClient`](#aimodelsclient) | struct | Cap'n Proto client for `AiModels`. |
 | [`AiRunnerClient`](#airunnerclient) | struct | Guest-side client for the host `AI` binding (`AiRunner`). Runs are checked before they leave, so a plugin learns of a malformed run without a round trip; the host checks again. |
 | [`ContentSourceClient`](#contentsourceclient) | struct | Cap'n Proto client for `ContentSource`. |
-| [`CoverFetcherClient`](#coverfetcherclient) | struct | Cap'n Proto client for `CoverFetcher`. |
 | [`DatabaseClient`](#databaseclient) | struct | Cap'n Proto client for `Database`. |
 | [`DestinationClient`](#destinationclient) | struct | Host-side `Destination` over a capnp destination stub. |
 | [`DestinationServer`](#destinationserver) | struct | Cap'n Proto server wrapping a `Destination` trait object. |
@@ -141,6 +140,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`IngressClient`](#ingressclient) | struct | Host-side client for a plugin's `ingress` entrypoint. |
 | [`JobRunnerClient`](#jobrunnerclient) | struct | Cap'n Proto client for `JobRunner` (host → guest job dispatch). |
 | [`KvNamespaceClient`](#kvnamespaceclient) | struct | Guest-side client for a host KV namespace binding (`KvNamespace`). |
+| [`MediaDownloaderClient`](#mediadownloaderclient) | struct | Cap'n Proto client for `MediaDownloader`. |
 | [`MetadataFilesClient`](#metadatafilesclient) | struct | Cap'n Proto client for `MetadataFiles`. |
 | [`MetadataProviderClient`](#metadataproviderclient) | struct | Cap'n Proto client for `MetadataProvider`. |
 | [`NoOrigin`](#noorigin) | struct | Fails closed: an `Origin` that refuses everything, for hosts that grant no relay ingress. Kept for tests and in-process hosts. |
@@ -243,7 +243,8 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`negotiate_rpc_features`](#negotiate_rpc_features) | function | Intersects host-offered and guest-accepted feature lists. |
 | [`read_all`](#read_all) | function | Reads a small transferred body, stopping at `crate::MAX_SCALAR_BYTES`. |
 | [`stream_copy_keys`](#stream_copy_keys) | function | Copies `from` → `to` through granted source/destination streams. |
-| [`cover_sink_slot`](#cover_sink_slot) | function | Parses a `CoverFetcher.fetchCovers` sink key into the URL index it names. |
+| [`download_sink_slot`](#download_sink_slot) | function | Parses a `MediaDownloader.downloadMedia` sink key into the URL index it names. |
+| [`max_download_bytes`](#max_download_bytes) | function | Largest body one `MediaDownloader.downloadMedia` URL of `media` may return: `MAX_IMAGE_BYTES` for images, `MAX_AUDIO_BYTES` for audio. |
 | [`hint_result`](#hint_result) | function | A bare hint as a `PurchaseHintResult` with no records. |
 | [`purchase_hint_results_one_by_one`](#purchase_hint_results_one_by_one) | function | `ContentSource::purchase_hints_results` for a store without a bulk endpoint: asks `ContentSource::purchase_hint_result` for each query, with the same order, concurrency and `PURCHASE_HINTS_BUDGET` as the default `ContentSource::purchase_hints`. A query not started within the budget answers an empty result (`found = false`, no records). |
 | [`byte_source_from_async_read`](#byte_source_from_async_read) | function | Returns a `ByteSource` client that pulls from `reader`. |
@@ -297,14 +298,15 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`MAX_AI_LANGUAGES`](#max_ai_languages) | constant | Most language tags on one listed model. |
 | [`MAX_AI_MODELS`](#max_ai_models) | constant | Most models one plugin lists on its `ai` entrypoint. |
 | [`MAX_AI_MODEL_NAME_BYTES`](#max_ai_model_name_bytes) | constant | Longest model name on the `AI` binding (`@<plugin id>/<model id>`), in UTF-8 bytes. |
-| [`MAX_COVER_BYTES`](#max_cover_bytes) | constant | Largest image body one `CoverFetcher.fetchCovers` URL may return. |
-| [`MAX_COVER_HEADER_BYTES`](#max_cover_header_bytes) | constant | Longest cache header value one `CoverFetcher.fetchCovers` call carries in either direction, in bytes. |
-| [`MAX_COVER_URLS`](#max_cover_urls) | constant | Most URLs in one `CoverFetcher.fetchCovers` call. |
+| [`MAX_AUDIO_BYTES`](#max_audio_bytes) | constant | Largest audio body one `MediaDownloader.downloadMedia` URL may return (`media = audio`): a storefront's sample. |
 | [`MAX_CRON_BYTES`](#max_cron_bytes) | constant | Longest `[triggers] crons` source in bytes (`ScheduledController.cron`). |
 | [`MAX_DELIVERABILITY_ADVICE`](#max_deliverability_advice) | constant | Most pieces of advice one notifier deliverability report lists. |
 | [`MAX_DELIVERABILITY_CHECKS`](#max_deliverability_checks) | constant | Most checks one notifier deliverability report lists. |
+| [`MAX_DOWNLOAD_HEADER_BYTES`](#max_download_header_bytes) | constant | Longest cache header value one `MediaDownloader.downloadMedia` call carries in either direction, in bytes. |
+| [`MAX_DOWNLOAD_URLS`](#max_download_urls) | constant | Most URLs in one `MediaDownloader.downloadMedia` call. |
 | [`MAX_EVENT_CURSOR_BYTES`](#max_event_cursor_bytes) | constant | Longest `EventPublisher.read` cursor in bytes. |
 | [`MAX_EVENT_PAYLOAD_BYTES`](#max_event_payload_bytes) | constant | Maximum decoded size of a domain-event scalar payload (not a stream). |
+| [`MAX_IMAGE_BYTES`](#max_image_bytes) | constant | Largest image body one `MediaDownloader.downloadMedia` URL may return (`media = image`). |
 | [`MAX_INGRESS_ORIGIN_BYTES`](#max_ingress_origin_bytes) | constant | Longest host name in `IngressStarted.origin`, in bytes. |
 | [`MAX_KV_KEY_BYTES`](#max_kv_key_bytes) | constant | Longest `KvNamespace` key in UTF-8 bytes. |
 | [`MAX_KV_METADATA_BYTES`](#max_kv_metadata_bytes) | constant | Largest `KvNamespace` metadata JSON text in bytes. |
@@ -671,10 +673,10 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`generated::MetadataRecords`](generated.md#metadatarecords)
 - [`generated::MetadataChapter`](generated.md#metadatachapter)
 - [`generated::MetadataChapters`](generated.md#metadatachapters)
-- [`generated::CoverFetchParams`](generated.md#coverfetchparams)
-- [`generated::CoverCondition`](generated.md#covercondition)
-- [`generated::CoverImage`](generated.md#coverimage)
-- [`generated::CoverImages`](generated.md#coverimages)
+- [`generated::MediaDownloadParams`](generated.md#mediadownloadparams)
+- [`generated::DownloadCondition`](generated.md#downloadcondition)
+- [`generated::DownloadResult`](generated.md#downloadresult)
+- [`generated::DownloadResults`](generated.md#downloadresults)
 - [`generated::MetadataFileRecord`](generated.md#metadatafilerecord)
 - [`generated::MetadataFileParseParams`](generated.md#metadatafileparseparams)
 - [`generated::MetadataFileParsed`](generated.md#metadatafileparsed)
@@ -946,16 +948,16 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`generated::read_metadata_chapters`](generated.md#read_metadata_chapters)
 - [`generated::write_metadata_chapters_reply`](generated.md#write_metadata_chapters_reply)
 - [`generated::read_metadata_chapters_reply`](generated.md#read_metadata_chapters_reply)
-- [`generated::write_cover_fetch_params`](generated.md#write_cover_fetch_params)
-- [`generated::read_cover_fetch_params`](generated.md#read_cover_fetch_params)
-- [`generated::write_cover_condition`](generated.md#write_cover_condition)
-- [`generated::read_cover_condition`](generated.md#read_cover_condition)
-- [`generated::write_cover_image`](generated.md#write_cover_image)
-- [`generated::read_cover_image`](generated.md#read_cover_image)
-- [`generated::write_cover_images`](generated.md#write_cover_images)
-- [`generated::read_cover_images`](generated.md#read_cover_images)
-- [`generated::write_cover_images_reply`](generated.md#write_cover_images_reply)
-- [`generated::read_cover_images_reply`](generated.md#read_cover_images_reply)
+- [`generated::write_media_download_params`](generated.md#write_media_download_params)
+- [`generated::read_media_download_params`](generated.md#read_media_download_params)
+- [`generated::write_download_condition`](generated.md#write_download_condition)
+- [`generated::read_download_condition`](generated.md#read_download_condition)
+- [`generated::write_download_result`](generated.md#write_download_result)
+- [`generated::read_download_result`](generated.md#read_download_result)
+- [`generated::write_download_results`](generated.md#write_download_results)
+- [`generated::read_download_results`](generated.md#read_download_results)
+- [`generated::write_download_results_reply`](generated.md#write_download_results_reply)
+- [`generated::read_download_results_reply`](generated.md#read_download_results_reply)
 - [`generated::write_metadata_file_record`](generated.md#write_metadata_file_record)
 - [`generated::read_metadata_file_record`](generated.md#read_metadata_file_record)
 - [`generated::write_metadata_file_parse_params`](generated.md#write_metadata_file_parse_params)
@@ -2214,66 +2216,6 @@ Operator-facing diagnostic lines.
 
 Implemented by: `ContentSourceClient`
 
-### CoverFetcher
-
-```rust
-pub trait CoverFetcher {
-    fn health<'life0, 'async_trait>(
-        &'life0 self,
-    ) -> Pin<Box<dyn Future<Output = Result<HealthOk>> + 'async_trait>>
-    where
-        Self: 'async_trait,
-        'life0: 'async_trait,;
-    fn fetch_covers<'life0, 'async_trait>(
-        &'life0 self,
-        _params: CoverFetchParams,
-        _sink: Box<dyn Destination>,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<CoverImage>>> + 'async_trait>>
-    where
-        Self: 'async_trait,
-        'life0: 'async_trait,;
-}
-```
-
-`covers` entrypoint: downloads cover images on the host's behalf.
-
-The fetcher only transports bytes. Each body goes into `sink` under its
-index in `params.urls` (`"0"`, `"1"`, ...), and the host sniffs, decodes and
-re-encodes it before anything stores or serves it.
-
-#### CoverFetcher::health
-
-```rust
-fn health<'life0, 'async_trait>(
-    &'life0 self,
-) -> Pin<Box<dyn Future<Output = Result<HealthOk>> + 'async_trait>>
-where
-    Self: 'async_trait,
-    'life0: 'async_trait,
-```
-
-Liveness / readiness probe.
-
-#### CoverFetcher::fetch_covers
-
-```rust
-fn fetch_covers<'life0, 'async_trait>(
-    &'life0 self,
-    _params: CoverFetchParams,
-    _sink: Box<dyn Destination>,
-) -> Pin<Box<dyn Future<Output = Result<Vec<CoverImage>>> + 'async_trait>>
-where
-    Self: 'async_trait,
-    'life0: 'async_trait,
-```
-
-Fetches every URL in `params.urls` and puts each body into `sink` under
-its index. Returns one [`CoverImage`](generated.md#coverimage) per URL, in request order; a URL
-that failed carries `error` and `stored = false` rather than failing the
-whole call.
-
-Implemented by: `CoverFetcherClient`
-
 ### Database
 
 ```rust
@@ -3111,6 +3053,66 @@ where
 Lists keys in lexical order, one page at a time.
 
 Implemented by: `KvNamespaceClient`
+
+### MediaDownloader
+
+```rust
+pub trait MediaDownloader {
+    fn health<'life0, 'async_trait>(
+        &'life0 self,
+    ) -> Pin<Box<dyn Future<Output = Result<HealthOk>> + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
+    fn download_media<'life0, 'async_trait>(
+        &'life0 self,
+        _params: MediaDownloadParams,
+        _sink: Box<dyn Destination>,
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<DownloadResult>>> + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
+}
+```
+
+`mediaDownload` entrypoint: downloads cover images on the host's behalf.
+
+The fetcher only transports bytes. Each body goes into `sink` under its
+index in `params.urls` (`"0"`, `"1"`, ...), and the host sniffs, decodes and
+re-encodes it before anything stores or serves it.
+
+#### MediaDownloader::health
+
+```rust
+fn health<'life0, 'async_trait>(
+    &'life0 self,
+) -> Pin<Box<dyn Future<Output = Result<HealthOk>> + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Liveness / readiness probe.
+
+#### MediaDownloader::download_media
+
+```rust
+fn download_media<'life0, 'async_trait>(
+    &'life0 self,
+    _params: MediaDownloadParams,
+    _sink: Box<dyn Destination>,
+) -> Pin<Box<dyn Future<Output = Result<Vec<DownloadResult>>> + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Fetches every URL in `params.urls` and puts each body into `sink` under
+its index. Returns one [`DownloadResult`](generated.md#downloadresult) per URL, in request order; a URL
+that failed carries `error` and `stored = false` rather than failing the
+whole call.
+
+Implemented by: `MediaDownloaderClient`
 
 ### MetadataFiles
 
@@ -5180,7 +5182,7 @@ pub struct Entrypoints {
     pub queue_consumer: Option<Box<dyn QueueConsumer>>,
     pub scheduled_handler: Option<Box<dyn ScheduledHandler>>,
     pub metadata: Option<Box<dyn MetadataProvider>>,
-    pub covers: Option<Box<dyn CoverFetcher>>,
+    pub media_download: Option<Box<dyn MediaDownloader>>,
     pub socket_handler: Option<Box<dyn SocketHandler>>,
     pub webhook_handler: Option<Box<dyn WebhookHandler>>,
     pub metadata_files: Option<Box<dyn MetadataFiles>>,
@@ -5210,7 +5212,7 @@ allow, so a guest cannot widen its surface here.
 - `queue_consumer`: `[[queues.consumers]]` trigger.
 - `scheduled_handler`: `[triggers] crons` trigger.
 - `metadata`: `metadata` entrypoint.
-- `covers`: `covers` entrypoint.
+- `media_download`: `mediaDownload` entrypoint.
 - `socket_handler`: `[sockets]` handler.
 - `webhook_handler`: `[[webhooks]]` handler.
 - `metadata_files`: `metadataFiles` entrypoint.
@@ -5430,67 +5432,6 @@ Wraps a `ContentSource` capability client (any transport that yields one, includ
 the bookclerk-workerd `/invoke` hook).
 
 Implements: `Clone`, `ContentSource`
-
-### CoverFetcherClient
-
-```rust
-pub struct CoverFetcherClient {
-    /* private fields */
-}
-```
-
-Cap'n Proto client for [`CoverFetcher`](#coverfetcher).
-
-The client checks the guest's reply against the request: exactly one
-[`CoverImage`](generated.md#coverimage) per requested URL, in order, each naming its URL. Anything
-else is an `internal` error, so callers can index the reply by request
-position.
-
-#### CoverFetcherClient::new
-
-```rust
-pub fn new(client: Client, window: u32) -> Self
-```
-
-Wraps a `CoverFetcher` capability client (any transport that yields
-one, including the bookclerk-workerd `/invoke` hook).
-
-##### Arguments
-
-* `client` - The guest's `CoverFetcher` capability.
-* `window` - Stream window for the host sink, clamped to
-  `1..=MAX_STREAM_WINDOW_BYTES`.
-
-#### CoverFetcherClient::fetch_covers_with_sink
-
-```rust
-pub async fn fetch_covers_with_sink(
-    &self,
-    params: CoverFetchParams,
-    sink: Client,
-) -> Result<Vec<CoverImage>>
-```
-
-`fetchCovers` with a ready-made sink capability, for transports that
-pass the sink by reference rather than serving it here (the
-bookclerk-workerd launcher hands the isolate a grant capability).
-
-##### Arguments
-
-* `params` - URLs and the per-image byte cap.
-* `sink` - The `Destination` capability the guest puts bodies into.
-
-##### Returns
-
-One answer per URL, in request order.
-
-##### Errors
-
-`invalid_params` when `params` breaks the ABI bounds, the guest's own
-error, or `internal` when the reply does not answer the request one
-for one.
-
-Implements: `Clone`, `CoverFetcher`
 
 ### DatabaseClient
 
@@ -5777,6 +5718,67 @@ Wraps a `KvNamespace` capability client.
 
 Implements: `Clone`, `KvNamespace`
 
+### MediaDownloaderClient
+
+```rust
+pub struct MediaDownloaderClient {
+    /* private fields */
+}
+```
+
+Cap'n Proto client for [`MediaDownloader`](#mediadownloader).
+
+The client checks the guest's reply against the request: exactly one
+[`DownloadResult`](generated.md#downloadresult) per requested URL, in order, each naming its URL. Anything
+else is an `internal` error, so callers can index the reply by request
+position.
+
+#### MediaDownloaderClient::new
+
+```rust
+pub fn new(client: Client, window: u32) -> Self
+```
+
+Wraps a `MediaDownloader` capability client (any transport that yields
+one, including the bookclerk-workerd `/invoke` hook).
+
+##### Arguments
+
+* `client` - The guest's `MediaDownloader` capability.
+* `window` - Stream window for the host sink, clamped to
+  `1..=MAX_STREAM_WINDOW_BYTES`.
+
+#### MediaDownloaderClient::download_media_with_sink
+
+```rust
+pub async fn download_media_with_sink(
+    &self,
+    params: MediaDownloadParams,
+    sink: Client,
+) -> Result<Vec<DownloadResult>>
+```
+
+`downloadMedia` with a ready-made sink capability, for transports that
+pass the sink by reference rather than serving it here (the
+bookclerk-workerd launcher hands the isolate a grant capability).
+
+##### Arguments
+
+* `params` - URLs and the per-image byte cap.
+* `sink` - The `Destination` capability the guest puts bodies into.
+
+##### Returns
+
+One answer per URL, in request order.
+
+##### Errors
+
+`invalid_params` when `params` breaks the ABI bounds, the guest's own
+error, or `internal` when the reply does not answer the request one
+for one.
+
+Implements: `Clone`, `MediaDownloader`
+
 ### MetadataFilesClient
 
 ```rust
@@ -5953,7 +5955,7 @@ pub struct OpenedEntrypoints {
     pub queue_consumer: Option<QueueConsumerClient>,
     pub scheduled_handler: Option<ScheduledHandlerClient>,
     pub metadata: Option<MetadataProviderClient>,
-    pub covers: Option<CoverFetcherClient>,
+    pub media_download: Option<MediaDownloaderClient>,
     pub socket_handler: Option<SocketHandlerClient>,
     pub webhook_handler: Option<WebhookHandlerClient>,
     pub metadata_files: Option<MetadataFilesClient>,
@@ -5980,7 +5982,7 @@ means the guest did not export that entrypoint.
 - `queue_consumer`: `[[queues.consumers]]` trigger.
 - `scheduled_handler`: `[triggers] crons` trigger.
 - `metadata`: `metadata` entrypoint.
-- `covers`: `covers` entrypoint.
+- `media_download`: `mediaDownload` entrypoint.
 - `socket_handler`: `[sockets]` handler.
 - `webhook_handler`: `[[webhooks]]` handler.
 - `metadata_files`: `metadataFiles` entrypoint.
@@ -8202,13 +8204,13 @@ aborts the stage. A poll error is not treated as "still running".
 Returns a plugin error when open, put, commit, progress reporting, or
 cancellation polling fails.
 
-### cover_sink_slot
+### download_sink_slot
 
 ```rust
-pub fn cover_sink_slot(key: &str, slots: usize) -> Option<usize>
+pub fn download_sink_slot(key: &str, slots: usize) -> Option<usize>
 ```
 
-Parses a `CoverFetcher.fetchCovers` sink key into the URL index it names.
+Parses a `MediaDownloader.downloadMedia` sink key into the URL index it names.
 
 The guest puts the body for `urls[i]` under the key `i`. Only the
 canonical decimal spelling is accepted (`0`, `7`, `31`; never `07`, `+7`,
@@ -8222,6 +8224,15 @@ canonical decimal spelling is accepted (`0`, `7`, `31`; never `07`, `+7`,
 #### Returns
 
 The index, or `None` when `key` is not a canonical index below `slots`.
+
+### max_download_bytes
+
+```rust
+pub const fn max_download_bytes(media: RemoteMedia) -> u32
+```
+
+Largest body one `MediaDownloader.downloadMedia` URL of `media` may return:
+[`MAX_IMAGE_BYTES`](#max_image_bytes) for images, [`MAX_AUDIO_BYTES`](#max_audio_bytes) for audio.
 
 ### hint_result
 
@@ -8942,30 +8953,14 @@ pub const MAX_AI_MODEL_NAME_BYTES: u32 = crate::plugin_capnp::MAX_AI_MODEL_NAME_
 Longest model name on the `AI` binding (`@<plugin id>/<model id>`), in
 UTF-8 bytes.
 
-### MAX_COVER_BYTES
+### MAX_AUDIO_BYTES
 
 ```rust
-pub const MAX_COVER_BYTES: u32 = crate::plugin_capnp::MAX_COVER_BYTES;
+pub const MAX_AUDIO_BYTES: u32 = crate::plugin_capnp::MAX_AUDIO_BYTES;
 ```
 
-Largest image body one `CoverFetcher.fetchCovers` URL may return.
-
-### MAX_COVER_HEADER_BYTES
-
-```rust
-pub const MAX_COVER_HEADER_BYTES: u32 = crate::plugin_capnp::MAX_COVER_HEADER_BYTES;
-```
-
-Longest cache header value one `CoverFetcher.fetchCovers` call carries in
-either direction, in bytes.
-
-### MAX_COVER_URLS
-
-```rust
-pub const MAX_COVER_URLS: u32 = crate::plugin_capnp::MAX_COVER_URLS;
-```
-
-Most URLs in one `CoverFetcher.fetchCovers` call.
+Largest audio body one `MediaDownloader.downloadMedia` URL may return
+(`media = audio`): a storefront's sample.
 
 ### MAX_CRON_BYTES
 
@@ -8991,6 +8986,23 @@ pub const MAX_DELIVERABILITY_CHECKS: u32 = crate::plugin_capnp::MAX_DELIVERABILI
 
 Most checks one notifier deliverability report lists.
 
+### MAX_DOWNLOAD_HEADER_BYTES
+
+```rust
+pub const MAX_DOWNLOAD_HEADER_BYTES: u32 = crate::plugin_capnp::MAX_DOWNLOAD_HEADER_BYTES;
+```
+
+Longest cache header value one `MediaDownloader.downloadMedia` call carries in
+either direction, in bytes.
+
+### MAX_DOWNLOAD_URLS
+
+```rust
+pub const MAX_DOWNLOAD_URLS: u32 = crate::plugin_capnp::MAX_DOWNLOAD_URLS;
+```
+
+Most URLs in one `MediaDownloader.downloadMedia` call.
+
 ### MAX_EVENT_CURSOR_BYTES
 
 ```rust
@@ -9006,6 +9018,15 @@ pub const MAX_EVENT_PAYLOAD_BYTES: u32 = crate::plugin_capnp::MAX_EVENT_PAYLOAD_
 ```
 
 Maximum decoded size of a domain-event scalar payload (not a stream).
+
+### MAX_IMAGE_BYTES
+
+```rust
+pub const MAX_IMAGE_BYTES: u32 = crate::plugin_capnp::MAX_IMAGE_BYTES;
+```
+
+Largest image body one `MediaDownloader.downloadMedia` URL may return
+(`media = image`).
 
 ### MAX_INGRESS_ORIGIN_BYTES
 
@@ -9530,7 +9551,7 @@ file-system paths usually at 4096).
 ### PLUGIN_TOML_SCHEMA_JSON
 
 ```rust
-pub const PLUGIN_TOML_SCHEMA_JSON: &str = "{\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n  \"$id\": \"https://bookclerk.dev/schemas/plugin-toml.json\",\n  \"title\": \"BookclerkPluginToml\",\n  \"description\": \"Install descriptor for a Bookclerk plugin (plugin.toml), api_version = 3. Keys use TOML/snake_case. There is no plugin `kind`; handler family is derived from entrypoints and triggers. The `id` is a display/CLI alias, not a globally unique security identity. Durable identity is the host-computed provenance-qualified PluginKey. capabilities.network.domains is workerd-only (hostname allowlist for isolate fetch()). Native guests omit domains and declare capabilities.network.tcp for mediated connect(); ambient AF_INET is denied.\",\n  \"type\": \"object\",\n  \"additionalProperties\": false,\n  \"required\": [\"api_version\", \"id\", \"capabilities\"],\n  \"properties\": {\n    \"api_version\": { \"type\": \"integer\", \"enum\": [3] },\n    \"id\": {\n      \"type\": \"string\",\n      \"minLength\": 2,\n      \"maxLength\": 32,\n      \"pattern\": \"^[a-z0-9]+(?:_[a-z0-9]+)*$\",\n      \"description\": \"Display / CLI alias. Not globally unique and not a privilege. Lowercase letters, digits, and single underscores only (2\u{2013}32 chars); no leading/trailing or doubled `_`. When two installs share an alias, address them with a provenance-qualified PluginKey.\"\n    },\n    \"name\": { \"type\": \"string\" },\n    \"version\": { \"type\": \"string\" },\n    \"logo\": {\n      \"type\": \"string\",\n      \"description\": \"Optional Settings/UI logo: https:// or http:// URL (browser loads directly), or a relative image path under the plugin install root (host serves via GET /api/plugins/{id}/logo when the alias is unambiguous). Embedded paths must not contain \'..\' and must end with .png/.jpg/.jpeg/.gif/.webp/.svg/.ico.\"\n    },\n    \"runtime\": {\n      \"type\": \"string\",\n      \"enum\": [\"native\", \"workerd\"],\n      \"default\": \"native\"\n    },\n    \"command\": { \"type\": \"string\", \"minLength\": 1 },\n    \"args\": {\n      \"type\": \"array\",\n      \"items\": { \"type\": \"string\" }\n    },\n    \"entrypoints\": {\n      \"type\": \"array\",\n      \"description\": \"Named capabilities this plugin exports from PluginWorker.open.\",\n      \"items\": {\n        \"type\": \"string\",\n        \"enum\": [\"storefront\", \"storage\", \"databaseAdapter\", \"remoteLibrary\", \"cli\", \"oidc\", \"metadata\", \"covers\", \"metadataFiles\", \"notifier\", \"ingress\", \"ai\", \"provisioning\"]\n      }\n    },\n    \"media\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"description\": \"Work kinds and edition carriers the plugin works with. Required, with non-empty works and lists, for a plugin exporting the storefront or metadata entrypoint; forbidden for every other plugin. describe() must declare the same kinds.\",\n      \"properties\": {\n        \"works\": {\n          \"type\": \"array\",\n          \"description\": \"Work kinds the plugin reports.\",\n          \"items\": { \"type\": \"string\", \"enum\": [\"book\", \"podcast\"] }\n        },\n        \"lists\": {\n          \"type\": \"array\",\n          \"description\": \"Edition carriers the plugin reports in scans, catalog search and metadata records.\",\n          \"items\": { \"type\": \"string\", \"enum\": [\"audio\", \"ebook\", \"print\"] }\n        },\n        \"fetches\": {\n          \"type\": \"array\",\n          \"description\": \"Edition carriers fetchTitle can deliver; a subset of lists. Storefronts only.\",\n          \"items\": { \"type\": \"string\", \"enum\": [\"audio\", \"ebook\", \"print\"] }\n        }\n      }\n    },\n    \"metadata_files\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"dialects\"],\n      \"description\": \"Metadata file dialects (sidecars such as metadata.json, OPF, NFO, CUE) the plugin reads and writes. Required, with at least one dialect, for a plugin exporting the metadataFiles entrypoint; forbidden for every other plugin.\",\n      \"properties\": {\n        \"dialects\": {\n          \"type\": \"array\",\n          \"minItems\": 1,\n          \"items\": { \"$ref\": \"#/$defs/MetadataFileDialect\" }\n        }\n      }\n    },\n    \"notifier\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"destinations\"],\n      \"description\": \"What a notifier sends to and in which formats. Required for a plugin exporting the notifier entrypoint; forbidden for every other plugin.\",\n      \"properties\": {\n        \"destinations\": {\n          \"type\": \"array\",\n          \"minItems\": 1,\n          \"uniqueItems\": true,\n          \"description\": \"Destination kinds: channel (one shared target the operator sets up) and personal (a patron\'s own address).\",\n          \"items\": { \"type\": \"string\", \"enum\": [\"channel\", \"personal\"] }\n        },\n        \"account_mail\": {\n          \"type\": \"boolean\",\n          \"description\": \"Whether the plugin can carry account mail (invites, password resets, recovery). Needs a required, non-secret email address field. Defaults to false.\"\n        },\n        \"deliverability_check\": {\n          \"type\": \"boolean\",\n          \"description\": \"Whether the plugin implements checkDeliverability, so the instance\'s settings offer the operator a deliverability check. Defaults to false.\"\n        },\n        \"formats\": {\n          \"type\": \"array\",\n          \"minItems\": 1,\n          \"uniqueItems\": true,\n          \"contains\": { \"const\": \"text\" },\n          \"description\": \"Body formats the service shows; must include text. Defaults to [\\\"text\\\"].\",\n          \"items\": { \"type\": \"string\", \"enum\": [\"text\", \"markdown\", \"html\"] }\n        },\n        \"address_fields\": {\n          \"type\": \"array\",\n          \"maxItems\": 16,\n          \"description\": \"Fields of a personal address; required exactly when destinations names personal, with at least one required field.\",\n          \"items\": { \"$ref\": \"#/$defs/NotifierAddressField\" }\n        }\n      }\n    },\n    \"notifications\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"description\": \"Notification types the plugin raises through env.NOTIFY. Declaring any grants the NOTIFY binding.\",\n      \"properties\": {\n        \"types\": {\n          \"type\": \"array\",\n          \"maxItems\": 64,\n          \"items\": { \"$ref\": \"#/$defs/NotificationType\" }\n        }\n      }\n    },\n    \"ingress\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"kind\"],\n      \"description\": \"How an ingress plugin serves the library publicly. Required for a plugin exporting the ingress entrypoint; forbidden for every other plugin.\",\n      \"properties\": {\n        \"kind\": {\n          \"type\": \"string\",\n          \"enum\": [\"relay\", \"direct\"],\n          \"description\": \"relay: the provider relays each request to the plugin, which hands it to the library through ORIGIN. direct: the public address points at the daemon; the plugin only keeps it current.\"\n        }\n      }\n    },\n    \"provisioning\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"provider\", \"grants\", \"outputs\"],\n      \"description\": \"The guided setup a provisioning plugin offers. Required for a plugin exporting the provisioning entrypoint; forbidden for every other plugin.\",\n      \"properties\": {\n        \"provider\": {\n          \"type\": \"string\",\n          \"pattern\": \"^[a-z][a-z0-9-]{0,31}$\",\n          \"description\": \"The provider the grant is for (cloudflare); the account-linking screen groups plugins by it.\"\n        },\n        \"grants\": {\n          \"type\": \"array\",\n          \"minItems\": 1,\n          \"uniqueItems\": true,\n          \"description\": \"The grants the plugin accepts.\",\n          \"items\": { \"type\": \"string\", \"enum\": [\"api_token\"] }\n        },\n        \"token_url\": {\n          \"type\": \"string\",\n          \"pattern\": \"^https://\",\n          \"maxLength\": 2048,\n          \"description\": \"Where the operator creates a token at the provider.\"\n        },\n        \"token_permissions\": {\n          \"type\": \"array\",\n          \"maxItems\": 16,\n          \"description\": \"The permissions a pasted token needs, one line each, shown on the setup screen.\",\n          \"items\": { \"type\": \"string\", \"minLength\": 1, \"maxLength\": 120 }\n        },\n        \"inputs\": {\n          \"type\": \"array\",\n          \"uniqueItems\": true,\n          \"description\": \"Non-secret setting keys the screen asks for before running.\",\n          \"items\": { \"type\": \"string\" }\n        },\n        \"outputs\": {\n          \"type\": \"array\",\n          \"minItems\": 1,\n          \"uniqueItems\": true,\n          \"description\": \"Setting keys, secret or not, the plugin may write; the host refuses any other key in its answer.\",\n          \"items\": { \"type\": \"string\" }\n        },\n        \"deprovision\": {\n          \"type\": \"boolean\",\n          \"description\": \"Whether the plugin can remove what it created; the host offers it before the instance is deleted.\"\n        }\n      }\n    },\n    \"ai\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"description\": \"Model tasks the plugin serves on its ai entrypoint and the tasks it calls through env.AI.\",\n      \"properties\": {\n        \"serves\": {\n          \"type\": \"array\",\n          \"uniqueItems\": true,\n          \"description\": \"Tasks the plugin\'s models perform. Required, with at least one task, for a plugin exporting the ai entrypoint; forbidden for every other plugin.\",\n          \"items\": { \"$ref\": \"#/$defs/AiTask\" }\n        },\n        \"calls\": {\n          \"type\": \"array\",\n          \"uniqueItems\": true,\n          \"description\": \"Tasks the plugin runs through env.AI. Declaring any asks the operator for the AI binding.\",\n          \"items\": { \"$ref\": \"#/$defs/AiTask\" }\n        }\n      }\n    },\n    \"workerd\": { \"$ref\": \"#/$defs/WorkerdRuntime\" },\n    \"modules\": {\n      \"type\": \"array\",\n      \"items\": { \"$ref\": \"#/$defs/ModuleSpec\" }\n    },\n    \"triggers\": { \"$ref\": \"#/$defs/Triggers\" },\n    \"events\": { \"$ref\": \"#/$defs/Events\" },\n    \"databases\": {\n      \"type\": \"array\",\n      \"description\": \"Named plugin-owned database bindings (Workers-style).\",\n      \"maxItems\": 8,\n      \"items\": { \"$ref\": \"#/$defs/DatabaseBinding\" }\n    },\n    \"vars\": {\n      \"type\": \"object\",\n      \"description\": \"Operator config binding (`CONFIG`). Declares that the guest receives CONFIG; values come from [[settings]] defaults and the plugin instance document. An empty table is the usual form.\"\n    },\n    \"settings\": {\n      \"type\": \"array\",\n      \"description\": \"Operator settings schema ([[settings]]): keys an instance document may set, their types, enum values, and defaults. The host validates documents against it and renders it in Settings. Non-secret entries require [vars]; type = \\\"secret\\\" entries require [secrets].\",\n      \"maxItems\": 32,\n      \"items\": { \"$ref\": \"#/$defs/SettingSpec\" }\n    },\n    \"secrets\": { \"$ref\": \"#/$defs/NamedBinding\" },\n    \"kv_namespaces\": {\n      \"type\": \"array\",\n      \"description\": \"Durable KV bindings (default name KV) served from the library database: Workers KVNamespace-shaped get/put/delete/list with expiration and metadata, scoped to the plugin and the row\'s namespace. Distinct from [[databases]].\",\n      \"items\": { \"$ref\": \"#/$defs/KvNamespace\" }\n    },\n    \"queues\": { \"$ref\": \"#/$defs/Queues\" },\n    \"work_fs\": { \"$ref\": \"#/$defs/NamedBinding\" },\n    \"oauth\": { \"$ref\": \"#/$defs/NamedBinding\" },\n    \"capabilities\": { \"$ref\": \"#/$defs/Capabilities\" },\n    \"cli\": { \"$ref\": \"#/$defs/CliSchema\" },\n    \"oidc\": { \"$ref\": \"#/$defs/OidcManifest\" }\n  },\n  \"allOf\": [\n    {\n      \"if\": {\n        \"properties\": { \"runtime\": { \"const\": \"workerd\" } },\n        \"required\": [\"runtime\"]\n      },\n      \"then\": { \"required\": [\"workerd\"] }\n    },\n    {\n      \"if\": {\n        \"anyOf\": [\n          { \"properties\": { \"runtime\": { \"const\": \"native\" } } },\n          { \"not\": { \"required\": [\"runtime\"] } }\n        ]\n      },\n      \"then\": {\n        \"required\": [\"command\"],\n        \"properties\": {\n          \"capabilities\": {\n            \"properties\": {\n              \"network\": {\n                \"properties\": {\n                  \"domains\": false\n                }\n              }\n            }\n          }\n        }\n      }\n    },\n    {\n      \"if\": {\n        \"properties\": {\n          \"runtime\": { \"const\": \"workerd\" },\n          \"capabilities\": {\n            \"properties\": {\n              \"network\": {\n                \"properties\": { \"mode\": { \"const\": \"outbound\" } },\n                \"required\": [\"mode\"]\n              }\n            },\n            \"required\": [\"network\"]\n          }\n        },\n        \"required\": [\"runtime\", \"capabilities\"]\n      },\n      \"then\": {\n        \"properties\": {\n          \"capabilities\": {\n            \"properties\": {\n              \"network\": {\n                \"required\": [\"domains\"],\n                \"properties\": {\n                  \"domains\": {\n                    \"type\": \"array\",\n                    \"minItems\": 1,\n                    \"items\": { \"type\": \"string\", \"minLength\": 1 }\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    },\n    {\n      \"if\": {\n        \"properties\": {\n          \"entrypoints\": {\n            \"anyOf\": [{ \"contains\": { \"const\": \"storefront\" } }, { \"contains\": { \"const\": \"metadata\" } }]\n          }\n        },\n        \"required\": [\"entrypoints\"]\n      },\n      \"then\": {\n        \"required\": [\"media\"],\n        \"properties\": {\n          \"media\": {\n            \"required\": [\"works\", \"lists\"],\n            \"properties\": { \"works\": { \"minItems\": 1 }, \"lists\": { \"minItems\": 1 } }\n          }\n        }\n      },\n      \"else\": { \"properties\": { \"media\": false } }\n    },\n    {\n      \"if\": {\n        \"properties\": { \"entrypoints\": { \"contains\": { \"const\": \"metadataFiles\" } } },\n        \"required\": [\"entrypoints\"]\n      },\n      \"then\": { \"required\": [\"metadata_files\"] },\n      \"else\": { \"properties\": { \"metadata_files\": false } }\n    },\n    {\n      \"if\": {\n        \"properties\": { \"entrypoints\": { \"contains\": { \"const\": \"notifier\" } } },\n        \"required\": [\"entrypoints\"]\n      },\n      \"then\": { \"required\": [\"notifier\"] },\n      \"else\": { \"properties\": { \"notifier\": false } }\n    },\n    {\n      \"if\": {\n        \"properties\": { \"entrypoints\": { \"contains\": { \"const\": \"ingress\" } } },\n        \"required\": [\"entrypoints\"]\n      },\n      \"then\": { \"required\": [\"ingress\"] },\n      \"else\": { \"properties\": { \"ingress\": false } }\n    },\n    {\n      \"if\": {\n        \"properties\": { \"entrypoints\": { \"contains\": { \"const\": \"ai\" } } },\n        \"required\": [\"entrypoints\"]\n      },\n      \"then\": {\n        \"required\": [\"ai\"],\n        \"properties\": { \"ai\": { \"required\": [\"serves\"], \"properties\": { \"serves\": { \"minItems\": 1 } } } }\n      },\n      \"else\": { \"properties\": { \"ai\": { \"properties\": { \"serves\": { \"maxItems\": 0 } } } } }\n    }\n  ],\n  \"$defs\": {\n    \"AiTask\": {\n      \"type\": \"string\",\n      \"enum\": [\"textEmbeddings\"],\n      \"description\": \"What a model does: textEmbeddings turns each text into one vector.\"\n    },\n    \"NotifierAddressField\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"key\", \"label\"],\n      \"description\": \"One field of a patron\'s personal address, such as an email address or a chat id.\",\n      \"properties\": {\n        \"key\": {\n          \"type\": \"string\",\n          \"pattern\": \"^[a-z][a-z0-9_]{0,63}$\",\n          \"description\": \"Key in the address document; unique within the plugin.\"\n        },\n        \"label\": { \"type\": \"string\", \"minLength\": 1, \"description\": \"Label shown to the patron.\" },\n        \"required\": { \"type\": \"boolean\", \"description\": \"Whether the patron must fill it in. Defaults to false.\" },\n        \"secret\": {\n          \"type\": \"boolean\",\n          \"description\": \"Whether the value is a secret (a personal token): sealed at rest and never shown again. Defaults to false.\"\n        }\n      }\n    },\n    \"NotificationType\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"id\", \"audience\", \"severity\", \"title\"],\n      \"description\": \"One notification type the plugin raises; the host names it <plugin>:<id>.\",\n      \"properties\": {\n        \"id\": {\n          \"type\": \"string\",\n          \"pattern\": \"^[a-z][a-z0-9_]{0,63}$\",\n          \"description\": \"Type id, unique within the plugin.\"\n        },\n        \"audience\": {\n          \"type\": \"string\",\n          \"enum\": [\"operational\", \"patron\"],\n          \"description\": \"operational goes to administrators\' channels; patron goes to the one patron a raise names. account is reserved to Bookclerk.\"\n        },\n        \"severity\": { \"type\": \"string\", \"enum\": [\"info\", \"warning\", \"critical\"] },\n        \"title\": {\n          \"type\": \"string\",\n          \"minLength\": 1,\n          \"maxLength\": 256,\n          \"description\": \"One-line name shown in notification settings.\"\n        }\n      }\n    },\n    \"MetadataFileDialect\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"id\", \"name\", \"fields\"],\n      \"anyOf\": [\n        { \"required\": [\"file_names\"], \"properties\": { \"file_names\": { \"minItems\": 1 } } },\n        { \"required\": [\"suffixes\"], \"properties\": { \"suffixes\": { \"minItems\": 1 } } }\n      ],\n      \"if\": { \"required\": [\"fields\"], \"properties\": { \"fields\": { \"contains\": { \"const\": \"credits\" } } } },\n      \"then\": { \"required\": [\"credit_roles\"], \"properties\": { \"credit_roles\": { \"minItems\": 1 } } },\n      \"else\": { \"properties\": { \"credit_roles\": { \"maxItems\": 0 } } },\n      \"description\": \"One metadata file format. The host routes a file by exact name first, then by the longest matching suffix, both compared without ASCII case.\",\n      \"properties\": {\n        \"id\": {\n          \"type\": \"string\",\n          \"pattern\": \"^[a-z][a-z0-9_]{0,63}$\",\n          \"description\": \"Dialect id, unique within the plugin; passed back in parse and render.\"\n        },\n        \"name\": { \"type\": \"string\", \"minLength\": 1, \"description\": \"Name shown in settings and on a book\'s files list.\" },\n        \"file_names\": {\n          \"type\": \"array\",\n          \"description\": \"Exact file names the dialect reads (metadata.json).\",\n          \"items\": { \"type\": \"string\", \"minLength\": 1 }\n        },\n        \"suffixes\": {\n          \"type\": \"array\",\n          \"description\": \"File name endings the dialect reads (.opf, .metadata.json); each starts with a dot.\",\n          \"items\": { \"type\": \"string\", \"pattern\": \"^\\\\..+\" }\n        },\n        \"fields\": {\n          \"type\": \"array\",\n          \"minItems\": 1,\n          \"description\": \"Fields the format carries.\",\n          \"items\": { \"type\": \"string\", \"enum\": [\"title\", \"subtitle\", \"description\", \"publisher\", \"publishedAt\", \"language\", \"genres\", \"tags\", \"abridgement\", \"expressionKind\", \"identifiers\", \"credits\", \"series\", \"chapters\", \"duration\"] }\n        },\n        \"credit_roles\": {\n          \"type\": \"array\",\n          \"description\": \"Credit roles the format carries; required exactly when fields names credits.\",\n          \"items\": { \"type\": \"string\", \"enum\": [\"author\", \"narrator\", \"translator\", \"editor\", \"illustrator\", \"publisher\", \"host\", \"cast\", \"adaptor\"] }\n        },\n        \"writes\": { \"type\": \"boolean\", \"description\": \"Whether the dialect also writes files (render). Defaults to false.\" }\n      }\n    },\n    \"Capabilities\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"network\"],\n      \"properties\": {\n        \"network\": { \"$ref\": \"#/$defs/NetworkCapabilities\" }\n      }\n    },\n    \"NetworkCapabilities\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"mode\"],\n      \"properties\": {\n        \"mode\": { \"type\": \"string\", \"enum\": [\"deny\", \"outbound\"] },\n        \"domains\": {\n          \"type\": \"array\",\n          \"description\": \"Workerd-only: initial-request host allowlist for isolate egress. Forbidden on runtime=native. The operator may add destinations beyond this list; the guest cannot.\",\n          \"items\": { \"type\": \"string\", \"minLength\": 1 }\n        },\n        \"tcp\": {\n          \"type\": \"array\",\n          \"description\": \"Raw TCP connect grants (host + ports). Fetch domain grants do not imply TCP.\",\n          \"items\": { \"$ref\": \"#/$defs/TcpCapability\" }\n        },\n        \"allow_undeclared_public_redirects\": {\n          \"type\": \"boolean\",\n          \"description\": \"When true, fetch redirects may target undeclared public hosts. Address-space policy still applies.\"\n        },\n        \"address_cidrs\": {\n          \"type\": \"array\",\n          \"description\": \"Explicit CIDR grants beyond the public Internet. No blanket private=true.\",\n          \"items\": { \"type\": \"string\", \"minLength\": 1 }\n        },\n        \"own_user_agent\": { \"$ref\": \"#/$defs/OwnUserAgent\" }\n      },\n      \"if\": { \"properties\": { \"mode\": { \"const\": \"deny\" } } },\n      \"then\": { \"not\": { \"required\": [\"own_user_agent\"] } }\n    },\n    \"OwnUserAgent\": {\n      \"type\": \"object\",\n      \"description\": \"Hosts that receive the plugin\'s own User-Agent instead of the host\'s bookclerk/<version> agent. Shown on the consent form; the operator may refuse.\",\n      \"additionalProperties\": false,\n      \"required\": [\"hosts\", \"reason\"],\n      \"properties\": {\n        \"hosts\": {\n          \"type\": \"array\",\n          \"description\": \"Exact hosts or *. wildcards (never *).\",\n          \"minItems\": 1,\n          \"maxItems\": 32,\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1,\n            \"pattern\": \"^(\\\\*\\\\.)?[^*\\\\s,/:%@?#\\\\\\\\]+$\"\n          }\n        },\n        \"reason\": {\n          \"type\": \"string\",\n          \"description\": \"One line for the operator on why these hosts need the plugin\'s own agent, such as the app API contract it follows.\",\n          \"minLength\": 1,\n          \"maxLength\": 300,\n          \"pattern\": \"^[^\\\\r\\\\n]+$\"\n        }\n      }\n    },\n    \"TcpCapability\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"host\", \"ports\"],\n      \"properties\": {\n        \"host\": { \"type\": \"string\", \"minLength\": 1 },\n        \"ports\": {\n          \"type\": \"array\",\n          \"items\": { \"type\": \"integer\", \"minimum\": 1, \"maximum\": 65535 },\n          \"minItems\": 1\n        }\n      }\n    },\n    \"Triggers\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"crons\": {\n          \"type\": \"array\",\n          \"description\": \"Five-field UTC cron schedules (minute hour day-of-month month day-of-week) for the default entrypoint\'s scheduled(controller) handler, as in Workers. Values, ranges, lists, */step and JAN-DEC / SUN-SAT names; no L, W, # or @macros. At most 8, no duplicates.\",\n          \"maxItems\": 8,\n          \"uniqueItems\": true,\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 9,\n            \"maxLength\": 128,\n            \"pattern\": \"^\\\\s*\\\\S+(\\\\s+\\\\S+){4}\\\\s*$\"\n          }\n        },\n        \"jobs\": {\n          \"type\": \"array\",\n          \"items\": { \"type\": \"string\", \"minLength\": 1 }\n        }\n      }\n    },\n    \"Events\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"consumers\": {\n          \"type\": \"array\",\n          \"items\": { \"$ref\": \"#/$defs/EventConsumer\" }\n        },\n        \"producers\": {\n          \"type\": \"array\",\n          \"items\": { \"$ref\": \"#/$defs/EventProducer\" }\n        }\n      }\n    },\n    \"EventConsumer\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"type\"],\n      \"properties\": {\n        \"type\": {\n          \"type\": \"string\",\n          \"minLength\": 1,\n          \"pattern\": \"^[a-z][a-z0-9_]*$\"\n        },\n        \"schema_versions\": {\n          \"type\": \"array\",\n          \"items\": { \"type\": \"integer\", \"minimum\": 1 },\n          \"minItems\": 1\n        },\n        \"supports_suspend\": { \"type\": \"boolean\", \"default\": false },\n        \"resource_class\": { \"type\": \"string\", \"enum\": [\"network\"], \"default\": \"network\" },\n        \"filter\": { \"type\": \"object\" },\n        \"max_retries\": { \"type\": \"integer\", \"minimum\": 0 },\n        \"message_retention_period\": { \"type\": \"integer\", \"minimum\": 60, \"maximum\": 1209600 }\n      }\n    },\n    \"EventProducer\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"type\"],\n      \"properties\": {\n        \"type\": {\n          \"type\": \"string\",\n          \"minLength\": 1,\n          \"pattern\": \"^[a-z][a-z0-9_]*$\"\n        },\n        \"binding\": { \"type\": \"string\", \"minLength\": 1 }\n      }\n    },\n    \"Queues\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"description\": \"Workers Queues: producers are `env` send bindings, consumers are `queue(batch)` triggers. Queue names are `[a-z0-9][a-z0-9._-]*` (at most 63 chars); the `core.` and `host.` prefixes are reserved for the host.\",\n      \"properties\": {\n        \"producers\": { \"type\": \"array\", \"items\": { \"$ref\": \"#/$defs/QueueProducer\" } },\n        \"consumers\": { \"type\": \"array\", \"items\": { \"$ref\": \"#/$defs/QueueConsumer\" } }\n      }\n    },\n    \"QueueProducer\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"queue\", \"binding\"],\n      \"properties\": {\n        \"queue\": {\n          \"type\": \"string\",\n          \"minLength\": 1,\n          \"maxLength\": 63,\n          \"pattern\": \"^[a-z0-9][a-z0-9._-]*$\"\n        },\n        \"binding\": { \"type\": \"string\", \"minLength\": 1, \"pattern\": \"^[A-Z][A-Z0-9_]*$\" }\n      }\n    },\n    \"QueueConsumer\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"queue\"],\n      \"properties\": {\n        \"queue\": {\n          \"type\": \"string\",\n          \"minLength\": 1,\n          \"maxLength\": 63,\n          \"pattern\": \"^[a-z0-9][a-z0-9._-]*$\"\n        },\n        \"max_batch_size\": { \"type\": \"integer\", \"minimum\": 1, \"maximum\": 100, \"default\": 10 },\n        \"max_batch_timeout\": { \"type\": \"integer\", \"minimum\": 0, \"maximum\": 60, \"default\": 5 },\n        \"max_retries\": { \"type\": \"integer\", \"minimum\": 0, \"maximum\": 100, \"default\": 3 },\n        \"dead_letter_queue\": {\n          \"type\": \"string\",\n          \"minLength\": 1,\n          \"maxLength\": 63,\n          \"pattern\": \"^[a-z0-9][a-z0-9._-]*$\"\n        },\n        \"retry_delay\": { \"type\": \"integer\", \"minimum\": 0, \"maximum\": 43200, \"default\": 0 },\n        \"max_concurrency\": { \"type\": \"integer\", \"minimum\": 1 },\n        \"message_retention_period\": { \"type\": \"integer\", \"minimum\": 60, \"maximum\": 1209600 }\n      }\n    },\n    \"SettingSpec\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"key\", \"type\"],\n      \"properties\": {\n        \"key\": {\n          \"type\": \"string\",\n          \"pattern\": \"^[a-z][a-z0-9_]{0,63}$\",\n          \"description\": \"Setting key, unique within the plugin; the CONFIG / SECRETS property name.\"\n        },\n        \"label\": { \"type\": \"string\", \"description\": \"Operator-facing label; defaults to the key.\" },\n        \"type\": {\n          \"type\": \"string\",\n          \"enum\": [\"string\", \"bool\", \"integer\", \"enum\", \"secret\"],\n          \"description\": \"Value type. `secret` values are sealed by the host and delivered in SECRETS, never stored in the instance document.\"\n        },\n        \"values\": {\n          \"type\": \"array\",\n          \"maxItems\": 64,\n          \"description\": \"Allowed values for type = \\\"enum\\\"; forbidden otherwise.\",\n          \"items\": {\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"required\": [\"id\"],\n            \"properties\": {\n              \"id\": { \"type\": \"string\", \"minLength\": 1, \"maxLength\": 1024 },\n              \"label\": { \"type\": \"string\" }\n            }\n          }\n        },\n        \"default\": {\n          \"type\": [\"string\", \"boolean\", \"integer\"],\n          \"description\": \"Default applied when the instance document omits the key. Not allowed for secrets.\"\n        },\n        \"required\": { \"type\": \"boolean\", \"default\": false },\n        \"description\": { \"type\": \"string\" }\n      }\n    },\n    \"DatabaseBinding\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"binding\"],\n      \"properties\": {\n        \"binding\": {\n          \"type\": \"string\",\n          \"pattern\": \"^[A-Z][A-Z0-9_]*$\",\n          \"maxLength\": 32\n        }\n      }\n    },\n    \"NamedBinding\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"binding\": { \"type\": \"string\", \"minLength\": 1 }\n      }\n    },\n    \"KvNamespace\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"binding\": { \"type\": \"string\", \"minLength\": 1 },\n        \"namespace\": {\n          \"type\": \"string\",\n          \"minLength\": 1,\n          \"maxLength\": 63,\n          \"pattern\": \"^[a-z0-9][a-z0-9._-]*$\"\n        },\n        \"max_value_bytes\": { \"type\": \"integer\", \"minimum\": 1, \"maximum\": 1048576, \"default\": 65536 },\n        \"max_keys\": { \"type\": \"integer\", \"minimum\": 1, \"maximum\": 1000000, \"default\": 10000 }\n      }\n    },\n    \"WorkerdRuntime\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"compatibility_date\", \"main_module\"],\n      \"properties\": {\n        \"compatibility_date\": {\n          \"type\": \"string\",\n          \"minLength\": 10,\n          \"maxLength\": 10,\n          \"pattern\": \"^[0-9]{4}-[0-9]{2}-[0-9]{2}$\",\n          \"description\": \"Calendar YYYY-MM-DD. A date newer than the pinned workerd compatibility date 2026-11-13 warns and falls back to that pin when the isolate loads. The pattern checks shape only; checkers reject impossible days such as 2026-02-31.\"\n        },\n        \"compatibility_flags\": {\n          \"type\": \"array\",\n          \"description\": \"Exact allowlist: python_workers and disable_python_external_sdk. Both are required together when the guest is Python and forbidden otherwise. The host does not append missing flags.\",\n          \"items\": {\n            \"type\": \"string\",\n            \"enum\": [\"python_workers\", \"disable_python_external_sdk\"]\n          }\n        },\n        \"main_module\": { \"type\": \"string\", \"minLength\": 1 },\n        \"modules_dir\": { \"type\": \"string\", \"default\": \"modules\" },\n        \"entrypoint\": { \"type\": \"string\", \"default\": \"default\" },\n        \"limits\": { \"$ref\": \"#/$defs/WorkerdLimits\" }\n      }\n    },\n    \"WorkerdLimits\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"cpu_ms\": { \"type\": \"integer\", \"minimum\": 0 },\n        \"subrequests\": { \"type\": \"integer\", \"minimum\": 0 }\n      }\n    },\n    \"ModuleSpec\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"name\"],\n      \"properties\": {\n        \"name\": { \"type\": \"string\" },\n        \"path\": {\n          \"type\": \"string\",\n          \"description\": \"Source file relative to the plugin root. When path is omitted or empty, name is the modules-directory source.\"\n        },\n        \"type\": { \"type\": \"string\", \"default\": \"js\" }\n      }\n    },\n    \"CliSchema\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"commands\": {\n          \"type\": \"array\",\n          \"items\": { \"$ref\": \"#/$defs/CliCommandSpec\" }\n        }\n      }\n    },\n    \"CliCommandSpec\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"name\"],\n      \"properties\": {\n        \"name\": { \"type\": \"string\" },\n        \"about\": { \"type\": \"string\" },\n        \"args\": {\n          \"type\": \"array\",\n          \"items\": { \"$ref\": \"#/$defs/CliArgSpec\" }\n        }\n      }\n    },\n    \"CliArgSpec\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"name\"],\n      \"properties\": {\n        \"name\": { \"type\": \"string\" },\n        \"long\": { \"type\": \"string\" },\n        \"short\": { \"type\": \"string\", \"maxLength\": 1 },\n        \"kind\": {\n          \"type\": \"string\",\n          \"enum\": [\"string\", \"bool\", \"int\", \"path\"],\n          \"default\": \"string\"\n        },\n        \"required\": { \"type\": \"boolean\" },\n        \"default\": { \"type\": \"string\" },\n        \"about\": { \"type\": \"string\" },\n        \"positional\": { \"type\": \"boolean\" }\n      }\n    },\n    \"OidcManifest\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"clients\": {\n          \"type\": \"array\",\n          \"items\": { \"$ref\": \"#/$defs/OidcClient\" }\n        }\n      }\n    },\n    \"OidcClient\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"client_id\", \"callback_path\", \"origin_config_key\"],\n      \"properties\": {\n        \"client_id\": { \"type\": \"string\", \"minLength\": 1 },\n        \"display_name\": { \"type\": \"string\" },\n        \"callback_path\": { \"type\": \"string\", \"pattern\": \"^/\" },\n        \"public_client\": { \"type\": \"boolean\", \"default\": true },\n        \"default_scopes\": {\n          \"type\": \"array\",\n          \"items\": { \"type\": \"string\" }\n        },\n        \"issue_refresh_token\": { \"type\": \"boolean\", \"default\": true },\n        \"origin_config_key\": { \"type\": \"string\", \"minLength\": 1 }\n      }\n    }\n  }\n}\n";
+pub const PLUGIN_TOML_SCHEMA_JSON: &str = "{\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n  \"$id\": \"https://bookclerk.dev/schemas/plugin-toml.json\",\n  \"title\": \"BookclerkPluginToml\",\n  \"description\": \"Install descriptor for a Bookclerk plugin (plugin.toml), api_version = 3. Keys use TOML/snake_case. There is no plugin `kind`; handler family is derived from entrypoints and triggers. The `id` is a display/CLI alias, not a globally unique security identity. Durable identity is the host-computed provenance-qualified PluginKey. capabilities.network.domains is workerd-only (hostname allowlist for isolate fetch()). Native guests omit domains and declare capabilities.network.tcp for mediated connect(); ambient AF_INET is denied.\",\n  \"type\": \"object\",\n  \"additionalProperties\": false,\n  \"required\": [\"api_version\", \"id\", \"capabilities\"],\n  \"properties\": {\n    \"api_version\": { \"type\": \"integer\", \"enum\": [3] },\n    \"id\": {\n      \"type\": \"string\",\n      \"minLength\": 2,\n      \"maxLength\": 32,\n      \"pattern\": \"^[a-z0-9]+(?:_[a-z0-9]+)*$\",\n      \"description\": \"Display / CLI alias. Not globally unique and not a privilege. Lowercase letters, digits, and single underscores only (2\u{2013}32 chars); no leading/trailing or doubled `_`. When two installs share an alias, address them with a provenance-qualified PluginKey.\"\n    },\n    \"name\": { \"type\": \"string\" },\n    \"version\": { \"type\": \"string\" },\n    \"logo\": {\n      \"type\": \"string\",\n      \"description\": \"Optional Settings/UI logo: https:// or http:// URL (browser loads directly), or a relative image path under the plugin install root (host serves via GET /api/plugins/{id}/logo when the alias is unambiguous). Embedded paths must not contain \'..\' and must end with .png/.jpg/.jpeg/.gif/.webp/.svg/.ico.\"\n    },\n    \"runtime\": {\n      \"type\": \"string\",\n      \"enum\": [\"native\", \"workerd\"],\n      \"default\": \"native\"\n    },\n    \"command\": { \"type\": \"string\", \"minLength\": 1 },\n    \"args\": {\n      \"type\": \"array\",\n      \"items\": { \"type\": \"string\" }\n    },\n    \"entrypoints\": {\n      \"type\": \"array\",\n      \"description\": \"Named capabilities this plugin exports from PluginWorker.open.\",\n      \"items\": {\n        \"type\": \"string\",\n        \"enum\": [\"storefront\", \"storage\", \"databaseAdapter\", \"remoteLibrary\", \"cli\", \"oidc\", \"metadata\", \"mediaDownload\", \"metadataFiles\", \"notifier\", \"ingress\", \"ai\", \"provisioning\"]\n      }\n    },\n    \"media\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"description\": \"Work kinds and edition carriers the plugin works with. Required, with non-empty works and lists, for a plugin exporting the storefront or metadata entrypoint; forbidden for every other plugin. describe() must declare the same kinds.\",\n      \"properties\": {\n        \"works\": {\n          \"type\": \"array\",\n          \"description\": \"Work kinds the plugin reports.\",\n          \"items\": { \"type\": \"string\", \"enum\": [\"book\", \"podcast\"] }\n        },\n        \"lists\": {\n          \"type\": \"array\",\n          \"description\": \"Edition carriers the plugin reports in scans, catalog search and metadata records.\",\n          \"items\": { \"type\": \"string\", \"enum\": [\"audio\", \"ebook\", \"print\"] }\n        },\n        \"fetches\": {\n          \"type\": \"array\",\n          \"description\": \"Edition carriers fetchTitle can deliver; a subset of lists. Storefronts only.\",\n          \"items\": { \"type\": \"string\", \"enum\": [\"audio\", \"ebook\", \"print\"] }\n        }\n      }\n    },\n    \"metadata_files\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"dialects\"],\n      \"description\": \"Metadata file dialects (sidecars such as metadata.json, OPF, NFO, CUE) the plugin reads and writes. Required, with at least one dialect, for a plugin exporting the metadataFiles entrypoint; forbidden for every other plugin.\",\n      \"properties\": {\n        \"dialects\": {\n          \"type\": \"array\",\n          \"minItems\": 1,\n          \"items\": { \"$ref\": \"#/$defs/MetadataFileDialect\" }\n        }\n      }\n    },\n    \"notifier\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"destinations\"],\n      \"description\": \"What a notifier sends to and in which formats. Required for a plugin exporting the notifier entrypoint; forbidden for every other plugin.\",\n      \"properties\": {\n        \"destinations\": {\n          \"type\": \"array\",\n          \"minItems\": 1,\n          \"uniqueItems\": true,\n          \"description\": \"Destination kinds: channel (one shared target the operator sets up) and personal (a patron\'s own address).\",\n          \"items\": { \"type\": \"string\", \"enum\": [\"channel\", \"personal\"] }\n        },\n        \"account_mail\": {\n          \"type\": \"boolean\",\n          \"description\": \"Whether the plugin can carry account mail (invites, password resets, recovery). Needs a required, non-secret email address field. Defaults to false.\"\n        },\n        \"deliverability_check\": {\n          \"type\": \"boolean\",\n          \"description\": \"Whether the plugin implements checkDeliverability, so the instance\'s settings offer the operator a deliverability check. Defaults to false.\"\n        },\n        \"formats\": {\n          \"type\": \"array\",\n          \"minItems\": 1,\n          \"uniqueItems\": true,\n          \"contains\": { \"const\": \"text\" },\n          \"description\": \"Body formats the service shows; must include text. Defaults to [\\\"text\\\"].\",\n          \"items\": { \"type\": \"string\", \"enum\": [\"text\", \"markdown\", \"html\"] }\n        },\n        \"address_fields\": {\n          \"type\": \"array\",\n          \"maxItems\": 16,\n          \"description\": \"Fields of a personal address; required exactly when destinations names personal, with at least one required field.\",\n          \"items\": { \"$ref\": \"#/$defs/NotifierAddressField\" }\n        }\n      }\n    },\n    \"notifications\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"description\": \"Notification types the plugin raises through env.NOTIFY. Declaring any grants the NOTIFY binding.\",\n      \"properties\": {\n        \"types\": {\n          \"type\": \"array\",\n          \"maxItems\": 64,\n          \"items\": { \"$ref\": \"#/$defs/NotificationType\" }\n        }\n      }\n    },\n    \"ingress\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"kind\"],\n      \"description\": \"How an ingress plugin serves the library publicly. Required for a plugin exporting the ingress entrypoint; forbidden for every other plugin.\",\n      \"properties\": {\n        \"kind\": {\n          \"type\": \"string\",\n          \"enum\": [\"relay\", \"direct\"],\n          \"description\": \"relay: the provider relays each request to the plugin, which hands it to the library through ORIGIN. direct: the public address points at the daemon; the plugin only keeps it current.\"\n        }\n      }\n    },\n    \"provisioning\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"provider\", \"grants\", \"outputs\"],\n      \"description\": \"The guided setup a provisioning plugin offers. Required for a plugin exporting the provisioning entrypoint; forbidden for every other plugin.\",\n      \"properties\": {\n        \"provider\": {\n          \"type\": \"string\",\n          \"pattern\": \"^[a-z][a-z0-9-]{0,31}$\",\n          \"description\": \"The provider the grant is for (cloudflare); the account-linking screen groups plugins by it.\"\n        },\n        \"grants\": {\n          \"type\": \"array\",\n          \"minItems\": 1,\n          \"uniqueItems\": true,\n          \"description\": \"The grants the plugin accepts.\",\n          \"items\": { \"type\": \"string\", \"enum\": [\"api_token\"] }\n        },\n        \"token_url\": {\n          \"type\": \"string\",\n          \"pattern\": \"^https://\",\n          \"maxLength\": 2048,\n          \"description\": \"Where the operator creates a token at the provider.\"\n        },\n        \"token_permissions\": {\n          \"type\": \"array\",\n          \"maxItems\": 16,\n          \"description\": \"The permissions a pasted token needs, one line each, shown on the setup screen.\",\n          \"items\": { \"type\": \"string\", \"minLength\": 1, \"maxLength\": 120 }\n        },\n        \"inputs\": {\n          \"type\": \"array\",\n          \"uniqueItems\": true,\n          \"description\": \"Non-secret setting keys the screen asks for before running.\",\n          \"items\": { \"type\": \"string\" }\n        },\n        \"outputs\": {\n          \"type\": \"array\",\n          \"minItems\": 1,\n          \"uniqueItems\": true,\n          \"description\": \"Setting keys, secret or not, the plugin may write; the host refuses any other key in its answer.\",\n          \"items\": { \"type\": \"string\" }\n        },\n        \"deprovision\": {\n          \"type\": \"boolean\",\n          \"description\": \"Whether the plugin can remove what it created; the host offers it before the instance is deleted.\"\n        }\n      }\n    },\n    \"ai\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"description\": \"Model tasks the plugin serves on its ai entrypoint and the tasks it calls through env.AI.\",\n      \"properties\": {\n        \"serves\": {\n          \"type\": \"array\",\n          \"uniqueItems\": true,\n          \"description\": \"Tasks the plugin\'s models perform. Required, with at least one task, for a plugin exporting the ai entrypoint; forbidden for every other plugin.\",\n          \"items\": { \"$ref\": \"#/$defs/AiTask\" }\n        },\n        \"calls\": {\n          \"type\": \"array\",\n          \"uniqueItems\": true,\n          \"description\": \"Tasks the plugin runs through env.AI. Declaring any asks the operator for the AI binding.\",\n          \"items\": { \"$ref\": \"#/$defs/AiTask\" }\n        }\n      }\n    },\n    \"workerd\": { \"$ref\": \"#/$defs/WorkerdRuntime\" },\n    \"modules\": {\n      \"type\": \"array\",\n      \"items\": { \"$ref\": \"#/$defs/ModuleSpec\" }\n    },\n    \"triggers\": { \"$ref\": \"#/$defs/Triggers\" },\n    \"events\": { \"$ref\": \"#/$defs/Events\" },\n    \"databases\": {\n      \"type\": \"array\",\n      \"description\": \"Named plugin-owned database bindings (Workers-style).\",\n      \"maxItems\": 8,\n      \"items\": { \"$ref\": \"#/$defs/DatabaseBinding\" }\n    },\n    \"vars\": {\n      \"type\": \"object\",\n      \"description\": \"Operator config binding (`CONFIG`). Declares that the guest receives CONFIG; values come from [[settings]] defaults and the plugin instance document. An empty table is the usual form.\"\n    },\n    \"settings\": {\n      \"type\": \"array\",\n      \"description\": \"Operator settings schema ([[settings]]): keys an instance document may set, their types, enum values, and defaults. The host validates documents against it and renders it in Settings. Non-secret entries require [vars]; type = \\\"secret\\\" entries require [secrets].\",\n      \"maxItems\": 32,\n      \"items\": { \"$ref\": \"#/$defs/SettingSpec\" }\n    },\n    \"secrets\": { \"$ref\": \"#/$defs/NamedBinding\" },\n    \"kv_namespaces\": {\n      \"type\": \"array\",\n      \"description\": \"Durable KV bindings (default name KV) served from the library database: Workers KVNamespace-shaped get/put/delete/list with expiration and metadata, scoped to the plugin and the row\'s namespace. Distinct from [[databases]].\",\n      \"items\": { \"$ref\": \"#/$defs/KvNamespace\" }\n    },\n    \"queues\": { \"$ref\": \"#/$defs/Queues\" },\n    \"work_fs\": { \"$ref\": \"#/$defs/NamedBinding\" },\n    \"oauth\": { \"$ref\": \"#/$defs/NamedBinding\" },\n    \"capabilities\": { \"$ref\": \"#/$defs/Capabilities\" },\n    \"cli\": { \"$ref\": \"#/$defs/CliSchema\" },\n    \"oidc\": { \"$ref\": \"#/$defs/OidcManifest\" }\n  },\n  \"allOf\": [\n    {\n      \"if\": {\n        \"properties\": { \"runtime\": { \"const\": \"workerd\" } },\n        \"required\": [\"runtime\"]\n      },\n      \"then\": { \"required\": [\"workerd\"] }\n    },\n    {\n      \"if\": {\n        \"anyOf\": [\n          { \"properties\": { \"runtime\": { \"const\": \"native\" } } },\n          { \"not\": { \"required\": [\"runtime\"] } }\n        ]\n      },\n      \"then\": {\n        \"required\": [\"command\"],\n        \"properties\": {\n          \"capabilities\": {\n            \"properties\": {\n              \"network\": {\n                \"properties\": {\n                  \"domains\": false\n                }\n              }\n            }\n          }\n        }\n      }\n    },\n    {\n      \"if\": {\n        \"properties\": {\n          \"runtime\": { \"const\": \"workerd\" },\n          \"capabilities\": {\n            \"properties\": {\n              \"network\": {\n                \"properties\": { \"mode\": { \"const\": \"outbound\" } },\n                \"required\": [\"mode\"]\n              }\n            },\n            \"required\": [\"network\"]\n          }\n        },\n        \"required\": [\"runtime\", \"capabilities\"]\n      },\n      \"then\": {\n        \"properties\": {\n          \"capabilities\": {\n            \"properties\": {\n              \"network\": {\n                \"required\": [\"domains\"],\n                \"properties\": {\n                  \"domains\": {\n                    \"type\": \"array\",\n                    \"minItems\": 1,\n                    \"items\": { \"type\": \"string\", \"minLength\": 1 }\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    },\n    {\n      \"if\": {\n        \"properties\": {\n          \"entrypoints\": {\n            \"anyOf\": [{ \"contains\": { \"const\": \"storefront\" } }, { \"contains\": { \"const\": \"metadata\" } }]\n          }\n        },\n        \"required\": [\"entrypoints\"]\n      },\n      \"then\": {\n        \"required\": [\"media\"],\n        \"properties\": {\n          \"media\": {\n            \"required\": [\"works\", \"lists\"],\n            \"properties\": { \"works\": { \"minItems\": 1 }, \"lists\": { \"minItems\": 1 } }\n          }\n        }\n      },\n      \"else\": { \"properties\": { \"media\": false } }\n    },\n    {\n      \"if\": {\n        \"properties\": { \"entrypoints\": { \"contains\": { \"const\": \"metadataFiles\" } } },\n        \"required\": [\"entrypoints\"]\n      },\n      \"then\": { \"required\": [\"metadata_files\"] },\n      \"else\": { \"properties\": { \"metadata_files\": false } }\n    },\n    {\n      \"if\": {\n        \"properties\": { \"entrypoints\": { \"contains\": { \"const\": \"notifier\" } } },\n        \"required\": [\"entrypoints\"]\n      },\n      \"then\": { \"required\": [\"notifier\"] },\n      \"else\": { \"properties\": { \"notifier\": false } }\n    },\n    {\n      \"if\": {\n        \"properties\": { \"entrypoints\": { \"contains\": { \"const\": \"ingress\" } } },\n        \"required\": [\"entrypoints\"]\n      },\n      \"then\": { \"required\": [\"ingress\"] },\n      \"else\": { \"properties\": { \"ingress\": false } }\n    },\n    {\n      \"if\": {\n        \"properties\": { \"entrypoints\": { \"contains\": { \"const\": \"ai\" } } },\n        \"required\": [\"entrypoints\"]\n      },\n      \"then\": {\n        \"required\": [\"ai\"],\n        \"properties\": { \"ai\": { \"required\": [\"serves\"], \"properties\": { \"serves\": { \"minItems\": 1 } } } }\n      },\n      \"else\": { \"properties\": { \"ai\": { \"properties\": { \"serves\": { \"maxItems\": 0 } } } } }\n    }\n  ],\n  \"$defs\": {\n    \"AiTask\": {\n      \"type\": \"string\",\n      \"enum\": [\"textEmbeddings\"],\n      \"description\": \"What a model does: textEmbeddings turns each text into one vector.\"\n    },\n    \"NotifierAddressField\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"key\", \"label\"],\n      \"description\": \"One field of a patron\'s personal address, such as an email address or a chat id.\",\n      \"properties\": {\n        \"key\": {\n          \"type\": \"string\",\n          \"pattern\": \"^[a-z][a-z0-9_]{0,63}$\",\n          \"description\": \"Key in the address document; unique within the plugin.\"\n        },\n        \"label\": { \"type\": \"string\", \"minLength\": 1, \"description\": \"Label shown to the patron.\" },\n        \"required\": { \"type\": \"boolean\", \"description\": \"Whether the patron must fill it in. Defaults to false.\" },\n        \"secret\": {\n          \"type\": \"boolean\",\n          \"description\": \"Whether the value is a secret (a personal token): sealed at rest and never shown again. Defaults to false.\"\n        }\n      }\n    },\n    \"NotificationType\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"id\", \"audience\", \"severity\", \"title\"],\n      \"description\": \"One notification type the plugin raises; the host names it <plugin>:<id>.\",\n      \"properties\": {\n        \"id\": {\n          \"type\": \"string\",\n          \"pattern\": \"^[a-z][a-z0-9_]{0,63}$\",\n          \"description\": \"Type id, unique within the plugin.\"\n        },\n        \"audience\": {\n          \"type\": \"string\",\n          \"enum\": [\"operational\", \"patron\"],\n          \"description\": \"operational goes to administrators\' channels; patron goes to the one patron a raise names. account is reserved to Bookclerk.\"\n        },\n        \"severity\": { \"type\": \"string\", \"enum\": [\"info\", \"warning\", \"critical\"] },\n        \"title\": {\n          \"type\": \"string\",\n          \"minLength\": 1,\n          \"maxLength\": 256,\n          \"description\": \"One-line name shown in notification settings.\"\n        }\n      }\n    },\n    \"MetadataFileDialect\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"id\", \"name\", \"fields\"],\n      \"anyOf\": [\n        { \"required\": [\"file_names\"], \"properties\": { \"file_names\": { \"minItems\": 1 } } },\n        { \"required\": [\"suffixes\"], \"properties\": { \"suffixes\": { \"minItems\": 1 } } }\n      ],\n      \"if\": { \"required\": [\"fields\"], \"properties\": { \"fields\": { \"contains\": { \"const\": \"credits\" } } } },\n      \"then\": { \"required\": [\"credit_roles\"], \"properties\": { \"credit_roles\": { \"minItems\": 1 } } },\n      \"else\": { \"properties\": { \"credit_roles\": { \"maxItems\": 0 } } },\n      \"description\": \"One metadata file format. The host routes a file by exact name first, then by the longest matching suffix, both compared without ASCII case.\",\n      \"properties\": {\n        \"id\": {\n          \"type\": \"string\",\n          \"pattern\": \"^[a-z][a-z0-9_]{0,63}$\",\n          \"description\": \"Dialect id, unique within the plugin; passed back in parse and render.\"\n        },\n        \"name\": { \"type\": \"string\", \"minLength\": 1, \"description\": \"Name shown in settings and on a book\'s files list.\" },\n        \"file_names\": {\n          \"type\": \"array\",\n          \"description\": \"Exact file names the dialect reads (metadata.json).\",\n          \"items\": { \"type\": \"string\", \"minLength\": 1 }\n        },\n        \"suffixes\": {\n          \"type\": \"array\",\n          \"description\": \"File name endings the dialect reads (.opf, .metadata.json); each starts with a dot.\",\n          \"items\": { \"type\": \"string\", \"pattern\": \"^\\\\..+\" }\n        },\n        \"fields\": {\n          \"type\": \"array\",\n          \"minItems\": 1,\n          \"description\": \"Fields the format carries.\",\n          \"items\": { \"type\": \"string\", \"enum\": [\"title\", \"subtitle\", \"description\", \"publisher\", \"publishedAt\", \"language\", \"genres\", \"tags\", \"abridgement\", \"expressionKind\", \"identifiers\", \"credits\", \"series\", \"chapters\", \"duration\"] }\n        },\n        \"credit_roles\": {\n          \"type\": \"array\",\n          \"description\": \"Credit roles the format carries; required exactly when fields names credits.\",\n          \"items\": { \"type\": \"string\", \"enum\": [\"author\", \"narrator\", \"translator\", \"editor\", \"illustrator\", \"publisher\", \"host\", \"cast\", \"adaptor\"] }\n        },\n        \"writes\": { \"type\": \"boolean\", \"description\": \"Whether the dialect also writes files (render). Defaults to false.\" }\n      }\n    },\n    \"Capabilities\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"network\"],\n      \"properties\": {\n        \"network\": { \"$ref\": \"#/$defs/NetworkCapabilities\" }\n      }\n    },\n    \"NetworkCapabilities\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"mode\"],\n      \"properties\": {\n        \"mode\": { \"type\": \"string\", \"enum\": [\"deny\", \"outbound\"] },\n        \"domains\": {\n          \"type\": \"array\",\n          \"description\": \"Workerd-only: initial-request host allowlist for isolate egress. Forbidden on runtime=native. The operator may add destinations beyond this list; the guest cannot.\",\n          \"items\": { \"type\": \"string\", \"minLength\": 1 }\n        },\n        \"tcp\": {\n          \"type\": \"array\",\n          \"description\": \"Raw TCP connect grants (host + ports). Fetch domain grants do not imply TCP.\",\n          \"items\": { \"$ref\": \"#/$defs/TcpCapability\" }\n        },\n        \"allow_undeclared_public_redirects\": {\n          \"type\": \"boolean\",\n          \"description\": \"When true, fetch redirects may target undeclared public hosts. Address-space policy still applies.\"\n        },\n        \"address_cidrs\": {\n          \"type\": \"array\",\n          \"description\": \"Explicit CIDR grants beyond the public Internet. No blanket private=true.\",\n          \"items\": { \"type\": \"string\", \"minLength\": 1 }\n        },\n        \"own_user_agent\": { \"$ref\": \"#/$defs/OwnUserAgent\" }\n      },\n      \"if\": { \"properties\": { \"mode\": { \"const\": \"deny\" } } },\n      \"then\": { \"not\": { \"required\": [\"own_user_agent\"] } }\n    },\n    \"OwnUserAgent\": {\n      \"type\": \"object\",\n      \"description\": \"Hosts that receive the plugin\'s own User-Agent instead of the host\'s bookclerk/<version> agent. Shown on the consent form; the operator may refuse.\",\n      \"additionalProperties\": false,\n      \"required\": [\"hosts\", \"reason\"],\n      \"properties\": {\n        \"hosts\": {\n          \"type\": \"array\",\n          \"description\": \"Exact hosts or *. wildcards (never *).\",\n          \"minItems\": 1,\n          \"maxItems\": 32,\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1,\n            \"pattern\": \"^(\\\\*\\\\.)?[^*\\\\s,/:%@?#\\\\\\\\]+$\"\n          }\n        },\n        \"reason\": {\n          \"type\": \"string\",\n          \"description\": \"One line for the operator on why these hosts need the plugin\'s own agent, such as the app API contract it follows.\",\n          \"minLength\": 1,\n          \"maxLength\": 300,\n          \"pattern\": \"^[^\\\\r\\\\n]+$\"\n        }\n      }\n    },\n    \"TcpCapability\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"host\", \"ports\"],\n      \"properties\": {\n        \"host\": { \"type\": \"string\", \"minLength\": 1 },\n        \"ports\": {\n          \"type\": \"array\",\n          \"items\": { \"type\": \"integer\", \"minimum\": 1, \"maximum\": 65535 },\n          \"minItems\": 1\n        }\n      }\n    },\n    \"Triggers\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"crons\": {\n          \"type\": \"array\",\n          \"description\": \"Five-field UTC cron schedules (minute hour day-of-month month day-of-week) for the default entrypoint\'s scheduled(controller) handler, as in Workers. Values, ranges, lists, */step and JAN-DEC / SUN-SAT names; no L, W, # or @macros. At most 8, no duplicates.\",\n          \"maxItems\": 8,\n          \"uniqueItems\": true,\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 9,\n            \"maxLength\": 128,\n            \"pattern\": \"^\\\\s*\\\\S+(\\\\s+\\\\S+){4}\\\\s*$\"\n          }\n        },\n        \"jobs\": {\n          \"type\": \"array\",\n          \"items\": { \"type\": \"string\", \"minLength\": 1 }\n        }\n      }\n    },\n    \"Events\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"consumers\": {\n          \"type\": \"array\",\n          \"items\": { \"$ref\": \"#/$defs/EventConsumer\" }\n        },\n        \"producers\": {\n          \"type\": \"array\",\n          \"items\": { \"$ref\": \"#/$defs/EventProducer\" }\n        }\n      }\n    },\n    \"EventConsumer\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"type\"],\n      \"properties\": {\n        \"type\": {\n          \"type\": \"string\",\n          \"minLength\": 1,\n          \"pattern\": \"^[a-z][a-z0-9_]*$\"\n        },\n        \"schema_versions\": {\n          \"type\": \"array\",\n          \"items\": { \"type\": \"integer\", \"minimum\": 1 },\n          \"minItems\": 1\n        },\n        \"supports_suspend\": { \"type\": \"boolean\", \"default\": false },\n        \"resource_class\": { \"type\": \"string\", \"enum\": [\"network\"], \"default\": \"network\" },\n        \"filter\": { \"type\": \"object\" },\n        \"max_retries\": { \"type\": \"integer\", \"minimum\": 0 },\n        \"message_retention_period\": { \"type\": \"integer\", \"minimum\": 60, \"maximum\": 1209600 }\n      }\n    },\n    \"EventProducer\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"type\"],\n      \"properties\": {\n        \"type\": {\n          \"type\": \"string\",\n          \"minLength\": 1,\n          \"pattern\": \"^[a-z][a-z0-9_]*$\"\n        },\n        \"binding\": { \"type\": \"string\", \"minLength\": 1 }\n      }\n    },\n    \"Queues\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"description\": \"Workers Queues: producers are `env` send bindings, consumers are `queue(batch)` triggers. Queue names are `[a-z0-9][a-z0-9._-]*` (at most 63 chars); the `core.` and `host.` prefixes are reserved for the host.\",\n      \"properties\": {\n        \"producers\": { \"type\": \"array\", \"items\": { \"$ref\": \"#/$defs/QueueProducer\" } },\n        \"consumers\": { \"type\": \"array\", \"items\": { \"$ref\": \"#/$defs/QueueConsumer\" } }\n      }\n    },\n    \"QueueProducer\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"queue\", \"binding\"],\n      \"properties\": {\n        \"queue\": {\n          \"type\": \"string\",\n          \"minLength\": 1,\n          \"maxLength\": 63,\n          \"pattern\": \"^[a-z0-9][a-z0-9._-]*$\"\n        },\n        \"binding\": { \"type\": \"string\", \"minLength\": 1, \"pattern\": \"^[A-Z][A-Z0-9_]*$\" }\n      }\n    },\n    \"QueueConsumer\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"queue\"],\n      \"properties\": {\n        \"queue\": {\n          \"type\": \"string\",\n          \"minLength\": 1,\n          \"maxLength\": 63,\n          \"pattern\": \"^[a-z0-9][a-z0-9._-]*$\"\n        },\n        \"max_batch_size\": { \"type\": \"integer\", \"minimum\": 1, \"maximum\": 100, \"default\": 10 },\n        \"max_batch_timeout\": { \"type\": \"integer\", \"minimum\": 0, \"maximum\": 60, \"default\": 5 },\n        \"max_retries\": { \"type\": \"integer\", \"minimum\": 0, \"maximum\": 100, \"default\": 3 },\n        \"dead_letter_queue\": {\n          \"type\": \"string\",\n          \"minLength\": 1,\n          \"maxLength\": 63,\n          \"pattern\": \"^[a-z0-9][a-z0-9._-]*$\"\n        },\n        \"retry_delay\": { \"type\": \"integer\", \"minimum\": 0, \"maximum\": 43200, \"default\": 0 },\n        \"max_concurrency\": { \"type\": \"integer\", \"minimum\": 1 },\n        \"message_retention_period\": { \"type\": \"integer\", \"minimum\": 60, \"maximum\": 1209600 }\n      }\n    },\n    \"SettingSpec\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"key\", \"type\"],\n      \"properties\": {\n        \"key\": {\n          \"type\": \"string\",\n          \"pattern\": \"^[a-z][a-z0-9_]{0,63}$\",\n          \"description\": \"Setting key, unique within the plugin; the CONFIG / SECRETS property name.\"\n        },\n        \"label\": { \"type\": \"string\", \"description\": \"Operator-facing label; defaults to the key.\" },\n        \"type\": {\n          \"type\": \"string\",\n          \"enum\": [\"string\", \"bool\", \"integer\", \"enum\", \"secret\"],\n          \"description\": \"Value type. `secret` values are sealed by the host and delivered in SECRETS, never stored in the instance document.\"\n        },\n        \"values\": {\n          \"type\": \"array\",\n          \"maxItems\": 64,\n          \"description\": \"Allowed values for type = \\\"enum\\\"; forbidden otherwise.\",\n          \"items\": {\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"required\": [\"id\"],\n            \"properties\": {\n              \"id\": { \"type\": \"string\", \"minLength\": 1, \"maxLength\": 1024 },\n              \"label\": { \"type\": \"string\" }\n            }\n          }\n        },\n        \"default\": {\n          \"type\": [\"string\", \"boolean\", \"integer\"],\n          \"description\": \"Default applied when the instance document omits the key. Not allowed for secrets.\"\n        },\n        \"required\": { \"type\": \"boolean\", \"default\": false },\n        \"description\": { \"type\": \"string\" }\n      }\n    },\n    \"DatabaseBinding\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"binding\"],\n      \"properties\": {\n        \"binding\": {\n          \"type\": \"string\",\n          \"pattern\": \"^[A-Z][A-Z0-9_]*$\",\n          \"maxLength\": 32\n        }\n      }\n    },\n    \"NamedBinding\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"binding\": { \"type\": \"string\", \"minLength\": 1 }\n      }\n    },\n    \"KvNamespace\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"binding\": { \"type\": \"string\", \"minLength\": 1 },\n        \"namespace\": {\n          \"type\": \"string\",\n          \"minLength\": 1,\n          \"maxLength\": 63,\n          \"pattern\": \"^[a-z0-9][a-z0-9._-]*$\"\n        },\n        \"max_value_bytes\": { \"type\": \"integer\", \"minimum\": 1, \"maximum\": 1048576, \"default\": 65536 },\n        \"max_keys\": { \"type\": \"integer\", \"minimum\": 1, \"maximum\": 1000000, \"default\": 10000 }\n      }\n    },\n    \"WorkerdRuntime\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"compatibility_date\", \"main_module\"],\n      \"properties\": {\n        \"compatibility_date\": {\n          \"type\": \"string\",\n          \"minLength\": 10,\n          \"maxLength\": 10,\n          \"pattern\": \"^[0-9]{4}-[0-9]{2}-[0-9]{2}$\",\n          \"description\": \"Calendar YYYY-MM-DD. A date newer than the pinned workerd compatibility date 2026-11-13 warns and falls back to that pin when the isolate loads. The pattern checks shape only; checkers reject impossible days such as 2026-02-31.\"\n        },\n        \"compatibility_flags\": {\n          \"type\": \"array\",\n          \"description\": \"Exact allowlist: python_workers and disable_python_external_sdk. Both are required together when the guest is Python and forbidden otherwise. The host does not append missing flags.\",\n          \"items\": {\n            \"type\": \"string\",\n            \"enum\": [\"python_workers\", \"disable_python_external_sdk\"]\n          }\n        },\n        \"main_module\": { \"type\": \"string\", \"minLength\": 1 },\n        \"modules_dir\": { \"type\": \"string\", \"default\": \"modules\" },\n        \"entrypoint\": { \"type\": \"string\", \"default\": \"default\" },\n        \"limits\": { \"$ref\": \"#/$defs/WorkerdLimits\" }\n      }\n    },\n    \"WorkerdLimits\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"cpu_ms\": { \"type\": \"integer\", \"minimum\": 0 },\n        \"subrequests\": { \"type\": \"integer\", \"minimum\": 0 }\n      }\n    },\n    \"ModuleSpec\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"name\"],\n      \"properties\": {\n        \"name\": { \"type\": \"string\" },\n        \"path\": {\n          \"type\": \"string\",\n          \"description\": \"Source file relative to the plugin root. When path is omitted or empty, name is the modules-directory source.\"\n        },\n        \"type\": { \"type\": \"string\", \"default\": \"js\" }\n      }\n    },\n    \"CliSchema\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"commands\": {\n          \"type\": \"array\",\n          \"items\": { \"$ref\": \"#/$defs/CliCommandSpec\" }\n        }\n      }\n    },\n    \"CliCommandSpec\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"name\"],\n      \"properties\": {\n        \"name\": { \"type\": \"string\" },\n        \"about\": { \"type\": \"string\" },\n        \"args\": {\n          \"type\": \"array\",\n          \"items\": { \"$ref\": \"#/$defs/CliArgSpec\" }\n        }\n      }\n    },\n    \"CliArgSpec\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"name\"],\n      \"properties\": {\n        \"name\": { \"type\": \"string\" },\n        \"long\": { \"type\": \"string\" },\n        \"short\": { \"type\": \"string\", \"maxLength\": 1 },\n        \"kind\": {\n          \"type\": \"string\",\n          \"enum\": [\"string\", \"bool\", \"int\", \"path\"],\n          \"default\": \"string\"\n        },\n        \"required\": { \"type\": \"boolean\" },\n        \"default\": { \"type\": \"string\" },\n        \"about\": { \"type\": \"string\" },\n        \"positional\": { \"type\": \"boolean\" }\n      }\n    },\n    \"OidcManifest\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"clients\": {\n          \"type\": \"array\",\n          \"items\": { \"$ref\": \"#/$defs/OidcClient\" }\n        }\n      }\n    },\n    \"OidcClient\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"client_id\", \"callback_path\", \"origin_config_key\"],\n      \"properties\": {\n        \"client_id\": { \"type\": \"string\", \"minLength\": 1 },\n        \"display_name\": { \"type\": \"string\" },\n        \"callback_path\": { \"type\": \"string\", \"pattern\": \"^/\" },\n        \"public_client\": { \"type\": \"boolean\", \"default\": true },\n        \"default_scopes\": {\n          \"type\": \"array\",\n          \"items\": { \"type\": \"string\" }\n        },\n        \"issue_refresh_token\": { \"type\": \"boolean\", \"default\": true },\n        \"origin_config_key\": { \"type\": \"string\", \"minLength\": 1 }\n      }\n    }\n  }\n}\n";
 ```
 
 Embedded JSON Schema for install `plugin.toml` files (shared with language

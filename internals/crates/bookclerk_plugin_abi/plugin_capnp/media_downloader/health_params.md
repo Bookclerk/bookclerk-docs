@@ -1,4 +1,4 @@
-# bookclerk_plugin_abi::plugin_capnp::cover_images_reply
+# bookclerk_plugin_abi::plugin_capnp::media_downloader::health_params
 
 | Item | Kind | Summary |
 | --- | --- | --- |
@@ -6,9 +6,6 @@
 | [`Reader`](#reader) | struct |  |
 | [`Builder`](#builder) | struct |  |
 | [`Pipeline`](#pipeline) | struct |  |
-| [`Which`](#which) | enum |  |
-| [`WhichReader`](#whichreader) | type alias |  |
-| [`WhichBuilder`](#whichbuilder) | type alias |  |
 
 ## Structs
 
@@ -38,24 +35,6 @@ pub fn reborrow(&self) -> Reader<'_>
 
 ```rust
 pub fn total_size(&self) -> Result<MessageSize>
-```
-
-#### Reader::has_ok
-
-```rust
-pub fn has_ok(&self) -> bool
-```
-
-#### Reader::has_err
-
-```rust
-pub fn has_err(&self) -> bool
-```
-
-#### Reader::which
-
-```rust
-pub fn which(self) -> Result<WhichReader<'a>, NotInSchema>
 ```
 
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
@@ -92,48 +71,6 @@ pub fn reborrow_as_reader(&self) -> Reader<'_>
 pub fn total_size(&self) -> Result<MessageSize>
 ```
 
-#### Builder::set_ok
-
-```rust
-pub fn set_ok(&mut self, value: Reader<'_>) -> Result<()>
-```
-
-#### Builder::init_ok
-
-```rust
-pub fn init_ok(self) -> Builder<'a>
-```
-
-#### Builder::has_ok
-
-```rust
-pub fn has_ok(&self) -> bool
-```
-
-#### Builder::set_err
-
-```rust
-pub fn set_err(&mut self, value: Reader<'_>) -> Result<()>
-```
-
-#### Builder::init_err
-
-```rust
-pub fn init_err(self) -> Builder<'a>
-```
-
-#### Builder::has_err
-
-```rust
-pub fn has_err(&self) -> bool
-```
-
-#### Builder::which
-
-```rust
-pub fn which(self) -> Result<WhichBuilder<'a>, NotInSchema>
-```
-
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
 
 ### Pipeline
@@ -145,28 +82,3 @@ pub struct Pipeline {
 ```
 
 Implements: `FromTypelessPipeline`
-
-## Enums
-
-### Which
-
-```rust
-pub enum Which<A0, A1> {
-    Ok(A0),
-    Err(A1),
-}
-```
-
-## Type aliases
-
-### WhichReader
-
-```rust
-pub type WhichReader<'a> = Which<Result<Reader<'a>>, Result<Reader<'a>>>;
-```
-
-### WhichBuilder
-
-```rust
-pub type WhichBuilder<'a> = Which<Result<Builder<'a>>, Result<Builder<'a>>>;
-```

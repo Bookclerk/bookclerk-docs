@@ -35,6 +35,7 @@ the worker itself calls.
 | [`PackageM4bRequest`](#packagem4brequest) | struct | Request to package ordered MP3 parts into one M4B. |
 | [`EncodedSample`](#encodedsample) | struct | A short sample of a file, encoded by a worker. |
 | [`PcmStream`](#pcmstream) | struct | Decoded samples of one file from one start position. |
+| [`SampleStream`](#samplestream) | struct | A book sample being cut: the MP3 bytes a worker sends, as it encodes them. |
 | [`MediaPool`](#mediapool) | struct | Bounded pool of confined media workers. |
 | [`MediaPoolConfig`](#mediapoolconfig) | struct | Pool sizing and isolation settings. |
 | [`AudioProbe`](#audioprobe) | struct | What a probe found in one audio file. |
@@ -354,6 +355,63 @@ protocol. The stream ends after an error.
 
 Implements: `Debug`
 
+### SampleStream
+
+```rust
+pub struct SampleStream {
+    /* private fields */
+}
+```
+
+A book sample being cut: the MP3 bytes a worker sends, as it encodes
+them.
+
+The bytes are checked as they arrive: a worker that sends PCM instead,
+more than [`MAX_SAMPLE_BYTES`](#max_sample_bytes) in all, or misses [`SAMPLE_TIMEOUT`](#sample_timeout)
+(counted from the worker's start) ends the stream with an error.
+Dropping it stops the worker and frees its sample slot.
+
+#### SampleStream::header
+
+```rust
+pub fn header(&self) -> PcmHeader
+```
+
+The encoded layout (mono), where the sample starts, and the file's
+stated duration.
+
+#### SampleStream::next_bytes
+
+```rust
+pub async fn next_bytes(&mut self) -> Option<Result<Vec<u8>>>
+```
+
+The next MP3 bytes the worker encoded.
+
+##### Returns
+
+`None` once the sample is complete (or after an error was returned).
+
+##### Errors
+
+What the worker reports, or [`MediaError::Worker`](#mediaerror) when it sends
+samples instead of bytes, more than [`MAX_SAMPLE_BYTES`](#max_sample_bytes) in all, or
+misses [`SAMPLE_TIMEOUT`](#sample_timeout). The stream ends after an error.
+
+#### SampleStream::collect
+
+```rust
+pub async fn collect(self) -> Result<EncodedSample>
+```
+
+Reads the sample to its end.
+
+##### Errors
+
+As [`Self::next_bytes`](#samplestreamnext_bytes).
+
+Implements: `Debug`
+
 ### MediaPool
 
 ```rust
@@ -518,28 +576,31 @@ found, [`MediaError::Native`](#mediaerror) when the file cannot be decoded,
 when the worker cannot be started, stalls for 30 s before its
 format, or breaks the protocol.
 
-#### MediaPool::cut_sample
+#### MediaPool::stream_sample
 
 ```rust
-pub async fn cut_sample<S: RangeSource + 'static>(
+pub async fn stream_sample<S: RangeSource + 'static>(
     &self,
     size: u64,
     start_ms: u64,
     length_ms: u64,
     source: S,
-) -> Result<EncodedSample>
+) -> Result<SampleStream>
 ```
 
-Cuts a short sample of one audio file, folded to mono and encoded
-as MP3, for a book's details (`bookclerk-media-worker pcm`, opened
-with `Sample`).
+Starts cutting a short sample of one audio file, folded to mono and
+encoded as MP3, for a book's details (`bookclerk-media-worker pcm`,
+opened with `Sample`). The bytes come back as the worker encodes
+them, so a player can start on the first ones.
 
 Like [`Self::open_pcm`](#mediapoolopen_pcm), each call starts its own worker, jailed to
 no path and no network, which asks for the byte ranges it reads. It
 does not take a job slot; samples have their own limit, as many at
-once as there are job slots, and a call waits for one. The worker decodes only the sample's span,
-and the bytes returned are its encoding, never the file's own. With
-isolation off, samples are refused, never cut in this process.
+once as there are job slots, and a call waits for one. The stream
+holds its slot until it is dropped. The worker decodes only the
+sample's span, and the bytes returned are its encoding, never the
+file's own. With isolation off, samples are refused, never cut in
+this process.
 
 ##### Arguments
 
@@ -554,11 +615,31 @@ isolation off, samples are refused, never cut in this process.
 ##### Errors
 
 [`MediaError::NotIsolated`](#mediaerror) when isolation is off or no worker was
-found, [`MediaError::Native`](#mediaerror) when the file cannot be decoded or
-encoded, [`MediaError::Io`](#mediaerror) when `source` fails, and
-[`MediaError::Worker`](#mediaerror) when the worker cannot be started, breaks the
-protocol, sends more than [`crate::MAX_SAMPLE_BYTES`](#max_sample_bytes), or
-takes longer than [`crate::SAMPLE_TIMEOUT`](#sample_timeout).
+found, [`MediaError::Native`](#mediaerror) when the file cannot be opened,
+[`MediaError::Io`](#mediaerror) when `source` fails, and [`MediaError::Worker`](#mediaerror)
+when the worker cannot be started, breaks the protocol or states no
+format in time. Later failures (a decode error, more than
+[`crate::MAX_SAMPLE_BYTES`](#max_sample_bytes), or more than [`crate::SAMPLE_TIMEOUT`](#sample_timeout)
+in all) end the stream with an error.
+
+#### MediaPool::cut_sample
+
+```rust
+pub async fn cut_sample<S: RangeSource + 'static>(
+    &self,
+    size: u64,
+    start_ms: u64,
+    length_ms: u64,
+    source: S,
+) -> Result<EncodedSample>
+```
+
+Cuts a short sample of one audio file to its end: [`Self::stream_sample`](#mediapoolstream_sample)
+read whole.
+
+##### Errors
+
+As [`Self::stream_sample`](#mediapoolstream_sample), and whatever ends its stream.
 
 #### MediaPool::run
 

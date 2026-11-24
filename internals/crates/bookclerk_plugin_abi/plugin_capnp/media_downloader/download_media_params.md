@@ -1,4 +1,4 @@
-# bookclerk_plugin_abi::plugin_capnp::cover_fetcher::fetch_covers_params
+# bookclerk_plugin_abi::plugin_capnp::media_downloader::download_media_params
 
 | Item | Kind | Summary |
 | --- | --- | --- |

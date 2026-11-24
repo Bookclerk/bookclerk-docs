@@ -1144,195 +1144,13 @@ Exit code, captured output, optional structured payload.
 
 ***
 
-### CoverEntrypoint
-
-`covers` entrypoint (`CoverFetcher`): downloads cover images for the host.
-The host passes a `sink` [Destination](#destination); put the body for `urls[i]`
-under the key `String(i)` and return one [CoverImage](generated.md#coverimage) per URL, in
-request order. The host sniffs, decodes and re-encodes every body, so the
-bytes stay untrusted. Export it as `export class Covers extends CoverEntrypoint`.
-
-#### Extends
-
-- [`NamedEntrypoint`](#namedentrypoint)\<`Env`\>
-
-#### Type Parameters
-
-| Type Parameter | Default type |
-| ------ | ------ |
-| <a id="type-parameter-env-3"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
-
-#### Constructors
-
-##### Constructor
-
-```ts
-new CoverEntrypoint<Env>(ctx, env): CoverEntrypoint<Env>;
-```
-
-###### Parameters
-
-| Parameter | Type |
-| ------ | ------ |
-| `ctx` | `ExecutionContext` |
-| `env` | `Env` |
-
-###### Returns
-
-[`CoverEntrypoint`](#coverentrypoint)\<`Env`\>
-
-###### Inherited from
-
-[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-13)
-
-#### Properties
-
-##### ctx
-
-```ts
-readonly ctx: ExecutionContext;
-```
-
-###### Inherited from
-
-[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-8)
-
-##### env
-
-```ts
-readonly env: Env;
-```
-
-###### Inherited from
-
-[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-8)
-
-##### invocation
-
-```ts
-invocation: Invocation;
-```
-
-Invocation identity of the current call (set by `bookclerkInvoke`).
-
-###### Inherited from
-
-[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-9)
-
-##### bookclerkMethods
-
-```ts
-static bookclerkMethods: readonly string[];
-```
-
-Methods the adapter may dispatch on this entrypoint.
-
-###### Overrides
-
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-7)
-
-#### Methods
-
-##### bookclerkInvoke()
-
-```ts
-bookclerkInvoke(
-   context, 
-   method, 
-   ...args
-): Promise<unknown>;
-```
-
-**`Internal`**
-
-Adapter dispatch: install granted bindings, then call `method`.
-
-###### Parameters
-
-| Parameter | Type | Description |
-| ------ | ------ | ------ |
-| `context` | [`GrantedContext`](#grantedcontext) | Granted bindings for this invocation. |
-| `method` | `string` | Method name from the static allowlist. |
-| ...`args` | `unknown`[] | Method arguments. |
-
-###### Returns
-
-`Promise`\<`unknown`\>
-
-Method result.
-
-###### Inherited from
-
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-7)
-
-##### fetch()
-
-```ts
-fetch(_request?): Promise<Response>;
-```
-
-Rejects HTTP fetch — workerd guests are Workers-RPC only.
-
-###### Parameters
-
-| Parameter | Type | Description |
-| ------ | ------ | ------ |
-| `_request?` | `Request` | Incoming HTTP request when the entrypoint is fetch-facing. |
-
-###### Returns
-
-`Promise`\<`Response`\>
-
-Always a 404 empty response.
-
-###### Inherited from
-
-[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-8)
-
-##### fetchCovers()
-
-```ts
-fetchCovers(_params, _sink): Promise<CoverImage[]>;
-```
-
-Fetches each URL and streams its body into `sink` under its index.
-
-###### Parameters
-
-| Parameter | Type | Description |
-| ------ | ------ | ------ |
-| `_params` | [`CoverFetchParams`](generated.md#coverfetchparams) | URLs (absolute `https://`) and the per-body byte cap. |
-| `_sink` | [`Destination`](#destination) | Host destination; accepts `put` for keys `0..urls.length`. |
-
-###### Returns
-
-`Promise`\<[`CoverImage`](generated.md#coverimage)[]\>
-
-One entry per URL, in request order.
-
-##### health()
-
-```ts
-health(): Promise<HealthOk>;
-```
-
-Reports whether the fetcher can answer.
-
-###### Returns
-
-`Promise`\<[`HealthOk`](generated.md#healthok)\>
-
-Health flag plus detail.
-
-***
-
 ### DatabaseAdapterEntrypoint
 
 `databaseAdapter` entrypoint: opens typed SQL sessions for the host
 library. Export it as `export class DatabaseAdapter extends DatabaseAdapterEntrypoint`.
 
 The adapter isolate drives sessions through two dispatch verbs on
-[DatabaseAdapterEntrypoint.bookclerkInvoke](#bookclerkinvoke-3): `openSession` returns a
+[DatabaseAdapterEntrypoint.bookclerkInvoke](#bookclerkinvoke-2): `openSession` returns a
 fresh session id, and `session(id, method, ...params)` calls `method` on
 the retained [AdapterDatabaseSession](#adapterdatabasesession); `close` releases the entry.
 
@@ -1344,7 +1162,7 @@ the retained [AdapterDatabaseSession](#adapterdatabasesession); `close` releases
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| <a id="type-parameter-env-4"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
+| <a id="type-parameter-env-3"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
 
 #### Constructors
 
@@ -2226,7 +2044,7 @@ most one ingress instance at a time. Export it as
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| <a id="type-parameter-env-5"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
+| <a id="type-parameter-env-4"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
 
 #### Constructors
 
@@ -2666,6 +2484,188 @@ Release with a bounded checkpoint; the host resumes at `wakeAt`.
 ###### Returns
 
 `void`
+
+***
+
+### MediaDownloadEntrypoint
+
+`mediaDownload` entrypoint (`MediaDownloader`): downloads cover images for the host.
+The host passes a `sink` [Destination](#destination); put the body for `urls[i]`
+under the key `String(i)` and return one [DownloadResult](generated.md#downloadresult) per URL, in
+request order. The host sniffs, decodes and re-encodes every body, so the
+bytes stay untrusted. Export it as `export class MediaDownload extends MediaDownloadEntrypoint`.
+
+#### Extends
+
+- [`NamedEntrypoint`](#namedentrypoint)\<`Env`\>
+
+#### Type Parameters
+
+| Type Parameter | Default type |
+| ------ | ------ |
+| <a id="type-parameter-env-5"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
+
+#### Constructors
+
+##### Constructor
+
+```ts
+new MediaDownloadEntrypoint<Env>(ctx, env): MediaDownloadEntrypoint<Env>;
+```
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `ctx` | `ExecutionContext` |
+| `env` | `Env` |
+
+###### Returns
+
+[`MediaDownloadEntrypoint`](#mediadownloadentrypoint)\<`Env`\>
+
+###### Inherited from
+
+[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-13)
+
+#### Properties
+
+##### ctx
+
+```ts
+readonly ctx: ExecutionContext;
+```
+
+###### Inherited from
+
+[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-8)
+
+##### env
+
+```ts
+readonly env: Env;
+```
+
+###### Inherited from
+
+[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-8)
+
+##### invocation
+
+```ts
+invocation: Invocation;
+```
+
+Invocation identity of the current call (set by `bookclerkInvoke`).
+
+###### Inherited from
+
+[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-9)
+
+##### bookclerkMethods
+
+```ts
+static bookclerkMethods: readonly string[];
+```
+
+Methods the adapter may dispatch on this entrypoint.
+
+###### Overrides
+
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-7)
+
+#### Methods
+
+##### bookclerkInvoke()
+
+```ts
+bookclerkInvoke(
+   context, 
+   method, 
+   ...args
+): Promise<unknown>;
+```
+
+**`Internal`**
+
+Adapter dispatch: install granted bindings, then call `method`.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `context` | [`GrantedContext`](#grantedcontext) | Granted bindings for this invocation. |
+| `method` | `string` | Method name from the static allowlist. |
+| ...`args` | `unknown`[] | Method arguments. |
+
+###### Returns
+
+`Promise`\<`unknown`\>
+
+Method result.
+
+###### Inherited from
+
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-7)
+
+##### downloadMedia()
+
+```ts
+downloadMedia(_params, _sink): Promise<DownloadResult[]>;
+```
+
+Fetches each URL and streams its body into `sink` under its index.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `_params` | [`MediaDownloadParams`](generated.md#mediadownloadparams) | URLs (absolute `https://`) and the per-body byte cap. |
+| `_sink` | [`Destination`](#destination) | Host destination; accepts `put` for keys `0..urls.length`. |
+
+###### Returns
+
+`Promise`\<[`DownloadResult`](generated.md#downloadresult)[]\>
+
+One entry per URL, in request order.
+
+##### fetch()
+
+```ts
+fetch(_request?): Promise<Response>;
+```
+
+Rejects HTTP fetch — workerd guests are Workers-RPC only.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `_request?` | `Request` | Incoming HTTP request when the entrypoint is fetch-facing. |
+
+###### Returns
+
+`Promise`\<`Response`\>
+
+Always a 404 empty response.
+
+###### Inherited from
+
+[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-8)
+
+##### health()
+
+```ts
+health(): Promise<HealthOk>;
+```
+
+Reports whether the fetcher can answer.
+
+###### Returns
+
+`Promise`\<[`HealthOk`](generated.md#healthok)\>
+
+Health flag plus detail.
 
 ***
 
@@ -3114,7 +3114,7 @@ which installs the granted bindings on `env` before dispatching.
 - [`CliEntrypoint`](#clientrypoint)
 - [`OidcEntrypoint`](#oidcentrypoint)
 - [`MetadataEntrypoint`](#metadataentrypoint)
-- [`CoverEntrypoint`](#coverentrypoint)
+- [`MediaDownloadEntrypoint`](#mediadownloadentrypoint)
 - [`MetadataFilesEntrypoint`](#metadatafilesentrypoint)
 - [`AiEntrypoint`](#aientrypoint)
 - [`ProvisioningEntrypoint`](#provisioningentrypoint)
@@ -7375,7 +7375,7 @@ type EntrypointName =
   | "cli"
   | "oidc"
   | "metadata"
-  | "covers"
+  | "mediaDownload"
   | "metadataFiles"
   | "notifier"
   | "ingress"
@@ -8143,27 +8143,21 @@ Re-exports [CliSchema](generated.md#clischema)
 
 ***
 
-### CoverFetchParams
-
-Re-exports [CoverFetchParams](generated.md#coverfetchparams)
-
-***
-
-### CoverImage
-
-Re-exports [CoverImage](generated.md#coverimage)
-
-***
-
-### CoverImages
-
-Re-exports [CoverImages](generated.md#coverimages)
-
-***
-
 ### DomainEvent
 
 Re-exports [DomainEvent](generated.md#domainevent)
+
+***
+
+### DownloadResult
+
+Re-exports [DownloadResult](generated.md#downloadresult)
+
+***
+
+### DownloadResults
+
+Re-exports [DownloadResults](generated.md#downloadresults)
 
 ***
 
@@ -8314,6 +8308,12 @@ Re-exports [MAX_SCALAR_BYTES](abi.md#max_scalar_bytes)
 ### MAX\_STREAM\_WINDOW\_BYTES
 
 Re-exports [MAX_STREAM_WINDOW_BYTES](abi.md#max_stream_window_bytes)
+
+***
+
+### MediaDownloadParams
+
+Re-exports [MediaDownloadParams](generated.md#mediadownloadparams)
 
 ***
 

@@ -1,4 +1,4 @@
-# bookclerk_plugin_abi::plugin_capnp::cover_condition
+# bookclerk_plugin_abi::plugin_capnp::download_results
 
 | Item | Kind | Summary |
 | --- | --- | --- |
@@ -37,28 +37,16 @@ pub fn reborrow(&self) -> Reader<'_>
 pub fn total_size(&self) -> Result<MessageSize>
 ```
 
-#### Reader::get_if_none_match
+#### Reader::get_downloads
 
 ```rust
-pub fn get_if_none_match(self) -> Result<Reader<'a>>
+pub fn get_downloads(self) -> Result<Reader<'a, Owned>>
 ```
 
-#### Reader::has_if_none_match
+#### Reader::has_downloads
 
 ```rust
-pub fn has_if_none_match(&self) -> bool
-```
-
-#### Reader::get_if_modified_since
-
-```rust
-pub fn get_if_modified_since(self) -> Result<Reader<'a>>
-```
-
-#### Reader::has_if_modified_since
-
-```rust
-pub fn has_if_modified_since(&self) -> bool
+pub fn has_downloads(&self) -> bool
 ```
 
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
@@ -95,52 +83,28 @@ pub fn reborrow_as_reader(&self) -> Reader<'_>
 pub fn total_size(&self) -> Result<MessageSize>
 ```
 
-#### Builder::get_if_none_match
+#### Builder::get_downloads
 
 ```rust
-pub fn get_if_none_match(self) -> Result<Builder<'a>>
+pub fn get_downloads(self) -> Result<Builder<'a, Owned>>
 ```
 
-#### Builder::set_if_none_match
+#### Builder::set_downloads
 
 ```rust
-pub fn set_if_none_match(&mut self, value: impl SetterInput<Owned>)
+pub fn set_downloads(&mut self, value: Reader<'_, Owned>) -> Result<()>
 ```
 
-#### Builder::init_if_none_match
+#### Builder::init_downloads
 
 ```rust
-pub fn init_if_none_match(self, size: u32) -> Builder<'a>
+pub fn init_downloads(self, size: u32) -> Builder<'a, Owned>
 ```
 
-#### Builder::has_if_none_match
+#### Builder::has_downloads
 
 ```rust
-pub fn has_if_none_match(&self) -> bool
-```
-
-#### Builder::get_if_modified_since
-
-```rust
-pub fn get_if_modified_since(self) -> Result<Builder<'a>>
-```
-
-#### Builder::set_if_modified_since
-
-```rust
-pub fn set_if_modified_since(&mut self, value: impl SetterInput<Owned>)
-```
-
-#### Builder::init_if_modified_since
-
-```rust
-pub fn init_if_modified_since(self, size: u32) -> Builder<'a>
-```
-
-#### Builder::has_if_modified_since
-
-```rust
-pub fn has_if_modified_since(&self) -> bool
+pub fn has_downloads(&self) -> bool
 ```
 
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
