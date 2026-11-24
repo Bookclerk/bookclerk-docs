@@ -203,6 +203,12 @@ A remote library whose message announced a new user returns
 `{ pollEvents: true }` from `webSocketMessage`, and the host calls
 `pollEvents` right away instead of at its next scheduled poll.
 
+`pollEvents(params)` gets `{ ackFollows: true }` from a host that calls
+`ackEvents({ externalUserIds })` once it has handled the users a poll
+returned. Keep returning a user until it is acknowledged, so a reply lost
+on the way to the host does not lose the user. A host older than
+`ackEvents` passes no params; treat each returned user as delivered then.
+
 ## Inbound webhooks
 
 A plugin that declares `[[webhooks]]` (see
@@ -2637,6 +2643,12 @@ Re-exports [EventAck](generated.md#eventack)
 
 ***
 
+### EventAckParams
+
+Re-exports [EventAckParams](generated.md#eventackparams)
+
+***
+
 ### EventBatch
 
 Re-exports [EventBatch](plugin.md#eventbatch)
@@ -2682,6 +2694,12 @@ Re-exports [EventMessage](plugin.md#eventmessage)
 ### EventOutcome
 
 Re-exports [EventOutcome](plugin.md#eventoutcome)
+
+***
+
+### EventPollParams
+
+Re-exports [EventPollParams](generated.md#eventpollparams)
 
 ***
 
@@ -4476,6 +4494,12 @@ Re-exports [ScanReply](generated.md#scanreply)
 ### ScheduledController
 
 Re-exports [ScheduledController](generated.md#scheduledcontroller)
+
+***
+
+### ScheduledFire
+
+Re-exports [ScheduledFire](plugin.md#scheduledfire)
 
 ***
 

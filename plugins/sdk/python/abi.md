@@ -380,6 +380,8 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`ProvisionReplyOk`](#provisionreplyok) | class | `ProvisionReply` member `ok`. |
 | [`ProvisionReplyErr`](#provisionreplyerr) | class | `ProvisionReply` member `err`. |
 | [`DeprovisionRequest`](#deprovisionrequest) | class | Arguments of `Provisioning.deprovision`. |
+| [`EventPollParams`](#eventpollparams) | class | Params of `RemoteLibrary.pollEvents`. |
+| [`EventAckParams`](#eventackparams) | class | Params of `RemoteLibrary.ackEvents`. |
 | [`DbValueNull`](#dbvaluenull) | class | `DbValue` member `null`. |
 | [`DbValueBoolean`](#dbvalueboolean) | class | `DbValue` member `boolean`. |
 | [`DbValueInt64`](#dbvalueint64) | class | `DbValue` member `int64`. |
@@ -2756,7 +2758,11 @@ a fire that throws is retried with backoff, keeping `scheduledTime` and
 #### ScheduledHandler.scheduled
 
 ```python
-async def scheduled(self, controller: ScheduledController) -> EmptyReply
+async def scheduled(
+    self,
+    controller: ScheduledController,
+    cancel: Cancellation,
+) -> EmptyReply
 ```
 
 Run one cron fire to completion.
@@ -2764,6 +2770,7 @@ Run one cron fire to completion.
 **Args**
 
 - `controller`: The fire being delivered.
+- `cancel`: Fires once the host cancels the fire (fence loss or operator cancel); null from hosts that predate it.
 
 **Returns**
 
@@ -3664,14 +3671,37 @@ Push / pull listening progress.
 #### RemoteLibrary.poll_events
 
 ```python
-async def poll_events(self) -> EventPollReply
+async def poll_events(self, params: EventPollParams) -> EventPollReply
 ```
 
-Drain external users the remote side observed since the last poll.
+External users the remote side observed and the host has not
+acknowledged. Without `params.ackFollows` (hosts that predate
+`ackEvents`) a returned user counts as delivered.
+
+**Args**
+
+- `params`: Whether the host acknowledges what it receives.
 
 **Returns**
 
 `EventPollReply`
+
+#### RemoteLibrary.ack_events
+
+```python
+async def ack_events(self, params: EventAckParams) -> EmptyReply
+```
+
+Acknowledge users a `pollEvents` reply handed over: the host has passed
+them on, so the guest stops returning them.
+
+**Args**
+
+- `params`: The acknowledged users.
+
+**Returns**
+
+`EmptyReply`
 
 ### PluginCli
 
@@ -7519,6 +7549,30 @@ Arguments of `Provisioning.deprovision`.
 **Attributes**
 
 - `grant`: The operator's grant, or kind `none` to use the stored secrets.
+
+### EventPollParams
+
+```python
+class EventPollParams(TypedDict)
+```
+
+Params of `RemoteLibrary.pollEvents`.
+
+**Attributes**
+
+- `ackFollows`: The host calls `ackEvents` with every user it passes on, so the guest keeps returning a user until it is acknowledged. False from hosts that predate `ackEvents`: the guest then treats a returned user as delivered.
+
+### EventAckParams
+
+```python
+class EventAckParams(TypedDict)
+```
+
+Params of `RemoteLibrary.ackEvents`.
+
+**Attributes**
+
+- `externalUserIds`: `ExternalUser.externalUserId` of each user the host passed on.
 
 ### DbValueNull
 

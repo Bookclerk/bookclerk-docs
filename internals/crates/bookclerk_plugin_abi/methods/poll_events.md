@@ -2,7 +2,7 @@
 
 Poll for plugin-observed external users after [`start`](start.md).
 
-Result: [`crate::EventPollResult`](../generated.md#eventpollresult).
+Params: [`crate::EventPollParams`](../generated.md#eventpollparams). Result: [`crate::EventPollResult`](../generated.md#eventpollresult).
 
 ## Constants
 

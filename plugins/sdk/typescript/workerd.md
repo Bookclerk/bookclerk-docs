@@ -897,6 +897,12 @@ Re-exports [EntrypointName](plugin.md#entrypointname)
 
 ***
 
+### EventAckParams
+
+Re-exports [EventAckParams](generated.md#eventackparams)
+
+***
+
 ### EventBatch
 
 Re-exports [EventBatch](plugin.md#eventbatch)
@@ -918,6 +924,12 @@ Re-exports [EventMessage](plugin.md#eventmessage)
 ### EventOutcome
 
 Re-exports [EventOutcome](plugin.md#eventoutcome)
+
+***
+
+### EventPollParams
+
+Re-exports [EventPollParams](generated.md#eventpollparams)
 
 ***
 
@@ -1902,6 +1914,12 @@ Re-exports [ScanLibraryParams](generated.md#scanlibraryparams)
 ### scanPage
 
 Re-exports [scanPage](README.md#scanpage)
+
+***
+
+### ScheduledFire
+
+Re-exports [ScheduledFire](plugin.md#scheduledfire)
 
 ***
 

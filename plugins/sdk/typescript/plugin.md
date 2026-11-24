@@ -616,7 +616,11 @@ One outcome per message, in order.
 ##### bookclerkScheduled()
 
 ```ts
-bookclerkScheduled(context, wire): Promise<void>;
+bookclerkScheduled(
+   context, 
+   wire, 
+   cancel?
+): Promise<void>;
 ```
 
 **`Internal`**
@@ -629,6 +633,7 @@ Adapter dispatch for the `scheduled(controller)` trigger.
 | ------ | ------ | ------ |
 | `context` | [`GrantedContext`](#grantedcontext) | Granted bindings for this invocation. |
 | `wire` | `Partial`\<[`ScheduledController`](generated.md#scheduledcontroller)\> | Wire `ScheduledController`. |
+| `cancel?` | [`CancelWatchLike`](#cancelwatchlike) \| `null` | Host cancellation watch for this fire, when the host sent one. |
 
 ###### Returns
 
@@ -852,13 +857,14 @@ scheduled?(controller): void | Promise<void>;
 `[triggers] crons` trigger, the Workers `scheduled(controller)`: run one
 cron fire. Return to complete; throw to have the host retry the same
 fire (same `scheduledTime` and `fireId`) with backoff. Fires are
-delivered at least once, so dedupe on `controller.fireId`.
+delivered at least once, so dedupe on `controller.fireId`. Stop work
+when `controller.signal` aborts: the host has stopped awaiting the fire.
 
 ###### Parameters
 
 | Parameter | Type |
 | ------ | ------ |
-| `controller` | `Readonly`\<[`ScheduledController`](generated.md#scheduledcontroller)\> |
+| `controller` | [`ScheduledFire`](#scheduledfire) |
 
 ###### Returns
 
@@ -4207,6 +4213,28 @@ Methods the adapter may dispatch on this entrypoint.
 
 #### Methods
 
+##### ackEvents()
+
+```ts
+ackEvents(_params): Promise<void>;
+```
+
+Acknowledges users a [pollEvents](#pollevents) reply handed over: stop
+returning them. The default does nothing, which suits a plugin that
+treats every returned user as delivered.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `_params` | [`EventAckParams`](generated.md#eventackparams) | The acknowledged `externalUserId`s. |
+
+###### Returns
+
+`Promise`\<`void`\>
+
+Resolves once recorded.
+
 ##### bookclerkInvoke()
 
 ```ts
@@ -4294,16 +4322,26 @@ Health flag plus detail.
 ##### pollEvents()
 
 ```ts
-pollEvents(): Promise<ExternalUser[]>;
+pollEvents(_params?): Promise<ExternalUser[]>;
 ```
 
-Drains external users observed since the last poll.
+External users observed and not yet acknowledged. When
+`params.ackFollows` is true the host calls [ackEvents](#ackevents) with every
+user it passes on: keep returning a user until then, so a lost reply
+does not lose it. When it is false (a host that predates `ackEvents`),
+a returned user counts as delivered.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `_params?` | [`EventPollParams`](generated.md#eventpollparams) | Whether the host acknowledges what it receives. |
 
 ###### Returns
 
 `Promise`\<[`ExternalUser`](generated.md#externaluser)[]\>
 
-Newly observed users.
+Users the host has not acknowledged.
 
 ##### scanLibrary()
 
@@ -7470,6 +7508,25 @@ type QueueOutcome =
 
 Recorded per-message outcome of a `queue()` handler (bridge projection of `QueueResult`).
 
+***
+
+### ScheduledFire
+
+```ts
+type ScheduledFire = Readonly<ScheduledController> & object;
+```
+
+One cron fire as the author's `scheduled()` receives it: the wire
+`ScheduledController` fields plus `signal`, which aborts with a
+`cancelled` [PluginError](README.md#pluginerror) once the host stops awaiting the fire
+(fence loss or operator cancel).
+
+#### Type Declaration
+
+| Name | Type | Description |
+| ------ | ------ | ------ |
+| `signal` | `AbortSignal` | Aborts when the host cancels this fire. |
+
 ## Variables
 
 ### ENTRYPOINT\_BINDINGS
@@ -7837,7 +7894,7 @@ One outcome per message, in order.
 ### scheduledControllerOf()
 
 ```ts
-function scheduledControllerOf(wire): Readonly<ScheduledController>;
+function scheduledControllerOf(wire, cancel?): ScheduledFire;
 ```
 
 Frozen author view of one wire `ScheduledController`, with every field
@@ -7848,10 +7905,11 @@ present and typed.
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
 | `wire` | \| `Partial`\<[`ScheduledController`](generated.md#scheduledcontroller)\> \| `null` \| `undefined` | Decoded wire struct (fields may be missing). |
+| `cancel?` | [`CancelWatchLike`](#cancelwatchlike) \| `null` | Host cancellation watch; without one `signal` never aborts. |
 
 #### Returns
 
-`Readonly`\<[`ScheduledController`](generated.md#scheduledcontroller)\>
+[`ScheduledFire`](#scheduledfire)
 
 The controller the author's `scheduled()` receives.
 

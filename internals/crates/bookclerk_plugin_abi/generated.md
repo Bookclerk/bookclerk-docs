@@ -144,6 +144,8 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`ProvisionedSecret`](#provisionedsecret) | struct | One credential a guided setup returns for the host to seal. |
 | [`Provisioned`](#provisioned) | struct | Success payload of `Provisioning.provision`. |
 | [`DeprovisionRequest`](#deprovisionrequest) | struct | Arguments of `Provisioning.deprovision`. |
+| [`EventPollParams`](#eventpollparams) | struct | Params of `RemoteLibrary.pollEvents`. |
+| [`EventAckParams`](#eventackparams) | struct | Params of `RemoteLibrary.ackEvents`. |
 | [`Entrypoint`](#entrypoint) | enum | Named entrypoint a plugin exports (Cloudflare Workers named-entrypoint analogue). Each value is a capability the host calls over RPC; triggers on the default entrypoint (`event`, `job`) are declared separately. |
 | [`PortalAuthMode`](#portalauthmode) | enum | Portal Accounts connect mode for storefronts. |
 | [`CliArgKind`](#cliargkind) | enum | Value kind for a `CliArgSpec`. |
@@ -534,6 +536,10 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`read_provision_reply`](#read_provision_reply) | function | Decode a `ProvisionReply` union into a typed result. |
 | [`write_deprovision_request`](#write_deprovision_request) | function | Encode a `DeprovisionRequest` onto a Cap'n Proto builder. |
 | [`read_deprovision_request`](#read_deprovision_request) | function | Decode a `DeprovisionRequest` from a Cap'n Proto reader. |
+| [`write_event_poll_params`](#write_event_poll_params) | function | Encode a `EventPollParams` onto a Cap'n Proto builder. |
+| [`read_event_poll_params`](#read_event_poll_params) | function | Decode a `EventPollParams` from a Cap'n Proto reader. |
+| [`write_event_ack_params`](#write_event_ack_params) | function | Encode a `EventAckParams` onto a Cap'n Proto builder. |
+| [`read_event_ack_params`](#read_event_ack_params) | function | Decode a `EventAckParams` from a Cap'n Proto reader. |
 | [`read_any_message`](#read_any_message) | function | Decodes `bytes` as an unpacked single-segment Cap'n Proto message whose root is the struct `selector` names, through that struct's `read_*` codec, and drops the result. |
 | [`roundtrip_any_message`](#roundtrip_any_message) | function | Decodes `bytes` as the struct `selector` names (as `read_any_message` does), writes the value back through that struct's `write_*` codec, decodes the result and requires it to equal the first value. |
 | [`READ_ANY_COUNT`](#read_any_count) | constant | Number of root structs `read_any_message` can decode; selectors are `0..READ_ANY_COUNT` in schema order. |
@@ -3877,6 +3883,40 @@ Arguments of `Provisioning.deprovision`.
 **Fields**
 
 - `grant`: The operator's grant, or kind `none` to use the stored secrets.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### EventPollParams
+
+```rust
+pub struct EventPollParams {
+    pub ack_follows: bool,
+}
+```
+
+Params of `RemoteLibrary.pollEvents`.
+
+**Fields**
+
+- `ack_follows`: The host calls `ackEvents` with every user it passes on, so the guest
+  keeps returning a user until it is acknowledged. False from hosts that
+  predate `ackEvents`: the guest then treats a returned user as delivered.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### EventAckParams
+
+```rust
+pub struct EventAckParams {
+    pub external_user_ids: Vec<String>,
+}
+```
+
+Params of `RemoteLibrary.ackEvents`.
+
+**Fields**
+
+- `external_user_ids`: `ExternalUser.externalUserId` of each user the host passed on.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -9584,6 +9624,54 @@ Decode a [`DeprovisionRequest`](#deprovisionrequest) from a Cap'n Proto reader.
 
 Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
 
+### write_event_poll_params
+
+```rust
+pub fn write_event_poll_params(b: Builder<'_>, v: &EventPollParams) -> Result<()>
+```
+
+Encode a [`EventPollParams`](#eventpollparams) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_event_poll_params
+
+```rust
+pub fn read_event_poll_params(r: Reader<'_>) -> Result<EventPollParams>
+```
+
+Decode a [`EventPollParams`](#eventpollparams) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_event_ack_params
+
+```rust
+pub fn write_event_ack_params(b: Builder<'_>, v: &EventAckParams) -> Result<()>
+```
+
+Encode a [`EventAckParams`](#eventackparams) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_event_ack_params
+
+```rust
+pub fn read_event_ack_params(r: Reader<'_>) -> Result<EventAckParams>
+```
+
+Decode a [`EventAckParams`](#eventackparams) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
 ### read_any_message
 
 ```rust
@@ -9636,7 +9724,7 @@ when the decoded value does not survive `write_*` then `read_*` intact.
 ### READ_ANY_COUNT
 
 ```rust
-pub const READ_ANY_COUNT: u8 = 179;
+pub const READ_ANY_COUNT: u8 = 181;
 ```
 
 Number of root structs [`read_any_message`](#read_any_message) can decode; selectors are

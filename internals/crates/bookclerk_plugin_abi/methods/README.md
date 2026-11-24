@@ -29,6 +29,7 @@ drift tests. Flat `UPPER_SNAKE` aliases live under [`names`](names.md).
 - [`send`](send.md): Send one message into a granted queue (Cap'n Proto `QueueProducer.send`), or deliver one notification to one destination (Cap'n Proto `Notifier.send`).
 - [`send_batch`](send_batch.md): Send a batch of messages into a granted queue (Cap'n Proto `QueueProducer.sendBatch`).
 - [`poll_events`](poll_events.md): Poll for plugin-observed external users after `start`.
+- [`ack_events`](ack_events.md): Acknowledge users a `poll_events` reply handed over.
 - [`scan_library`](scan_library.md): Trigger an integration library scan against a remote server (e.g. ABS).
 - [`sync_listening`](sync_listening.md): Pull listening-progress snapshots; host upserts tagged with the plugin id.
 - [`authenticate_user`](authenticate_user.md): Validate a username/password against a remote IdP (Cap'n Proto `Oidc.authenticateUser`) and return an external user.

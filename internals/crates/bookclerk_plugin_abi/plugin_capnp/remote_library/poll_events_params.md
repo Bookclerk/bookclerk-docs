@@ -37,6 +37,18 @@ pub fn reborrow(&self) -> Reader<'_>
 pub fn total_size(&self) -> Result<MessageSize>
 ```
 
+#### Reader::get_params
+
+```rust
+pub fn get_params(self) -> Result<Reader<'a>>
+```
+
+#### Reader::has_params
+
+```rust
+pub fn has_params(&self) -> bool
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -71,6 +83,30 @@ pub fn reborrow_as_reader(&self) -> Reader<'_>
 pub fn total_size(&self) -> Result<MessageSize>
 ```
 
+#### Builder::get_params
+
+```rust
+pub fn get_params(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_params
+
+```rust
+pub fn set_params(&mut self, value: Reader<'_>) -> Result<()>
+```
+
+#### Builder::init_params
+
+```rust
+pub fn init_params(self) -> Builder<'a>
+```
+
+#### Builder::has_params
+
+```rust
+pub fn has_params(&self) -> bool
+```
+
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
 
 ### Pipeline
@@ -79,6 +115,12 @@ Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<
 pub struct Pipeline {
     /* private fields */
 }
+```
+
+#### Pipeline::get_params
+
+```rust
+pub fn get_params(&self) -> Pipeline
 ```
 
 Implements: `FromTypelessPipeline`

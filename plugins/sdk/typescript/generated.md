@@ -3711,6 +3711,22 @@ Placeholder; the struct carries no data.
 
 ***
 
+### EventAckParams
+
+Params of `RemoteLibrary.ackEvents`.
+
+#### Properties
+
+##### externalUserIds
+
+```ts
+externalUserIds: string[];
+```
+
+`ExternalUser.externalUserId` of each user the host passed on.
+
+***
+
 ### EventBatch
 
 One `EventConsumer.event` delivery: at most `maxListPage` events, each
@@ -3803,6 +3819,24 @@ reason: string;
 ```
 
 Short human reason.
+
+***
+
+### EventPollParams
+
+Params of `RemoteLibrary.pollEvents`.
+
+#### Properties
+
+##### ackFollows
+
+```ts
+ackFollows: boolean;
+```
+
+The host calls `ackEvents` with every user it passes on, so the guest
+keeps returning a user until it is acknowledged. False from hosts that
+predate `ackEvents`: the guest then treats a returned user as delivered.
 
 ***
 
@@ -9898,6 +9932,27 @@ is `EventConsumer`; credential verification is `Oidc`.
 
 #### Methods
 
+##### ackEvents()
+
+```ts
+ackEvents(params): Promise<EmptyReply>;
+```
+
+Acknowledge users a `pollEvents` reply handed over: the host has passed
+them on, so the guest stops returning them.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `params` | [`EventAckParams`](#eventackparams) | The acknowledged users. |
+
+###### Returns
+
+`Promise`\<[`EmptyReply`](#emptyreply)\>
+
+[EmptyReply](#emptyreply)
+
 ##### diagnose()
 
 ```ts
@@ -9929,10 +9984,18 @@ Liveness / readiness probe.
 ##### pollEvents()
 
 ```ts
-pollEvents(): Promise<EventPollReply>;
+pollEvents(params): Promise<EventPollReply>;
 ```
 
-Drain external users the remote side observed since the last poll.
+External users the remote side observed and the host has not
+acknowledged. Without `params.ackFollows` (hosts that predate
+`ackEvents`) a returned user counts as delivered.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `params` | [`EventPollParams`](#eventpollparams) | Whether the host acknowledges what it receives. |
 
 ###### Returns
 
@@ -10621,7 +10684,7 @@ a fire that throws is retried with backoff, keeping `scheduledTime` and
 ##### scheduled()
 
 ```ts
-scheduled(controller): Promise<EmptyReply>;
+scheduled(controller, cancel): Promise<EmptyReply>;
 ```
 
 Run one cron fire to completion.
@@ -10631,6 +10694,7 @@ Run one cron fire to completion.
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
 | `controller` | [`ScheduledController`](#scheduledcontroller) | The fire being delivered. |
+| `cancel` | [`Cancellation`](#cancellation) | Fires once the host cancels the fire (fence loss or operator cancel); null from hosts that predate it. |
 
 ###### Returns
 

@@ -289,13 +289,24 @@ Adapter dispatch: deliver one `QueueBatch` to `queue(batch)`.
 #### BookclerkEntrypoint.bookclerkScheduled
 
 ```python
-async def bookclerkScheduled(self, context: Any=None, wire_controller: Any=None) -> None
+async def bookclerkScheduled(
+    self,
+    context: Any=None,
+    wire_controller: Any=None,
+    cancel: Any=None,
+) -> None
 ```
 
 Adapter dispatch: run one cron fire through `scheduled(controller)`.
 
 The handler receives a [`ScheduledController`](#scheduledcontroller). Returning
 completes the fire; raising has the host retry the same fire.
+
+**Args**
+
+- `context`: Granted bindings for this invocation.
+- `wire_controller`: Wire `ScheduledController`.
+- `cancel`: Host cancel watch for this fire, when the host sent one.
 
 **Raises**
 
@@ -1800,10 +1811,47 @@ Push / pull listening progress (list of `ListeningProgress`).
 #### RemoteLibraryEntrypoint.pollEvents
 
 ```python
-async def pollEvents(self)
+async def pollEvents(self, _params: abi.EventPollParams | None=None)
 ```
 
 `ExternalUser` records observed since the last poll.
+
+**Args**
+
+- `_params`: `{"ackFollows": True}` when the host calls [`ackEvents`](#remotelibraryentrypointackevents) with every user it passes on, so a user should be returned again until it is acknowledged. `None` or `False` from hosts that predate `ackEvents`.
+
+#### RemoteLibraryEntrypoint.ackEvents
+
+```python
+async def ackEvents(self, _params: abi.EventAckParams) -> None
+```
+
+The host passed these users on; stop returning them.
+
+**Args**
+
+- `_params`: `{"externalUserIds": [...]}`, the `externalUserId` of each user the host received.
+
+#### RemoteLibraryEntrypoint.bookclerkInvoke
+
+```python
+async def bookclerkInvoke(self, context=None, method='', *args)
+```
+
+Dispatch as the base adapter does, keeping old `pollEvents` overrides working.
+
+A `pollEvents` written before it took params (``async def
+pollEvents(self)``) is called without them, as it was before.
+
+**Args**
+
+- `context`: The invocation context.
+- `method`: The method name.
+- `*args`: The method's wire arguments.
+
+**Returns**
+
+The method's wire result.
 
 ### ScheduledController
 
@@ -1824,6 +1872,27 @@ same `scheduled_time` and `fire_id`, so dedupe on `fire_id`.
 - `fire_id`: Durable id of this fire, stable across retries.
 - `attempt`: Failure attempt, starting at 1.
 - `deadline_unix_ms`: Deadline hint in Unix milliseconds; the host fence is authoritative.
+
+Once the host stops awaiting the fire (fence loss or operator cancel),
+[`cancelled`](#scheduledcontrollercancelled) turns `True` and [`wait_cancelled`](#scheduledcontrollerwait_cancelled) returns; stop
+side effects then.
+
+#### ScheduledController.cancelled
+
+```python
+@property
+def cancelled(self) -> bool
+```
+
+Whether the host has cancelled this fire.
+
+#### ScheduledController.wait_cancelled
+
+```python
+async def wait_cancelled(self) -> None
+```
+
+Return once the host cancels this fire (never, when it sent no probe).
 
 #### ScheduledController.from_wire
 

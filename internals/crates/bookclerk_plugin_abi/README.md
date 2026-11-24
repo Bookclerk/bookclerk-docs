@@ -722,6 +722,8 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`generated::ProvisionedSecret`](generated.md#provisionedsecret)
 - [`generated::Provisioned`](generated.md#provisioned)
 - [`generated::DeprovisionRequest`](generated.md#deprovisionrequest)
+- [`generated::EventPollParams`](generated.md#eventpollparams)
+- [`generated::EventAckParams`](generated.md#eventackparams)
 - [`generated::write_event_consumer_spec`](generated.md#write_event_consumer_spec)
 - [`generated::read_event_consumer_spec`](generated.md#read_event_consumer_spec)
 - [`generated::write_plugin_capabilities`](generated.md#write_plugin_capabilities)
@@ -1080,6 +1082,10 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`generated::read_provision_reply`](generated.md#read_provision_reply)
 - [`generated::write_deprovision_request`](generated.md#write_deprovision_request)
 - [`generated::read_deprovision_request`](generated.md#read_deprovision_request)
+- [`generated::write_event_poll_params`](generated.md#write_event_poll_params)
+- [`generated::read_event_poll_params`](generated.md#read_event_poll_params)
+- [`generated::write_event_ack_params`](generated.md#write_event_ack_params)
+- [`generated::read_event_ack_params`](generated.md#read_event_ack_params)
 - [`generated::READ_ANY_COUNT`](generated.md#read_any_count)
 - [`generated::read_any_message`](generated.md#read_any_message)
 - [`generated::RoundTripFailure`](generated.md#roundtripfailure)
@@ -3927,7 +3933,15 @@ pub trait RemoteLibrary {
         'life0: 'async_trait,;
     fn poll_events<'life0, 'async_trait>(
         &'life0 self,
+        _params: EventPollParams,
     ) -> Pin<Box<dyn Future<Output = Result<Vec<ExternalUser>>> + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
+    fn ack_events<'life0, 'async_trait>(
+        &'life0 self,
+        _params: EventAckParams,
+    ) -> Pin<Box<dyn Future<Output = Result<()>> + 'async_trait>>
     where
         Self: 'async_trait,
         'life0: 'async_trait,;
@@ -4022,13 +4036,35 @@ Push / pull listening progress; the host upserts the rows.
 ```rust
 fn poll_events<'life0, 'async_trait>(
     &'life0 self,
+    _params: EventPollParams,
 ) -> Pin<Box<dyn Future<Output = Result<Vec<ExternalUser>>> + 'async_trait>>
 where
     Self: 'async_trait,
     'life0: 'async_trait,
 ```
 
-Drain external users observed since the last poll.
+External users observed and not yet acknowledged.
+
+With `params.ack_follows` the host acknowledges every user it passes
+on through [`Self::ack_events`](#remotelibraryack_events); keep returning a user until then, so
+a lost reply does not lose it. Without it (a host that predates
+`ackEvents`), a returned user counts as delivered.
+
+#### RemoteLibrary::ack_events
+
+```rust
+fn ack_events<'life0, 'async_trait>(
+    &'life0 self,
+    _params: EventAckParams,
+) -> Pin<Box<dyn Future<Output = Result<()>> + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Acknowledges users a [`Self::poll_events`](#remotelibrarypoll_events) reply handed over; stop
+returning them. The default does nothing, which suits a guest that
+treats every returned user as delivered.
 
 Implemented by: `RemoteLibraryClient`
 
@@ -4039,6 +4075,7 @@ pub trait ScheduledHandler {
     fn scheduled<'life0, 'async_trait>(
         &'life0 self,
         controller: ScheduledController,
+        cancel: Box<dyn Cancellation>,
     ) -> Pin<Box<dyn Future<Output = Result<()>> + 'async_trait>>
     where
         Self: 'async_trait,
@@ -4059,6 +4096,7 @@ and `scheduled_time`, so dedupe on the fire id.
 fn scheduled<'life0, 'async_trait>(
     &'life0 self,
     controller: ScheduledController,
+    cancel: Box<dyn Cancellation>,
 ) -> Pin<Box<dyn Future<Output = Result<()>> + 'async_trait>>
 where
     Self: 'async_trait,
@@ -4066,6 +4104,13 @@ where
 ```
 
 Runs one cron fire to completion.
+
+##### Arguments
+
+* `controller` - The fire being delivered.
+* `cancel` - Host cancellation probe for this fire; it reports
+  `true` once the host stops awaiting the fire (fence loss or
+  operator cancel), after which side effects should stop.
 
 Implemented by: `ScheduledHandlerClient`
 
@@ -6153,6 +6198,27 @@ pub fn new(client: Client) -> Self
 
 Wraps a `ScheduledHandler` capability client (any transport that
 yields one, including the bookclerk-workerd `/invoke` hook).
+
+#### ScheduledHandlerClient::scheduled_with_cancel
+
+```rust
+pub async fn scheduled_with_cancel(
+    &self,
+    controller: &ScheduledController,
+    cancel: Client,
+) -> Result<()>
+```
+
+Delivers one fire with a caller-built cancellation client.
+
+Transports that do not host a local vat (the bookclerk-workerd
+`/invoke` hook, where the probe is a grant-token descriptor) build
+the client themselves.
+
+##### Errors
+
+Returns [`PluginError::payload_too_large`](error.md#pluginerrorpayload_too_large) when the cron is longer
+than [`crate::MAX_CRON_BYTES`](#max_cron_bytes), or the handler's error.
 
 Implements: `Clone`, `ScheduledHandler`
 

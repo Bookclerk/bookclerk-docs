@@ -49,6 +49,18 @@ pub fn get_controller(self) -> Result<Reader<'a>>
 pub fn has_controller(&self) -> bool
 ```
 
+#### Reader::get_cancel
+
+```rust
+pub fn get_cancel(self) -> Result<Client>
+```
+
+#### Reader::has_cancel
+
+```rust
+pub fn has_cancel(&self) -> bool
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -107,6 +119,24 @@ pub fn init_controller(self) -> Builder<'a>
 pub fn has_controller(&self) -> bool
 ```
 
+#### Builder::get_cancel
+
+```rust
+pub fn get_cancel(self) -> Result<Client>
+```
+
+#### Builder::set_cancel
+
+```rust
+pub fn set_cancel(&mut self, value: Client)
+```
+
+#### Builder::has_cancel
+
+```rust
+pub fn has_cancel(&self) -> bool
+```
+
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
 
 ### Pipeline
@@ -121,6 +151,12 @@ pub struct Pipeline {
 
 ```rust
 pub fn get_controller(&self) -> Pipeline
+```
+
+#### Pipeline::get_cancel
+
+```rust
+pub fn get_cancel(&self) -> Client
 ```
 
 Implements: `FromTypelessPipeline`

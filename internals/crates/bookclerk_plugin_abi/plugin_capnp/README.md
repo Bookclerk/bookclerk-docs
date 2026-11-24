@@ -425,6 +425,8 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`provisioned`](provisioned.md)
 - [`provision_reply`](provision_reply.md)
 - [`deprovision_request`](deprovision_request.md)
+- [`event_poll_params`](event_poll_params.md)
+- [`event_ack_params`](event_ack_params.md)
 - [`db_value`](db_value.md)
 - [`db_column`](db_column.md)
 - [`db_row`](db_row.md)

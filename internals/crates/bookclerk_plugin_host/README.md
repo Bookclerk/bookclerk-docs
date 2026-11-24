@@ -2401,7 +2401,9 @@ use that describe/open check.
 
 ##### Errors
 
-Returns an error when an entrypoint's health reports not ok.
+Returns an error when an entrypoint's health reports not ok, or a
+`deadline_exceeded` error when the guest does not answer within
+30 seconds.
 
 Implements: `Integration`, `SocketSink`
 
@@ -2499,7 +2501,9 @@ Storefront health RPC.
 
 ##### Errors
 
-Returns an error when the guest has no storefront or health reports not ok.
+Returns an error when the guest has no storefront or health reports
+not ok, or a `deadline_exceeded` error when the guest does not answer
+within 30 seconds.
 
 #### ExternalSource::guest_pid
 

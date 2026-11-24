@@ -46,6 +46,8 @@ First-party adapters (e.g. Audiobookshelf) live in
 | [`ticket_portal_url`](#ticket_portal_url) | function | Build a shareable SPA claim URL when `public_origin` is configured. |
 | [`Result`](#result) | type alias | Result alias for this crate. |
 | [`ImageSrc`](#imagesrc) | type alias | See `PortalState::image_src`. |
+| [`ExternalUserAccepted`](#externaluseraccepted) | type alias | Future an `OnExternalUser` hook returns: it resolves once the user is durably accepted (its claim ticket minted), or with the failure. |
+| [`OnExternalUser`](#onexternaluser) | type alias | Daemon hook for an observed external user (claim minting). |
 | [`AI_LIST_TIMEOUT`](#ai_list_timeout) | constant | Longest a model plugin may take to list its models. Listing loads no model, so this mostly covers waking a sleeping plugin. |
 | [`AI_RUN_TIMEOUT`](#ai_run_timeout) | constant | Longest one model run may take before the router gives up on it. A full batch on the largest first-party model on one slow core fits; a caller with a shorter deadline passes its own. |
 | [`MAX_REGISTERED_INTEGRATIONS`](#max_registered_integrations) | constant | Hard ceiling on registered integrations (plugin discovery is user-influenced). |
@@ -1254,7 +1256,7 @@ Implements: `Clone`, `Debug`, `PartialEq`
 
 ```rust
 pub struct IntegrationContext {
-    pub on_external_user: Option<Arc<dyn Fn(ExternalUser) + Send + Sync>>,
+    pub on_external_user: Option<OnExternalUser>,
 }
 ```
 
@@ -1971,6 +1973,27 @@ pub type ImageSrc = Arc<dyn Fn(&str) -> Option<String> + Send + Sync>;
 ```
 
 See [`PortalState::image_src`](#portalstate).
+
+### ExternalUserAccepted
+
+```rust
+pub type ExternalUserAccepted = Pin<Box<dyn Future<Output = Result<()>> + Send>>;
+```
+
+Future an [`OnExternalUser`](#onexternaluser) hook returns: it resolves once the user is
+durably accepted (its claim ticket minted), or with the failure.
+
+### OnExternalUser
+
+```rust
+pub type OnExternalUser = Arc<dyn Fn(ExternalUser) -> ExternalUserAccepted + Send + Sync>;
+```
+
+Daemon hook for an observed external user (claim minting).
+
+A remote library poll acknowledges a user only after its hook resolved
+`Ok`, so a user whose ticket could not be minted stays pending on the
+guest and is handed over again on the next poll.
 
 ## Constants
 

@@ -164,6 +164,15 @@ pub fn output_only(output: Rc<dyn Destination>, expires: Instant) -> Self
 A grant that only streams bodies into one host destination over
 `PUT /put` (no source, progress, database, events or KV).
 
+#### GrantedSlot::cancel_only
+
+```rust
+pub fn cancel_only(cancel: Box<dyn Cancellation>, expires: Instant) -> Self
+```
+
+A grant that only answers the `GET /cancel` long poll for one host
+cancellation probe (a cron fire's).
+
 #### GrantedSlot::queue_only
 
 ```rust

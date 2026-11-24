@@ -20,6 +20,8 @@
 | [`SyncListeningResults`](#synclisteningresults) | type alias |  |
 | [`PollEventsParams`](#polleventsparams) | type alias |  |
 | [`PollEventsResults`](#polleventsresults) | type alias |  |
+| [`AckEventsParams`](#ackeventsparams) | type alias |  |
+| [`AckEventsResults`](#ackeventsresults) | type alias |  |
 
 ## Modules
 
@@ -37,6 +39,8 @@
 - [`sync_listening_results`](sync_listening_results.md)
 - [`poll_events_params`](poll_events_params.md)
 - [`poll_events_results`](poll_events_results.md)
+- [`ack_events_params`](ack_events_params.md)
+- [`ack_events_results`](ack_events_results.md)
 
 ## Traits
 
@@ -78,6 +82,11 @@ pub trait Server: 'static {
         self: Rc<Self>,
         _: PollEventsParams,
         _: PollEventsResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn ack_events(
+        self: Rc<Self>,
+        _: AckEventsParams,
+        _: AckEventsResults,
     ) -> impl Future<Output = Result<(), Error>> + 'static;
 }
 ```
@@ -152,6 +161,16 @@ fn poll_events(
 ) -> impl Future<Output = Result<(), Error>> + 'static
 ```
 
+#### Server::ack_events
+
+```rust
+fn ack_events(
+    self: Rc<Self>,
+    _: AckEventsParams,
+    _: AckEventsResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
+
 ## Structs
 
 ### Client
@@ -202,6 +221,12 @@ pub fn sync_listening_request(&self) -> Request<Owned, Owned>
 
 ```rust
 pub fn poll_events_request(&self) -> Request<Owned, Owned>
+```
+
+#### Client::ack_events_request
+
+```rust
+pub fn ack_events_request(&self) -> Request<Owned, Owned>
 ```
 
 Implements: `Clone`, `FromClientHook`, `FromPointerBuilder<'a>`, `FromPointerReader<'a>`, `FromServer<_S>`, `HasTypeId`, `SetterInput<Owned>`
@@ -319,4 +344,16 @@ pub type PollEventsParams = Params<Owned>;
 
 ```rust
 pub type PollEventsResults = Results<Owned>;
+```
+
+### AckEventsParams
+
+```rust
+pub type AckEventsParams = Params<Owned>;
+```
+
+### AckEventsResults
+
+```rust
+pub type AckEventsResults = Results<Owned>;
 ```
