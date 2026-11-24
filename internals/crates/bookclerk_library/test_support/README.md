@@ -87,6 +87,15 @@ pub fn lock_next_requests(&self, n: u32)
 Arms `n` lock-contention refusals: nothing is applied, the caller
 sees `unavailable` naming `SQLITE_BUSY`.
 
+#### ProfileExec::aim_faults_at
+
+```rust
+pub fn aim_faults_at(&self, prefix: Option<&str>)
+```
+
+Aims armed faults at batches with a statement whose SQL starts with
+`prefix`, or at every batch when `None`.
+
 Implements: `Debug`, `TypedAtomicExec`
 
 ### ProfileAtomic
@@ -226,6 +235,16 @@ pub fn lock_next_requests(&self, n: u32)
 
 The next `n` batches are refused with SQLite lock contention before
 anything is applied, the way a busy file lock answers.
+
+#### ProfileStore::aim_faults_at
+
+```rust
+pub fn aim_faults_at(&self, prefix: Option<&str>)
+```
+
+Aims the armed faults at batches with a statement whose SQL starts
+with `prefix`, so a test can fail one step of a multi-batch write;
+`None` aims them at every batch again.
 
 #### ProfileStore::execute_batch
 

@@ -32,6 +32,7 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`clerk_links`](clerk_links.md): SeaORM entity for `clerk_links`: on a clerk, the libraries this install holds a library card for (written by `control_plane::record_clerk_link`).
 - [`configuration_audit`](configuration_audit.md): SeaORM entity for successful configuration commits.
 - [`configuration_changes`](configuration_changes.md): SeaORM entity for the configuration change notice written with each commit.
+- [`configuration_document_parts`](configuration_document_parts.md): SeaORM entity for the `configuration_document_parts` table (composite primary key).
 - [`configuration_documents`](configuration_documents.md): SeaORM entity for one typed configuration document.
 - [`contributors`](contributors.md): SeaORM entity for the `contributors` table (text primary key).
 - [`copy_grants`](copy_grants.md): SeaORM entity for `copy_grants`: one reader's leave to download the copy this library holds of one edition. Written by `control_plane::copies`.
@@ -146,4 +147,5 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`window_books`](window_books.md): SeaORM entity for `window_books`: on a branch or a clerk, the books of each library it reads, one row per edition (`control_plane::window_books`).
 - [`work_identifiers`](work_identifiers.md): SeaORM entity for the `work_identifiers` table (composite primary key).
 - [`work_tags`](work_tags.md): SeaORM entity for `work_tags`: library tags on a top-level work, one row per tag and source.
+- [`work_text_parts`](work_text_parts.md): SeaORM entity for the `work_text_parts` table (composite primary key).
 - [`works`](works.md): SeaORM entity for the `works` table (text primary key).
