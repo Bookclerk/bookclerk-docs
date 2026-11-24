@@ -220,6 +220,7 @@
     "internals/crates/bookclerk_library/entities/library_links",
     "internals/crates/bookclerk_library/entities/library_work_facets",
     "internals/crates/bookclerk_library/entities/library_work_rows",
+    "internals/crates/bookclerk_library/entities/link_copy_files",
     "internals/crates/bookclerk_library/entities/link_imports",
     "internals/crates/bookclerk_library/entities/link_requests",
     "internals/crates/bookclerk_library/entities/listening_progress",

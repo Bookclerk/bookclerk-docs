@@ -114,6 +114,8 @@ See `docs/adr/control-plane.md`.
 | [`NewLibraryLink`](#newlibrarylink) | struct | What enrollment returned, to record with `record_library_link`. |
 | [`SharingBody`](#sharingbody) | struct | `POST /api/config/join/sharing` body: one library and the settings to change for it. |
 | [`SharingRequest`](#sharingrequest) | struct | A sharing settings change: the library it names (trimmed) and the settings to write, each `None` setting left as stored. |
+| [`LinkCopyAttempt`](#linkcopyattempt) | struct | One copy attempt of one title: what its claims are recorded under. |
+| [`StaleLinkCopy`](#stalelinkcopy) | struct | A copy an earlier process left mid-title (`stale_link_copies`). |
 | [`LinkImport`](#linkimport) | struct | One title the library committed, as the branch kept it. |
 | [`OwnerShareFilter`](#ownersharefilter) | struct | Which of this install's acquired books the catalog sync sends the library `library_id`: the branch owner's own books, those held by a store account connected here to the branch's person (`super::branch_person`); the books that library asked for through an interlibrary request and this branch still lists to it (`still_listed_requests`); and, while that library acquires all of this branch's members' books, the books of every store account this branch lists to it (`listed_accounts`). Never one imported from that library (`books_imported_from_link`). With no single person, the owner's books are not among them. |
 | [`TakenCopy`](#takencopy) | struct | A book of this install whose files came from a library it joined, by its store identity here. |
@@ -167,6 +169,7 @@ See `docs/adr/control-plane.md`.
 | [`SemaphoreRequest`](#semaphorerequest) | struct | One semaphore a caller wants a permit of. |
 | [`LibraryContents`](#librarycontents) | struct | What library data an install holds of its own. |
 | [`TemplateStrip`](#templatestrip) | struct | What `strip_install_state` removed. |
+| [`GrantedDestination`](#granteddestination) | struct | One output destination of the receiving shared node as a grant pins it: its id and the instance document revision its guest runs (`UploadDestination::config_revision`). |
 | [`TitleNames`](#titlenames) | struct | The names a title's acquire writes on one destination, as the owner plans them, all without their extension. |
 | [`UploadDestination`](#uploaddestination) | struct | One output destination of the receiving shared node an upload is granted for, with where the title may be written there. |
 | [`UploadFinish`](#uploadfinish) | struct | How the job's closing upload completes it. |
@@ -219,6 +222,8 @@ See `docs/adr/control-plane.md`.
 | [`IntakeFinish`](#intakefinish) | enum | How an ingest batch ended for one item. |
 | [`IntakeWrite`](#intakewrite) | enum | One change to a drop folder's records. |
 | [`KeeperUpdate`](#keeperupdate) | enum | What `apply_keeper_update` did. |
+| [`CopyTarget`](#copytarget) | enum | Whether a key held a file before an attempt wrote its copy there. |
+| [`LinkCopyClaim`](#linkcopyclaim) | enum | What `claim_link_copy` found. |
 | [`LinkImportOutcome`](#linkimportoutcome) | enum | What `import_link_title` did. |
 | [`LiveTopic`](#livetopic) | enum | A topic of the live socket. |
 | [`ControlChoice`](#controlchoice) | enum | What a change does to one control of one patron. |
@@ -501,6 +506,13 @@ See `docs/adr/control-plane.md`.
 | [`set_library_link_sharing`](#set_library_link_sharing) | function | Sets a link's two sharing settings: "Share this branch's books with *library*" and "Include books from my own branches". Answers false when no such link exists. The running catalog sync reports them to the owner on its next pass. |
 | [`set_library_link_state`](#set_library_link_state) | function | Sets a link's state. Answers false when no such link exists. |
 | [`set_library_link_work`](#set_library_link_work) | function | Sets a link's two work settings: "Download for other members of *library*" and "Keep copies of other members' books". Answers false when no such link exists. The running client claims under the new scope from its next consent check. |
+| [`claim_link_copy`](#claim_link_copy) | function | Claims `key` on `destination` for `attempt` before the copy is written; `target` says whether a file is already there. |
+| [`keep_link_copies`](#keep_link_copies) | function | Keeps every copy `writer` claimed: the library committed the title, so they stay on this install's destinations. |
+| [`link_copy_title_ref`](#link_copy_title_ref) | function | The title reference a copy is recorded under: the title's call number on the library (`call_number`, when it sent one), which names one edition there, else its holding id there. |
+| [`link_copy_writer`](#link_copy_writer) | function | A new attempt's writer: `<node id>/<process incarnation>/<attempt id>`. |
+| [`release_link_copies`](#release_link_copies) | function | Gives back every key `writer`'s attempt claimed once it failed (the caller removed the files it created): a key the attempt took over from a kept copy of its title is kept again (that file stays), and a key it claimed fresh is forgotten. A key another attempt claimed since is left alone. |
+| [`settle_stale_link_copy`](#settle_stale_link_copy) | function | Settles one copy `stale_link_copies` answered, once the caller deleted its file (a `CopyTarget::New` one) or left it (a `CopyTarget::Existing` one): the record is forgotten, or kept again. Changes nothing when another attempt claimed the key since. |
+| [`stale_link_copies`](#stale_link_copies) | function | Copies of `node_id` that an earlier process left mid-title: `copying` records whose writer is this node under another incarnation than `incarnation`, older than `STALE_LINK_COPY_AGE_SECS` at `now`, oldest first, at most a batch. The caller deletes each new one's file (or keeps an existing one's) and then settles that key (`settle_stale_link_copy`); a key whose file could not be deleted is left for a later sweep. |
 | [`books_imported_from_link`](#books_imported_from_link) | function | Every book imported from the library `library_id`, by store identity: the books the catalog sync must not send back to it. Read in keyset pages no larger than the database plugin's `maxResultRows`. |
 | [`import_link_title`](#import_link_title) | function | Imports a title the library committed into this install's own library (see the module docs). |
 | [`record_copy_taken_from_link`](#record_copy_taken_from_link) | function | Records that this install took its copy of `book` from the library `library_id`, so the catalog sync never sends that library a book it provided itself (`books_imported_from_link`). A book already recorded for that library is left as it is; one taken from several libraries is recorded once for each. |
@@ -651,9 +663,11 @@ See `docs/adr/control-plane.md`.
 | [`grant_upload`](#grant_upload) | function | Opens an upload of one title of the acquire job `node_id` holds at `generation`, to be received by `receiving_node_id`. |
 | [`job_titles`](#job_titles) | function | The titles the acquire `job` run by `node_id` covers, read from the account holdings as a local acquire reads them: of the job's plugins (`job_plugin_keys`), of the accounts its account selector names (`job_accounts`, so a job naming its account by label or in another case covers that account's titles) and its title when it names one (`LibraryStore::acquire_titles_named`, matched as the executor matches it), and, for a Host trusted only with its owner's accounts, one of that user's. `None` when the node is trusted with nothing. |
 | [`load_upload`](#load_upload) | function | Loads one upload by id. |
+| [`mark_discarded`](#mark_discarded) | function | Marks an aborted upload's files on its receiving node deleted: a `discarding` upload becomes `aborted`. Called by the receiving node once it has deleted (or found it cannot ever reach) what the upload had received; a no-op for any other state. |
 | [`record_upload_file`](#record_upload_file) | function | Records that file `index` reached every destination and extends the upload's token. Answers false when the upload is no longer open (it was aborted meanwhile: the caller deletes the copies it just wrote). |
 | [`upload_fence_live`](#upload_fence_live) | function | True while the upload's fence is the job's live lease for its node and the node is still trusted with the job. |
 | [`upload_owns_key`](#upload_owns_key) | function | True while `key` on `destination` is still `session`'s own: its recorded latest writer is this upload (an upload id is unique, and claims keys for its own title only). A later upload of the title, an acquire run on this node, or another title may have written the key since; the receiving node then leaves the file alone when it cleans up after `session`, so a stale abort never deletes a replacement's file. |
+| [`uploads_to_sweep`](#uploads_to_sweep) | function | The uploads `receiving_node_id` should sweep (#292), at most `UPLOAD_SWEEP_BATCH`: each open upload it receives whose fence is no longer live (`upload_fence_live`: the Host vanished mid-title and its lease ran out or moved, so no further file, commit, renewal or finish will arrive), and each upload aborted elsewhere whose files it still holds (`discarding`). The caller aborts the first (`abort_upload`) and deletes the files of both, then marks them done (`mark_discarded`). An open upload whose fence is still live is left alone, however long it has been idle: its job may still send the rest. |
 | [`activate_version`](#activate_version) | function | Moves the active pointer of `plugin_key` to `version` (first install, update, or rollback), pins the version's settings schema, and wakes every node. Pointing at the version that is already active is a no-op. |
 | [`add_plugin_version`](#add_plugin_version) | function | Records a version. Installing the same `(plugin_key, version)` again with the same artifact digests is a no-op (`AddVersion::Existing`); different digests under an installed version are refused, so a version never changes content behind a node's cache. |
 | [`approve_version_grant`](#approve_version_grant) | function | Records the operator-approved consent grant on a version. |
@@ -767,6 +781,7 @@ See `docs/adr/control-plane.md`.
 | [`LIBRARY_LINK_KEYS_NAME`](#library_link_keys_name) | constant | `encrypted_secrets.name` of a link's node keys. |
 | [`LIBRARY_LINK_LEFT`](#library_link_left) | constant | `library_links.state` after this install left the library. |
 | [`LIBRARY_LINK_REVOKED`](#library_link_revoked) | constant | `library_links.state` once the owner revoked this node (close 4403). |
+| [`STALE_LINK_COPY_AGE_SECS`](#stale_link_copy_age_secs) | constant | How long a `copying` record of an earlier process waits before `stale_link_copies` answers it: two processes can share a node id for a moment during an overlapping restart, and the older one may still be finishing its copy. |
 | [`MEMBER_CONTROLS_NAMESPACE`](#member_controls_namespace) | constant | Namespace of the library document that holds the library's default member controls. |
 | [`NODE_CONSUMER_PREFIX`](#node_consumer_prefix) | constant | Catalog `plugin_id` prefix of a node's own consumer (`node:<node_id>`). |
 | [`AVAILABILITY_FULL_PPM`](#availability_full_ppm) | constant | Full availability in parts per million. |
@@ -809,6 +824,7 @@ See `docs/adr/control-plane.md`.
 | [`SEMAPHORE_LEASE_PREFIX`](#semaphore_lease_prefix) | constant | Prefix of every semaphore slot lease name. |
 | [`UPLOAD_NAME_WILDCARD`](#upload_name_wildcard) | constant | In a `TitleNames::part_patterns` pattern: one or more characters of a file name (no `/`), where a part or chapter title goes. Storage keys hold no control character, so the marker never clashes with one. |
 | [`UPLOAD_NUMBER_WILDCARD`](#upload_number_wildcard) | constant | In a `TitleNames::part_patterns` pattern: one or more ASCII digits, where a part or chapter number goes. |
+| [`UPLOAD_SWEEP_BATCH`](#upload_sweep_batch) | constant | How many uploads one sweep (`uploads_to_sweep`) answers. |
 | [`UPLOAD_TOKEN_TTL_SECS`](#upload_token_ttl_secs) | constant | How long a granted upload's token is accepted past its latest extension (the grant, an accepted file, or a renewal of the job's lease). |
 | [`ARTIFACT_BLOB_SCHEME`](#artifact_blob_scheme) | constant | Artifact URL scheme of an archive stored in the library (`super::artifacts::put_artifact_blob`). |
 | [`MAX_WAITING_WEBHOOK_DELIVERIES`](#max_waiting_webhook_deliveries) | constant | Most requests one plugin instance may have waiting, across its webhooks. Past this the route answers 503 and the next pull reports `missed`. |
@@ -3879,6 +3895,51 @@ settings to write, each `None` setting left as stored.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### LinkCopyAttempt
+
+```rust
+pub struct LinkCopyAttempt<'a> {
+    pub library_id: &'a str,
+    pub title_ref: &'a str,
+    pub writer: &'a str,
+}
+```
+
+One copy attempt of one title: what its claims are recorded under.
+
+**Fields**
+
+- `library_id`: The library the title was acquired for.
+- `title_ref`: The title: its call number on that library, else its holding id
+  there ([`link_copy_title_ref`](#link_copy_title_ref)).
+- `writer`: This attempt's writer ([`link_copy_writer`](#link_copy_writer)).
+
+Implements: `Clone`, `Copy`, `Debug`
+
+### StaleLinkCopy
+
+```rust
+pub struct StaleLinkCopy {
+    pub destination: String,
+    pub key: String,
+    pub writer: String,
+    pub target: CopyTarget,
+}
+```
+
+A copy an earlier process left mid-title ([`stale_link_copies`](#stale_link_copies)).
+
+**Fields**
+
+- `destination`: This install's destination id.
+- `key`: The storage key there.
+- `writer`: The attempt that wrote it.
+- `target`: Whether a file was at the key before the attempt: an
+  [`CopyTarget::Existing`](#copytarget) one is left and its record kept again
+  ([`settle_stale_link_copy`](#settle_stale_link_copy)), a [`CopyTarget::New`](#copytarget) one deleted.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### LinkImport
 
 ```rust
@@ -5829,6 +5890,34 @@ What [`strip_install_state`](#strip_install_state) removed.
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
+### GrantedDestination
+
+```rust
+pub struct GrantedDestination {
+    pub id: String,
+    pub config_revision: i64,
+}
+```
+
+One output destination of the receiving shared node as a grant pins
+it: its id and the instance document revision its guest runs
+([`UploadDestination::config_revision`](#uploaddestination)).
+
+**Fields**
+
+- `id`: The destination's id (`local`, `s3`).
+- `config_revision`: The instance document revision its guest was opened with.
+
+#### GrantedDestination::new
+
+```rust
+pub fn new(id: impl Into<String>, config_revision: i64) -> Self
+```
+
+A destination `id` at `config_revision`.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### TitleNames
 
 ```rust
@@ -5877,6 +5966,7 @@ pub struct UploadDestination {
     pub id: String,
     pub title_folders: Vec<String>,
     pub title_names: Option<TitleNames>,
+    pub config_revision: i64,
 }
 ```
 
@@ -5901,6 +5991,11 @@ Host trusted with one title cannot claim another title's file there.
 - `title_names`: The title's planned names, when its folder is shared with other
   titles (or is the root): every key must then also be one of them.
   `None` when the folder is the title's own.
+- `config_revision`: The destination's instance document revision on the receiving node
+  at grant. The grant records it, and the receiving node writes no
+  further file and refuses the commit (`destinations_changed`) once
+  the destination runs another, so a moved root or bucket never
+  splits a title across two backends (#313).
 
 #### UploadDestination::admits
 
@@ -5988,11 +6083,13 @@ pub struct UploadSession {
     pub primary_key: String,
     pub pdf_key: Option<String>,
     pub destinations: Vec<String>,
+    pub destination_revisions: Vec<i64>,
     pub files: Vec<UploadFile>,
     pub received: BTreeSet<usize>,
     pub state: String,
     pub catalog_digest: Option<String>,
     pub catalog_edition: Option<String>,
+    pub upgrade: bool,
 }
 ```
 
@@ -6011,6 +6108,9 @@ One open upload, as the upload endpoint sees it.
 - `pdf_key`: Storage key of the companion PDF, when uploaded.
 - `destinations`: The receiving node's destination ids at grant, the primary first;
   the files are written only while the node still has exactly these.
+- `destination_revisions`: Each of [`Self::destinations`](#uploadsession)' configuration revision at grant, in
+  the same order ([`UploadDestination::config_revision`](#uploaddestination)); empty for
+  an upload granted before revisions were pinned.
 - `files`: The declared files.
 - `received`: Indexes of the files every destination has.
 - `state`: `open`, `committed` or `aborted`.
@@ -6019,6 +6119,32 @@ One open upload, as the upload endpoint sees it.
 - `catalog_edition`: For a branch's catalog upload: the edition the holding's listing
   sold at grant. The upload writes under that edition's keys, so it
   is recorded as delivered only while the listing still sells it.
+- `upgrade`: True when the upload replaces its edition's copy with a better one
+  (#300): each file is written under its staged key
+  ([`Self::write_key`](#uploadsessionwrite_key)) and moved onto its granted key only when the
+  upload commits, so an upload that never commits leaves the copy it
+  would have replaced as it was.
+
+#### UploadSession::write_key
+
+```rust
+pub fn write_key<'a>(&self, key: &'a str) -> Cow<'a, str>
+```
+
+Where the receiving node writes the copy granted at `key`: `key`
+itself, or for a better copy of the edition ([`Self::upgrade`](#uploadsession)) a
+staged key beside it, unique to this upload, that the commit moves
+onto `key` ([`Self::staged_key`](#uploadsessionstaged_key)).
+
+#### UploadSession::staged_key
+
+```rust
+pub fn staged_key(&self, key: &str) -> String
+```
+
+The staged key of the copy granted at `key`: `key` with a suffix
+naming this upload. It ends in no audio, PDF or sidecar extension
+of the title, and no other upload writes it.
 
 #### UploadSession::is_catalog
 
@@ -7571,6 +7697,54 @@ What [`apply_keeper_update`](#apply_keeper_update) did.
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
+### CopyTarget
+
+```rust
+pub enum CopyTarget {
+    New,
+    Existing,
+}
+```
+
+Whether a key held a file before an attempt wrote its copy there.
+
+Only a key the attempt finds empty is its own to delete when the title
+is not committed; a file already there (an earlier copy of the title,
+say, recorded before this ledger or by an attempt that took it over)
+is overwritten by the copy and stays.
+
+**Variants**
+
+- `New`: No file was at the key: the attempt's copy is the only one, and
+  goes when the title is not committed.
+- `Existing`: A file was already at the key: it stays, and its record is kept
+  again, when the title is not committed.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
+### LinkCopyClaim
+
+```rust
+pub enum LinkCopyClaim {
+    Fresh,
+    Replaced,
+    HeldByAnotherTitle,
+}
+```
+
+What [`claim_link_copy`](#claim_link_copy) found.
+
+**Variants**
+
+- `Fresh`: The key was unrecorded (or another attempt of the same title was
+  still copying it); the attempt holds it now.
+- `Replaced`: The key held a kept copy of the same title (from any library that
+  sent the same edition), which the attempt took over: a failed
+  attempt leaves that file and its record kept.
+- `HeldByAnotherTitle`: Another title holds the key; nothing was written.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
 ### LinkImportOutcome
 
 ```rust
@@ -8888,7 +9062,7 @@ pub async fn grant_catalog_upload(
     receiving_node_id: &str,
     reference: &CatalogRef,
     files: &[UploadFile],
-    destinations: &[String],
+    destinations: &[GrantedDestination],
 ) -> Result<UploadGrant>
 ```
 
@@ -13355,6 +13529,124 @@ scope from its next consent check.
 
 Returns the write error.
 
+### claim_link_copy
+
+```rust
+pub async fn claim_link_copy(
+    store: &LibraryStore,
+    attempt: LinkCopyAttempt<'_>,
+    destination: &str,
+    key: &str,
+    target: CopyTarget,
+) -> Result<LinkCopyClaim>
+```
+
+Claims `key` on `destination` for `attempt` before the copy is written;
+`target` says whether a file is already there.
+
+The key is the attempt's when it is unrecorded, or held by a copy of
+the same title (an earlier attempt's kept copy, or one still copying,
+which the newest attempt takes over); a title named by its call number
+is the same title whichever joined library sent it. It is refused,
+changing nothing, when another title's copy holds it, or when this
+install's own library recorded it for another edition (whose call
+number differs) and no copy of this title holds it: the copy must not
+overwrite that file. A key this title's copy holds may be in this
+install's library too (the branch owner's title, imported once
+committed), and stays the title's own.
+
+#### Errors
+
+Returns an error when a read or write fails.
+
+### keep_link_copies
+
+```rust
+pub async fn keep_link_copies(store: &LibraryStore, writer: &str) -> Result<()>
+```
+
+Keeps every copy `writer` claimed: the library committed the title, so
+they stay on this install's destinations.
+
+#### Errors
+
+Returns an error when the write fails.
+
+### link_copy_title_ref
+
+```rust
+pub fn link_copy_title_ref(call_number: Option<&str>, holding_id: &str) -> String
+```
+
+The title reference a copy is recorded under: the title's call number
+on the library (`call_number`, when it sent one), which names one
+edition there, else its holding id there.
+
+### link_copy_writer
+
+```rust
+pub fn link_copy_writer(node_id: &str, incarnation: &str) -> String
+```
+
+A new attempt's writer: `<node id>/<process incarnation>/<attempt id>`.
+
+### release_link_copies
+
+```rust
+pub async fn release_link_copies(store: &LibraryStore, writer: &str) -> Result<()>
+```
+
+Gives back every key `writer`'s attempt claimed once it failed (the
+caller removed the files it created): a key the attempt took over from
+a kept copy of its title is kept again (that file stays), and a key it
+claimed fresh is forgotten. A key another attempt claimed since is left
+alone.
+
+#### Errors
+
+Returns an error when a write fails.
+
+### settle_stale_link_copy
+
+```rust
+pub async fn settle_stale_link_copy(
+    store: &LibraryStore,
+    copy: &StaleLinkCopy,
+) -> Result<()>
+```
+
+Settles one copy [`stale_link_copies`](#stale_link_copies) answered, once the caller deleted
+its file (a [`CopyTarget::New`](#copytarget) one) or left it (a
+[`CopyTarget::Existing`](#copytarget) one): the record is forgotten, or kept again.
+Changes nothing when another attempt claimed the key since.
+
+#### Errors
+
+Returns an error when the write fails.
+
+### stale_link_copies
+
+```rust
+pub async fn stale_link_copies(
+    store: &LibraryStore,
+    node_id: &str,
+    incarnation: &str,
+    now: DateTime<Utc>,
+) -> Result<Vec<StaleLinkCopy>>
+```
+
+Copies of `node_id` that an earlier process left mid-title: `copying`
+records whose writer is this node under another incarnation than
+`incarnation`, older than [`STALE_LINK_COPY_AGE_SECS`](#stale_link_copy_age_secs) at `now`, oldest
+first, at most a batch. The caller deletes each new one's file (or
+keeps an existing one's) and then settles that key
+([`settle_stale_link_copy`](#settle_stale_link_copy)); a key whose file could not be deleted is
+left for a later sweep.
+
+#### Errors
+
+Returns an error when the read fails.
+
 ### books_imported_from_link
 
 ```rust
@@ -16287,6 +16579,21 @@ Loads one upload by id.
 
 Returns an error when the read fails or the row is malformed.
 
+### mark_discarded
+
+```rust
+pub async fn mark_discarded(store: &LibraryStore, upload_id: &str) -> Result<()>
+```
+
+Marks an aborted upload's files on its receiving node deleted: a
+`discarding` upload becomes `aborted`. Called by the receiving node once
+it has deleted (or found it cannot ever reach) what the upload had
+received; a no-op for any other state.
+
+#### Errors
+
+Returns an error when the write fails.
+
 ### record_upload_file
 
 ```rust
@@ -16342,6 +16649,29 @@ after `session`, so a stale abort never deletes a replacement's file.
 #### Errors
 
 Returns an error when the read fails.
+
+### uploads_to_sweep
+
+```rust
+pub async fn uploads_to_sweep(
+    store: &LibraryStore,
+    receiving_node_id: &str,
+) -> Result<Vec<UploadSession>>
+```
+
+The uploads `receiving_node_id` should sweep (#292), at most
+[`UPLOAD_SWEEP_BATCH`]: each open upload it receives whose fence is no
+longer live ([`upload_fence_live`]: the Host vanished mid-title and its
+lease ran out or moved, so no further file, commit, renewal or finish
+will arrive), and each upload aborted elsewhere whose files it still
+holds (`discarding`). The caller aborts the first ([`abort_upload`](#abort_upload)) and
+deletes the files of both, then marks them done ([`mark_discarded`](#mark_discarded)).
+An open upload whose fence is still live is left alone, however long
+it has been idle: its job may still send the rest.
+
+#### Errors
+
+Returns an error when a read fails.
 
 ### activate_version
 
@@ -17692,6 +18022,17 @@ pub const LIBRARY_LINK_REVOKED: &str = "revoked";
 
 `library_links.state` once the owner revoked this node (close 4403).
 
+### STALE_LINK_COPY_AGE_SECS
+
+```rust
+pub const STALE_LINK_COPY_AGE_SECS: i64 = _;
+```
+
+How long a `copying` record of an earlier process waits before
+[`stale_link_copies`](#stale_link_copies) answers it: two processes can share a node id for
+a moment during an overlapping restart, and the older one may still be
+finishing its copy.
+
 ### MEMBER_CONTROLS_NAMESPACE
 
 ```rust
@@ -18046,6 +18387,14 @@ pub const UPLOAD_NUMBER_WILDCARD: char = '\u{2}';
 
 In a [`TitleNames::part_patterns`](#titlenames) pattern: one or more ASCII digits,
 where a part or chapter number goes.
+
+### UPLOAD_SWEEP_BATCH
+
+```rust
+pub const UPLOAD_SWEEP_BATCH: usize = 64;
+```
+
+How many uploads one sweep ([`uploads_to_sweep`](#uploads_to_sweep)) answers.
 
 ### UPLOAD_TOKEN_TTL_SECS
 

@@ -9119,6 +9119,7 @@ pub async fn claim_edition_file(
     expected: Option<&EditionFile>,
     title: &str,
     catalog: bool,
+    upgrade: bool,
 ) -> Result<bool>
 ```
 
@@ -9158,6 +9159,12 @@ did not replace.
   catalog upload wrote (`catalog` false), as an acquire on this node
   would replace a delivered copy with its own.
 * `catalog` - True for a catalog upload's claim.
+* `upgrade` - True when the upload is a better copy of `owner`'s
+  edition than the library holds: it takes over any key of that
+  edition, whoever wrote it, though still never another edition's.
+  An existing record keeps describing its file (only its writer
+  changes), since the better copy is moved onto the key only at its
+  commit ([`Self::describe_uploaded_file`](#librarystoredescribe_uploaded_file)).
 
 ##### Errors
 
@@ -9196,6 +9203,25 @@ How many keys `writer` (a host upload id) holds, on every
 destination together. An upload id is unique and claims keys for one
 owner only, so this is how many keys that upload's title still holds
 through it.
+
+##### Errors
+
+Returns an error when the read fails.
+
+#### LibraryStore::count_edition_files_by_owner
+
+```rust
+pub async fn count_edition_files_by_owner(
+    &self,
+    writer: &str,
+    owner: &FileOwner,
+) -> Result<u64>
+```
+
+How many keys `writer` (a host upload id) is recorded as the latest
+writer of under `owner`: compared with
+[`Self::count_edition_files_by`](#librarystorecount_edition_files_by), it says whether every key the
+upload holds is still filed under that owner.
 
 ##### Errors
 
@@ -9330,6 +9356,32 @@ describes nothing.
 
 Returns an error when `probe` is not well formed
 ([`FileProbe::is_well_formed`](#fileprobeis_well_formed)) or the write fails.
+
+#### LibraryStore::describe_uploaded_file
+
+```rust
+pub async fn describe_uploaded_file(
+    &self,
+    destination: &str,
+    key: &str,
+    writer: &str,
+    sha256: &str,
+) -> Result<()>
+```
+
+Describes the file the committed upload `writer` moved onto `key` on
+`destination` as a new copy: its digest is `sha256`, and what the
+record said of the copy it replaced (probe, stream, format) is
+cleared. A better copy of an edition claims its keys without
+touching their records ([`Self::claim_edition_file`](#librarystoreclaim_edition_file)), so the commit
+calls this before storing the new probe.
+
+The row is changed only while `writer` is still the upload that
+claimed the key last.
+
+##### Errors
+
+Returns an error when the write fails.
 
 #### LibraryStore::set_uploaded_file_probe
 
@@ -19773,7 +19825,9 @@ One delete of [`LibraryStore::prune_record_step`](#librarystoreprune_record_step
 - `UserInvites`: User invites expired more than [`TOKEN_HISTORY_DAYS`](#token_history_days) ago.
 - `EnrollmentLinks`: Node enrollment links expired more than [`TOKEN_HISTORY_DAYS`](#token_history_days) ago.
 - `UploadSessions`: Committed or aborted uploads expired more than
-  [`UPLOAD_HISTORY_DAYS`](#upload_history_days) ago.
+  [`UPLOAD_HISTORY_DAYS`](#upload_history_days) ago, and uploads still waiting for their
+  receiving node to delete their files (`discarding`) when that node
+  was removed from the library: no one else would settle them.
 - `CopyGrants`: Copy grants past their expiry; no download accepts one after it.
 - `StorageScans`: Storage-scan generations whose job is terminal or gone, and jobless
   ones silent for [`STORAGE_SCAN_STALE_DAYS`](#storage_scan_stale_days), with their rows.

@@ -2124,6 +2124,7 @@ Implements: `Clone`, `Default`
 pub struct DestinationSettings {
     pub prefix: String,
     pub naming: DestinationNaming,
+    pub config_revision: i64,
 }
 ```
 
@@ -2135,6 +2136,10 @@ as `[[settings]]`, and acquire needs them to plan storage keys.
 
 - `prefix`: Key prefix under the destination root or bucket.
 - `naming`: Naming overrides; unset values inherit global `[output]`.
+- `config_revision`: The instance document revision the guest was opened with (0 when
+  unknown). A branch upload's grant pins it, so a configuration change
+  between the grant's files (a moved `root`, another bucket) refuses
+  the rest instead of splitting the title across two backends.
 
 #### DestinationSettings::from_granted_config
 

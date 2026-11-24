@@ -1502,7 +1502,7 @@ A `text/plain` body: a string.
   - `reason` *string or null* — Why, for `refused`, and `resume` for an `unavailable` part that does not continue the open file at [`Self::offset`].
   - `offset` *integer (int64) or null* — For `partial`, and an `unavailable` part with reason `resume`: the offset of the next byte of the file the owner needs. At least 0.
   - `job_completed` *boolean* — For `committed`: the job is finished.
-- `422` — The file was refused (`refused`): not in the upload (`unknown_file`), a `Content-Range` that is not exactly a part of the declared file (`invalid_range`), a size or content mismatch (`size_mismatch`, `content_mismatch`), the destinations changed (`destinations_changed`), or a granted storage key now belongs to another title or writer (`key_taken`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
+- `422` — The file was refused (`refused`): not in the upload (`unknown_file`), a `Content-Range` that is not exactly a part of the declared file (`invalid_range`), a size or content mismatch (`size_mismatch`, `content_mismatch`), the destinations or their configuration changed (`destinations_changed`), or a granted storage key now belongs to another title or writer (`key_taken`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
   - `status` *string*, **required** — Stable outcome: `received`, `partial` (a part that is not the file's last was taken), `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
   - `reason` *string or null* — Why, for `refused`, and `resume` for an `unavailable` part that does not continue the open file at [`Self::offset`].
   - `offset` *integer (int64) or null* — For `partial`, and an `unavailable` part with reason `resume`: the offset of the next byte of the file the owner needs. At least 0.
@@ -1833,7 +1833,7 @@ Schema:
 }
 ```
 
-Status `422`: The file was refused (`refused`): not in the upload (`unknown_file`), a `Content-Range` that is not exactly a part of the declared file (`invalid_range`), a size or content mismatch (`size_mismatch`, `content_mismatch`), the destinations changed (`destinations_changed`), or a granted storage key now belongs to another title or writer (`key_taken`).
+Status `422`: The file was refused (`refused`): not in the upload (`unknown_file`), a `Content-Range` that is not exactly a part of the declared file (`invalid_range`), a size or content mismatch (`size_mismatch`, `content_mismatch`), the destinations or their configuration changed (`destinations_changed`), or a granted storage key now belongs to another title or writer (`key_taken`).
 
 ```json
 {
@@ -1984,7 +1984,7 @@ Schema:
   - `reason` *string or null* — Why, for `refused`, and `resume` for an `unavailable` part that does not continue the open file at [`Self::offset`].
   - `offset` *integer (int64) or null* — For `partial`, and an `unavailable` part with reason `resume`: the offset of the next byte of the file the owner needs. At least 0.
   - `job_completed` *boolean* — For `committed`: the job is finished.
-- `422` — The commit was refused (`refused`), with the cause in `reason`: the body does not parse (`invalid_body`); the upload is unknown, aborted, or its job was cancelled (`unknown_upload`, `upload_aborted`, `job_cancelled`); not every granted file arrived (`files_missing`); the destinations changed since the grant (`destinations_changed`); a storage key now belongs to another title or writer, or the title's holding is gone (`key_taken`, `unknown_title`); or the closing upload is mismatched: an ordinary upload claims to finish the job (`not_a_closing_upload`), the closing upload does not (`closing_upload_must_finish`), or it arrives while titles are still pending (`titles_remaining`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
+- `422` — The commit was refused (`refused`), with the cause in `reason`: the body does not parse (`invalid_body`); the upload is unknown, aborted, or its job was cancelled (`unknown_upload`, `upload_aborted`, `job_cancelled`); not every granted file arrived (`files_missing`); the destinations or their configuration changed since the grant (`destinations_changed`); a storage key now belongs to another title or writer, or the title's holding is gone (`key_taken`, `unknown_title`); the title now resolves to another edition than the one its keys were granted under (`edition_changed`); or the closing upload is mismatched: an ordinary upload claims to finish the job (`not_a_closing_upload`), the closing upload does not (`closing_upload_must_finish`), or it arrives while titles are still pending (`titles_remaining`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
   - `status` *string*, **required** — Stable outcome: `received`, `partial` (a part that is not the file's last was taken), `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
   - `reason` *string or null* — Why, for `refused`, and `resume` for an `unavailable` part that does not continue the open file at [`Self::offset`].
   - `offset` *integer (int64) or null* — For `partial`, and an `unavailable` part with reason `resume`: the offset of the next byte of the file the owner needs. At least 0.
@@ -2312,7 +2312,7 @@ Schema:
 }
 ```
 
-Status `422`: The commit was refused (`refused`), with the cause in `reason`: the body does not parse (`invalid_body`); the upload is unknown, aborted, or its job was cancelled (`unknown_upload`, `upload_aborted`, `job_cancelled`); not every granted file arrived (`files_missing`); the destinations changed since the grant (`destinations_changed`); a storage key now belongs to another title or writer, or the title's holding is gone (`key_taken`, `unknown_title`); or the closing upload is mismatched: an ordinary upload claims to finish the job (`not_a_closing_upload`), the closing upload does not (`closing_upload_must_finish`), or it arrives while titles are still pending (`titles_remaining`).
+Status `422`: The commit was refused (`refused`), with the cause in `reason`: the body does not parse (`invalid_body`); the upload is unknown, aborted, or its job was cancelled (`unknown_upload`, `upload_aborted`, `job_cancelled`); not every granted file arrived (`files_missing`); the destinations or their configuration changed since the grant (`destinations_changed`); a storage key now belongs to another title or writer, or the title's holding is gone (`key_taken`, `unknown_title`); the title now resolves to another edition than the one its keys were granted under (`edition_changed`); or the closing upload is mismatched: an ordinary upload claims to finish the job (`not_a_closing_upload`), the closing upload does not (`closing_upload_must_finish`), or it arrives while titles are still pending (`titles_remaining`).
 
 ```json
 {

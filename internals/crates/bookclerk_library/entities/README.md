@@ -75,6 +75,7 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`library_links`](library_links.md): SeaORM entity for `library_links`: on a branch node, the libraries it enrolled into (written by `control_plane::record_library_link`).
 - [`library_work_facets`](library_work_facets.md): SeaORM entity for `library_work_facets`: the page index's filter values.
 - [`library_work_rows`](library_work_rows.md): SeaORM entity for `library_work_rows`: the library's page index.
+- [`link_copy_files`](link_copy_files.md): SeaORM entity for `link_copy_files`: on a branch, the files a host job copied to this install's own destinations for a library it joined (written by `control_plane::link_copies`).
 - [`link_imports`](link_imports.md): SeaORM entity for `link_imports`: on a branch, the branch owner's books acquired for a library it joined and imported into this library as well (written by `control_plane::link_imports`). The catalog sync never sends a library a book recorded here for it.
 - [`link_requests`](link_requests.md): SeaORM entity for `link_requests`: on a branch, the books a library it joined asked for through an interlibrary request (written by `control_plane::branch_requests`). The catalog sync sends that library a book recorded here for it, although the book is a member's.
 - [`listening_progress`](listening_progress.md): SeaORM entity for the `listening_progress` table.

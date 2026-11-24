@@ -2354,7 +2354,7 @@ pub enum Body {
     ScanRemoved { job_id: String, fence: i64, plugin_key: String, account_id: String, batch: u64, product_ids: Vec<String> },
     ScanPassEnd { job_id: String, fence: i64, plugin_key: String, account_id: String, sync_token: String, complete: bool, full: bool },
     AcquirePlan { job_id: String, fence: i64, after: Option<String> },
-    AcquireTargets { targets: Vec<AcquireTarget>, destinations: Vec<PlanDestination> },
+    AcquireTargets { targets: Vec<AcquireTarget>, destinations: Vec<PlanDestination>, next: Option<String> },
     UploadGrant { job_id: String, fence: i64, holding_id: String, primary_key: String, pdf_key: Option<String>, files: Vec<UploadFile> },
     UploadGranted { upload_id: String, sealed_token: String, expires_in_secs: u64 },
     ScanRequest { account: Option<String>, plugin_instance_id: Option<String> },
@@ -2602,6 +2602,11 @@ What a frame says, tagged by `type`.
     the primary first, each with its own packaging and naming
     options, so the host names each destination's files as a local
     acquire would.
+  - `next`: Present when the owner stopped before it looked at every title
+    of the job (each plan looks at a bounded number, and titles
+    that need no fetch add no target): ask again with this holding
+    id as `after`, even when `targets` is empty. Absent, a plan
+    with no new target means no title is left to try.
 - `UploadGrant`: Host → owner: ask to upload one title's files. Answered with
   [`Body::UploadGranted`](#body), [`Body::Lost`](#body), or `error`.
   - `job_id`: The acquire job.

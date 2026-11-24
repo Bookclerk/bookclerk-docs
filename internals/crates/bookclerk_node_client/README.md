@@ -79,6 +79,7 @@ job runs its guest are the daemon's.
 | [`LocalFileSource`](#localfilesource) | struct | A file on this install's disk as an `UploadSource`. |
 | [`OwnerEndpoint`](#ownerendpoint) | struct | Where and how to reach one owner. |
 | [`TlsProbe`](#tlsprobe) | struct | What a first TLS handshake showed of an owner's certificate, before any pin is known (`OwnerEndpoint::probe_json`). |
+| [`AcquirePlan`](#acquireplan) | struct | The owner's answer to an `acquire.plan` (`HostJobCtx::acquire_plan`). |
 | [`GrantedCopy`](#grantedcopy) | struct | A copy of an edition the library granted this node (`crate::HostClientHandle::copy_grant`): what it is, its files, and the bearer token of its downloads. The token is zeroized on drop and never shown by `Debug`. |
 | [`HandedSecrets`](#handedsecrets) | struct | The job's secrets, opened with this node's box key. Values are zeroized on drop and `Debug` shows only which rows they are. |
 | [`HostJob`](#hostjob) | struct | A job the owner handed this host, under its fence. |
@@ -1431,6 +1432,30 @@ pin is known ([`OwnerEndpoint::probe_json`](#ownerendpointprobe_json)).
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### AcquirePlan
+
+```rust
+pub struct AcquirePlan {
+    pub targets: Vec<AcquireTarget>,
+    pub destinations: Vec<PlanDestination>,
+    pub next: Option<String>,
+}
+```
+
+The owner's answer to an `acquire.plan` ([`HostJobCtx::acquire_plan`](#hostjobctxacquire_plan)).
+
+**Fields**
+
+- `targets`: Titles still to acquire, in holding-id order, each after the plan's
+  cursor.
+- `destinations`: Every output destination deployed on the answering shared node,
+  the primary first.
+- `next`: Where to ask again from when the owner stopped before looking at
+  every title of the job, even with no target; `None` once it looked
+  at them all.
+
+Implements: `Clone`, `Debug`
+
 ### GrantedCopy
 
 ```rust
@@ -1683,7 +1708,7 @@ Returns [`OwnerCallError`](#ownercallerror); `Lost` also cancels the job.
 pub async fn acquire_plan(
     &self,
     after: Option<&str>,
-) -> Result<(Vec<AcquireTarget>, Vec<PlanDestination>), OwnerCallError>
+) -> Result<AcquirePlan, OwnerCallError>
 ```
 
 Asks the owner which titles this acquire should fetch, and with
