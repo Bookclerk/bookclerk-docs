@@ -77,6 +77,7 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`NodeApiConfig`](#nodeapiconfig) | struct | `[daemon.node_api]`: transport policy for branch nodes. |
 | [`ProcessEnvGuard`](#processenvguard) | struct | Process-wide lock around `BOOKCLERK_*` environment reads and test writes. |
 | [`UploadsConfig`](#uploadsconfig) | struct | `[uploads]`: per-node upload limits. |
+| [`EnvAuthPassword`](#envauthpassword) | enum | The environment's auth password as `crate::Config::load` resolved it. |
 | [`CacheSettingError`](#cachesettingerror) | enum | Why a `cache.*` value was refused. |
 | [`CacheSettingKey`](#cachesettingkey) | enum | A `cache.*` settings key. |
 | [`DatabasePluginKind`](#databasepluginkind) | enum | Which first-party database plugin is active. |
@@ -113,6 +114,7 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`KeyStoreKind`](#keystorekind) | enum | Where an install keeps the library's data-encryption key. |
 | [`NodeApiMode`](#nodeapimode) | enum | How branch nodes may reach the node API (`[daemon.node_api] mode`). |
 | [`replace_file`](#replace_file) | function | Replace `to` with `from`, both in the same directory. `to` may already exist; on Windows this goes through `MoveFileExW` with `MOVEFILE_REPLACE_EXISTING \| MOVEFILE_WRITE_THROUGH` (see the module docs), retrying briefly while another replace of `to` settles. The moved file keeps its own permissions, so a `0600` staging file lands as a `0600` target. |
+| [`auth_password_from_env`](#auth_password_from_env) | function | Resolve the auth password from the process environment: the variable, the file it names, or the systemd credential, in that order. |
 | [`parse_cache_setting`](#parse_cache_setting) | function | Parses one `cache.*` setting. |
 | [`cookie_secure_suffix`](#cookie_secure_suffix) | function | Append `; Secure` when the configured public origin is HTTPS. |
 | [`oidc_transaction_cookie_flags`](#oidc_transaction_cookie_flags) | function | Cookie flags for the OIDC login transaction (`state` binding). |
@@ -193,6 +195,9 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`parse_lookup_reply`](#parse_lookup_reply) | function | Reads the collector's answer to `POST /lookup`. |
 | [`read_node_api_spki_pin`](#read_node_api_spki_pin) | function | The SPKI pin of the daemon's self-signed node API certificate, once the daemon has generated it. Enrollment links carry it in `[daemon.node_api] mode = "self_signed"`. |
 | [`Result`](#result) | type alias | Result alias for configuration load and validation helpers in this crate. |
+| [`AUTH_PASSWORD_CREDENTIAL`](#auth_password_credential) | constant | The systemd credential name the password is read from, in `$CREDENTIALS_DIRECTORY` (`LoadCredentialEncrypted=bookclerk-auth-password`). |
+| [`AUTH_PASSWORD_ENV`](#auth_password_env) | constant | Env var holding the password that wraps `master.key`. |
+| [`AUTH_PASSWORD_FILE_ENV`](#auth_password_file_env) | constant | Env var naming a file that holds the password that wraps `master.key` (for Docker, Podman and Kubernetes secrets). |
 | [`DEFAULT_CACHE_BUDGET_BYTES`](#default_cache_budget_bytes) | constant | Default disk budget for one node's image caches: 1 GiB. |
 | [`DEFAULT_CACHE_UNVIEWED_DAYS`](#default_cache_unviewed_days) | constant | Default days an entry may go unviewed before it is evicted. |
 | [`MAX_CACHE_BUDGET_BYTES`](#max_cache_budget_bytes) | constant | Largest accepted cache budget: 1 TiB. |
@@ -2583,7 +2588,8 @@ pub struct AuthConfig {
 Auth encryption settings (`[auth]` section).
 
 Bookclerk always encrypts credentials via the process DEK (`master.key`).
-Set `BOOKCLERK_AUTH_PASSWORD` (preferred) or `[auth].password` to wrap the
+Set `BOOKCLERK_AUTH_PASSWORD` or `BOOKCLERK_AUTH_PASSWORD_FILE` (preferred)
+or `[auth].password` to wrap the
 DEK with a passphrase at rest (`BCK1` → `BCK2`). A later password can be
 applied via CLI (`config master-key wrap` / `config set auth.password`) or
 daemon config reload — no GUI in this surface.
@@ -2624,6 +2630,7 @@ pub struct Config {
     pub events_authority: Option<String>,
     pub output_revision: Option<i64>,
     pub output_authority: Option<String>,
+    pub env_auth_password: EnvAuthPassword,
 }
 ```
 
@@ -2660,6 +2667,8 @@ Top-level Bookclerk configuration.
   after overlay. Absent until control-plane bootstrap or reconcile loads
   it; compared only with [`Self::output_authority`](#config). Not serialized.
 - `output_authority`: Library id that produced [`Self::output_revision`](#config). Not serialized.
+- `env_auth_password`: The environment's auth password, resolved once by [`Self::load`](#configload) so
+  a secret file changing mid-run can't change it. Not serialized.
 
 #### Config::load
 
@@ -2676,8 +2685,11 @@ Load config: defaults ← optional TOML file ← environment overrides.
 
 ##### Errors
 
-Returns [`crate::ConfigError`](#configerror) when the file cannot be read or parsed, or
-when soft validation of destinations / database fails after merge.
+Returns [`crate::ConfigError`](#configerror) when the file cannot be read or parsed,
+when `BOOKCLERK_AUTH_PASSWORD_FILE` or the `bookclerk-auth-password`
+credential is named but gives no password (see
+[`crate::auth_password_from_env`](#auth_password_from_env)), or when soft validation of
+destinations / database fails after merge.
 
 #### Config::from_toml_file
 
@@ -2731,7 +2743,14 @@ pub fn auth_password(&self) -> Option<String>
 
 Resolve the passphrase that wraps `master.key`.
 
-Prefers `BOOKCLERK_AUTH_PASSWORD` over `[auth].password`.
+Prefers the environment (`BOOKCLERK_AUTH_PASSWORD`, the file named by
+`BOOKCLERK_AUTH_PASSWORD_FILE`, or the `bookclerk-auth-password`
+systemd credential; see [`crate::auth_password_from_env`](#auth_password_from_env)) over
+`[auth].password`. A loaded config uses the value [`Self::load`](#configload)
+resolved (which already refused a named source that gives no
+password), never re-reading the file. A config built without `load`
+reads the environment now; if a named source fails there, this logs
+the error and returns `None` rather than using `[auth].password`.
 
 #### Config::register_known_secrets
 
@@ -3166,6 +3185,28 @@ The idle time, at least one hour.
 Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
 ## Enums
+
+### EnvAuthPassword
+
+```rust
+pub enum EnvAuthPassword {
+    Unresolved,
+    Resolved(Option<Zeroizing<String>>),
+}
+```
+
+The environment's auth password as [`crate::Config::load`](#configload) resolved it.
+
+`Unresolved` for a [`crate::Config`](#config) built without `load` (tests, embedded
+defaults), which then reads the environment on each use instead.
+
+**Variants**
+
+- `Unresolved`: Not resolved yet: read the environment when asked.
+- `Resolved`: Resolved at load: the password, or `None` when no environment source
+  was set.
+
+Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
 
 ### CacheSettingError
 
@@ -4453,6 +4494,29 @@ lands as a `0600` target.
 
 Returns an I/O error when the platform replace operation fails.
 
+### auth_password_from_env
+
+```rust
+pub fn auth_password_from_env() -> Result<Option<String>>
+```
+
+Resolve the auth password from the process environment: the variable,
+the file it names, or the systemd credential, in that order.
+
+Registers a found password for log redaction.
+
+#### Returns
+
+The trimmed password, or `None` when no environment source is set (the
+caller may then use `[auth].password`).
+
+#### Errors
+
+[`ConfigError::Invalid`](#configerror) when both [`AUTH_PASSWORD_ENV`](#auth_password_env) and
+[`AUTH_PASSWORD_FILE_ENV`](#auth_password_file_env) are set, or when the named file or the
+present credential can't be read, is larger than 4 KiB, isn't UTF-8 or
+holds only whitespace. The message names the path, never the contents.
+
 ### parse_cache_setting
 
 ```rust
@@ -5529,6 +5593,32 @@ pub type Result<T> = Result<T, ConfigError>;
 Result alias for configuration load and validation helpers in this crate.
 
 ## Constants
+
+### AUTH_PASSWORD_CREDENTIAL
+
+```rust
+pub const AUTH_PASSWORD_CREDENTIAL: &str = "bookclerk-auth-password";
+```
+
+The systemd credential name the password is read from, in
+`$CREDENTIALS_DIRECTORY` (`LoadCredentialEncrypted=bookclerk-auth-password`).
+
+### AUTH_PASSWORD_ENV
+
+```rust
+pub const AUTH_PASSWORD_ENV: &str = "BOOKCLERK_AUTH_PASSWORD";
+```
+
+Env var holding the password that wraps `master.key`.
+
+### AUTH_PASSWORD_FILE_ENV
+
+```rust
+pub const AUTH_PASSWORD_FILE_ENV: &str = "BOOKCLERK_AUTH_PASSWORD_FILE";
+```
+
+Env var naming a file that holds the password that wraps `master.key`
+(for Docker, Podman and Kubernetes secrets).
 
 ### DEFAULT_CACHE_BUDGET_BYTES
 

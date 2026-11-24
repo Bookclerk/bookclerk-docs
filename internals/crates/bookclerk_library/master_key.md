@@ -12,7 +12,7 @@ per secret (no Argon2 on every load/save).
 
 | Source | Behavior |
 | --- | --- |
-| `BOOKCLERK_AUTH_PASSWORD` or `[auth].password` | Wraps/unwraps the DEK in `{files_dir}/master.key` |
+| `BOOKCLERK_AUTH_PASSWORD`, `BOOKCLERK_AUTH_PASSWORD_FILE`, the `bookclerk-auth-password` systemd credential, or `[auth].password` | Wraps/unwraps the DEK in `{files_dir}/master.key` |
 | Auto-mint | If neither password nor file exists, generates a DEK and writes `master.key` (mode `0600`) |
 | OS keychain | `master.key` is a `BCK3` pointer naming a keychain item that holds the `BCK1`/`BCK2` envelope |
 
@@ -73,7 +73,7 @@ recovers the whole credential.
 | [`seal_with_dek`](#seal_with_dek) | function | Seal plaintext with the DEK (random nonce). Fast — no Argon2. |
 | [`unseal_with_dek`](#unseal_with_dek) | function | Unseal ciphertext with the DEK. |
 | [`SystemdCredsFactory`](#systemdcredsfactory) | type alias | Builds the `systemd-creds` store for a files directory. |
-| [`AUTH_PASSWORD_ENV`](#auth_password_env) | constant | Env var that wraps the DEK in `master.key` (optional). |
+| [`AUTH_PASSWORD_ENV`](#auth_password_env) | constant | Env var that wraps the DEK in `master.key` (optional). The password can also come from the file `BOOKCLERK_AUTH_PASSWORD_FILE` names or the `bookclerk-auth-password` systemd credential (`bookclerk_config::auth_password_from_env`). |
 | [`MASTER_KEY_FILE_NAME`](#master_key_file_name) | constant | Bootstrap key file under `BOOKCLERK_FILES_DIR` (auto-minted when missing). |
 
 ## Structs
@@ -320,14 +320,17 @@ pub fn configure_master_key(files_dir: &Path) -> Result<MasterKey>
 
 Load or mint the DEK and cache it for this process.
 
-Password comes from `BOOKCLERK_AUTH_PASSWORD` only. Prefer
-[`configure_master_key_with`](#configure_master_key_with) when `[auth].password` may apply.
+Password comes from the environment only (`BOOKCLERK_AUTH_PASSWORD`,
+`BOOKCLERK_AUTH_PASSWORD_FILE` or the `bookclerk-auth-password` systemd
+credential). Prefer [`configure_master_key_with`](#configure_master_key_with) when `[auth].password`
+may apply.
 
 Call once at CLI/daemon startup after `paths.ensure_dirs()`.
 
 #### Errors
 
-Returns an error when the operation fails.
+Returns an error when a named password source gives no password, or
+when the key can't be loaded or minted.
 
 ### configure_master_key_with
 
@@ -374,7 +377,8 @@ Resolve the DEK from env + `master.key` (minting when needed).
 
 #### Errors
 
-Returns an error when the operation fails.
+Returns an error when a named password source gives no password, or
+when the key can't be loaded or minted.
 
 ### resolve_master_key_with
 
@@ -709,10 +713,13 @@ Builds the `systemd-creds` store for a files directory.
 ### AUTH_PASSWORD_ENV
 
 ```rust
-pub const AUTH_PASSWORD_ENV: &str = "BOOKCLERK_AUTH_PASSWORD";
+pub const AUTH_PASSWORD_ENV: &str = bookclerk_config::AUTH_PASSWORD_ENV;
 ```
 
-Env var that wraps the DEK in `master.key` (optional).
+Env var that wraps the DEK in `master.key` (optional). The password can
+also come from the file `BOOKCLERK_AUTH_PASSWORD_FILE` names or the
+`bookclerk-auth-password` systemd credential
+([`bookclerk_config::auth_password_from_env`](../bookclerk_config/README.md#auth_password_from_env)).
 
 ### MASTER_KEY_FILE_NAME
 
