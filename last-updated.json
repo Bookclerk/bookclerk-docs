@@ -57,7 +57,7 @@
   "contributing/ui/webauthn": "2026-11-06T01:24:45Z",
   "contributing/writing-docs": "2026-11-21T03:33:58Z",
   "guide/README": "2026-11-20T16:29:27Z",
-  "guide/branches": "2026-11-21T09:53:20Z",
+  "guide/branches": "2026-11-24T00:13:16Z",
   "guide/discover": "2026-11-24T00:12:47Z",
   "guide/from-libation": "2026-11-19T13:44:23Z",
   "guide/getting-started": "2026-10-27T04:53:05Z",
@@ -1179,7 +1179,7 @@
   "server/api/webhooks": "2026-11-22T04:16:49Z",
   "server/api/wishlist": "2026-11-21T10:45:19Z",
   "server/backups": "2026-11-22T10:44:56Z",
-  "server/branches": "2026-11-23T20:03:01Z",
+  "server/branches": "2026-11-24T00:13:16Z",
   "server/cli-reference": "2026-11-23T23:40:16Z",
   "server/configuration": "2026-11-23T23:40:16Z",
   "server/database": "2026-11-23T23:40:16Z",
@@ -1195,7 +1195,7 @@
   "server/player-apps": "2026-11-22T05:15:08Z",
   "server/plugins": "2026-11-23T23:43:15Z",
   "server/security": "2026-11-23T23:40:16Z",
-  "server/sign-in": "2026-11-22T07:20:23Z",
+  "server/sign-in": "2026-11-24T00:13:16Z",
   "server/stores": "2026-11-21T11:49:15Z",
   "server/uploads": "2026-11-23T03:36:06Z"
  }
