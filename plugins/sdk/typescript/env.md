@@ -577,6 +577,10 @@ True when no further page exists.
 database, scoped to this plugin and the namespace the row names. Values
 follow the instance across hosts.
 
+#### Extended by
+
+- [`TestKv`](testkit.md#testkv)
+
 #### Methods
 
 ##### delete()
@@ -1554,6 +1558,10 @@ host serves each row at a secret URL, checks each request's size, rate
 and signature, and stores it until the plugin pulls and acknowledges it.
 The default entrypoint's `webhookDelivered(event)` runs when requests
 arrive.
+
+#### Extended by
+
+- [`TestWebhooks`](testkit.md#testwebhooks)
 
 #### Methods
 

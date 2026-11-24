@@ -135,6 +135,11 @@ resumably; see
 A storefront's `scan` can hand its paging to `scanPage(params, fetch)`,
 which slices the store's own pages into replies the host accepts; see
 [Paged scans](../../abi.md#paged-scans).
+A storage plugin can build its entrypoint from `ObjectStoreDestination`
+over a small backend, follow bucket notifications with `QueueFeed` and
+`webhookQueue(env.WEBHOOKS, name)`, and answer the `stream_copy` job with
+`streamCopy(job)`; see
+[Translating keys](../../abi.md#translating-keys).
 A relay [`[ingress]`](../../manifest.md#ingress-public-address) plugin also
 gets `ORIGIN` while it is the active ingress; `ORIGIN.fetch(request, {
 clientAddress })` hands one request to the library, and
@@ -282,6 +287,13 @@ worked plugin: a `notes` table it writes with `chunk()`, lists with
 `iterate()` or key-paged reads, sizes with `limits()`, and tests under
 every profile. See
 [Testing against the limits](../../database-limits.md#testing-against-the-limits).
+
+The testkit also has in-memory `KV` and `WEBHOOKS` bindings that apply the
+host's limits and error codes: `createTestKv({ maxValueBytes, maxKeys })`
+and `createTestWebhooks()`, whose `deliver(name, body)` stands in for an
+outside service and whose `acked`, `retried` and `markMissed` let a test
+check how a plugin settles its leases. `failNext(op, error)` makes one KV
+call fail.
 
 ## Author tools
 
@@ -463,6 +475,394 @@ The frames completed by these bytes, in order.
 
 ***
 
+### ObjectStoreDestination
+
+Serves the `storage` entrypoint over an [ObjectStore](#objectstore). Use it from
+a `StorageEntrypoint` subclass:
+
+```ts
+export class Storage extends StorageEntrypoint<Env> {
+  #dest = new ObjectStoreDestination(myStore(this.env));
+  head(key: string) { return this.#dest.head(key); }
+  // ...one line per storage method
+}
+```
+
+#### Constructors
+
+##### Constructor
+
+```ts
+new ObjectStoreDestination(store, feed?): ObjectStoreDestination;
+```
+
+Wraps a backend.
+
+###### Parameters
+
+| Parameter | Type | Default value | Description |
+| ------ | ------ | ------ | ------ |
+| `store` | [`ObjectStore`](#objectstore) | `undefined` | The backend. |
+| `feed?` | [`ChangeFeed`](#changefeed) \| `null` | `null` | The change feed, or `null` for none (the host lists). |
+
+###### Returns
+
+[`ObjectStoreDestination`](#objectstoredestination)
+
+#### Properties
+
+##### feed
+
+```ts
+readonly feed: ChangeFeed | null;
+```
+
+The change feed, when the plugin has one.
+
+##### store
+
+```ts
+readonly store: ObjectStore;
+```
+
+The backend.
+
+#### Methods
+
+##### abortStage()
+
+```ts
+abortStage(key, commitToken): Promise<void>;
+```
+
+Discard a staged write; a missing stage is not an error.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `key` | `string` | Object key. |
+| `commitToken` | `string` | The stage's token. |
+
+###### Returns
+
+`Promise`\<`void`\>
+
+Resolves once it is gone.
+
+##### changes()
+
+```ts
+changes(request): Promise<ChangesPage>;
+```
+
+One page of the change feed, or the "no feed" page when there is none
+or it is off.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `request` | [`ChangesRequest`](plugin.md#changesrequest) | Cursor and limit. |
+
+###### Returns
+
+`Promise`\<[`ChangesPage`](plugin.md#changespage)\>
+
+The page.
+
+##### commit()
+
+```ts
+commit(key, commitToken): Promise<PutResult>;
+```
+
+Publish a staged write. Committing again after the stage is gone
+succeeds when the object carries the same commit token.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `key` | `string` | Object key. |
+| `commitToken` | `string` | The stage's token. |
+
+###### Returns
+
+`Promise`\<[`PutResult`](plugin.md#putresult)\>
+
+The published object.
+
+##### copy()
+
+```ts
+copy(from, to): Promise<CopyResult>;
+```
+
+Copy within the destination.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `from` | `string` | Source key. |
+| `to` | `string` | Target key. |
+
+###### Returns
+
+`Promise`\<[`CopyResult`](plugin.md#copyresult)\>
+
+Bytes copied.
+
+##### delete()
+
+```ts
+delete(key): Promise<void>;
+```
+
+Remove an object.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `key` | `string` | Object key. |
+
+###### Returns
+
+`Promise`\<`void`\>
+
+Resolves once it is gone.
+
+##### deleteMany()
+
+```ts
+deleteMany(keys): Promise<KeyOutcome[]>;
+```
+
+Removes up to [MAX\_BATCH\_KEYS](abi.md#max_batch_keys) objects.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `keys` | `string`[] | Object keys. |
+
+###### Returns
+
+`Promise`\<[`KeyOutcome`](plugin.md#keyoutcome)[]\>
+
+One outcome per key.
+
+##### get()
+
+```ts
+get(key, options?): Promise<ReadResult>;
+```
+
+Streamed read.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `key` | `string` | Object key. |
+| `options?` | \{ `range?`: [`ByteRange`](plugin.md#byterange); \} | Optional byte range. |
+| `options.range?` | [`ByteRange`](plugin.md#byterange) | - |
+
+###### Returns
+
+`Promise`\<[`ReadResult`](plugin.md#readresult)\>
+
+Metadata and body.
+
+##### head()
+
+```ts
+head(key): Promise<ObjectMetadata | null>;
+```
+
+Metadata without a body.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `key` | `string` | Object key. |
+
+###### Returns
+
+`Promise`\<[`ObjectMetadata`](plugin.md#objectmetadata) \| `null`\>
+
+The metadata, or `null` when missing.
+
+##### headMany()
+
+```ts
+headMany(keys): Promise<(ObjectMetadata | null)[]>;
+```
+
+Probes up to [MAX\_BATCH\_KEYS](abi.md#max_batch_keys) objects.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `keys` | `string`[] | Object keys. |
+
+###### Returns
+
+`Promise`\<([`ObjectMetadata`](plugin.md#objectmetadata) \| `null`)[]\>
+
+One entry per key; `null` when missing.
+
+##### list()
+
+```ts
+list(options): Promise<ListPage>;
+```
+
+One page of keys.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `options` | [`ListOptions`](plugin.md#listoptions) | Prefix, cursor and limit. |
+
+###### Returns
+
+`Promise`\<[`ListPage`](plugin.md#listpage)\>
+
+The page (the listing hints are not applied).
+
+##### move()
+
+```ts
+move(
+   from, 
+   to, 
+   options?
+): Promise<MoveResult>;
+```
+
+Moves one object: a copy, a check that it landed whole, then removing
+the source only while it is unchanged.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `from` | `string` | Source key. |
+| `to` | `string` | Target key. |
+| `options?` | [`MoveOptions`](plugin.md#moveoptions) | Overwrite rule and source precondition. |
+
+###### Returns
+
+`Promise`\<[`MoveResult`](plugin.md#moveresult)\>
+
+How the move was done.
+
+##### moveMany()
+
+```ts
+moveMany(request): Promise<MoveManyPage>;
+```
+
+Moves pairs, or one page of objects under a prefix.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `request` | [`MoveManyRequest`](plugin.md#movemanyrequest) | Pairs or prefix, cursor, limit and options. |
+
+###### Returns
+
+`Promise`\<[`MoveManyPage`](plugin.md#movemanypage)\>
+
+Per-key outcomes and the continuation.
+
+##### put()
+
+```ts
+put(
+   key, 
+   body, 
+   options?
+): Promise<PutResult>;
+```
+
+Streamed write: plain, conditional, or staged under a commit token.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `key` | `string` | Object key. |
+| `body` | `ReadableStream`\<`Uint8Array`\<`ArrayBufferLike`\>\> | The bytes. |
+| `options?` | [`WriteOptions`](plugin.md#writeoptions) | Type, length, checksum, token, stage and condition. |
+
+###### Returns
+
+`Promise`\<[`PutResult`](plugin.md#putresult)\>
+
+What was written; the etag is the commit token when one is set.
+
+##### translateKeys()
+
+```ts
+translateKeys(keys): Promise<string[]>;
+```
+
+Translates host keys into object-store keys.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `keys` | `string`[] | Host keys. |
+
+###### Returns
+
+`Promise`\<`string`[]\>
+
+One translated key per host key.
+
+##### features()
+
+```ts
+static features(store, options?): (
+  | "storage.copy"
+  | "storage.conditionalWrite"
+  | "storage.checkedWrite"
+  | "storage.changes"
+  | "storage.translateKeys")[];
+```
+
+The `rpcFeatures` this destination supports natively, for `describe()`.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `store` | `Pick`\<[`ObjectStore`](#objectstore), `"conditionalWrites"`\> | The backend (only how it keeps write conditions is read). |
+| `options?` | \{ `changes?`: `boolean`; \} | `changes: true` when the plugin serves a feed (even one that may be off; a page from a feed that is off says so). |
+| `options.changes?` | `boolean` | - |
+
+###### Returns
+
+(
+  \| `"storage.copy"`
+  \| `"storage.conditionalWrite"`
+  \| `"storage.checkedWrite"`
+  \| `"storage.changes"`
+  \| `"storage.translateKeys"`)[]
+
+Feature names.
+
+***
+
 ### PluginError
 
 Thrown by the SDK when a wire union carries `err`. Unknown codes are kept.
@@ -617,6 +1017,73 @@ the exceeded cap.
 
 Typed plugin error.
 
+***
+
+### QueueFeed
+
+A change feed over a [NotificationQueue](#notificationqueue); see the module docs.
+
+#### Implements
+
+- [`ChangeFeed`](#changefeed)
+
+#### Constructors
+
+##### Constructor
+
+```ts
+new QueueFeed(options): QueueFeed;
+```
+
+Creates the feed; nothing is read until the first page.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `options` | [`QueueFeedOptions`](#queuefeedoptions) | Queue, parser and state storage. |
+
+###### Returns
+
+[`QueueFeed`](#queuefeed)
+
+#### Methods
+
+##### changes()
+
+```ts
+changes(cursor, limit): Promise<ChangesPage>;
+```
+
+One page of changes after `cursor`.
+
+Without a cursor of this feed the caller starts over: everything handed
+out before is released and the page is only the current position (the
+host lists). Otherwise pages up to the cursor are acknowledged and the
+page holds the next messages' changes.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `cursor` | `string` \| `undefined` | The previous page's cursor, or `undefined`. |
+| `limit` | `number` | Requested changes (0 for the most, 256). |
+
+###### Returns
+
+`Promise`\<[`ChangesPage`](plugin.md#changespage)\>
+
+The page.
+
+###### Throws
+
+`invalid_cursor` for a cursor that is not this
+  feed's or is ahead of it; the queue's or KV's own errors.
+
+###### Implementation of
+
+[`ChangeFeed`](#changefeed).[`changes`](#changes-2)
+
 ## Interfaces
 
 ### AdapterBatchOptions
@@ -765,6 +1232,35 @@ The statement's result (rows only when `resultSelection` is `rows`).
 
 ***
 
+### ChangeFeed
+
+A change feed a destination serves `changes` from.
+
+#### Methods
+
+##### changes()
+
+```ts
+changes(cursor, limit): Promise<ChangesPage | null>;
+```
+
+One page of changes after `cursor`.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `cursor` | `string` \| `undefined` | The previous page's cursor, or `undefined` to ask for the current position. |
+| `limit` | `number` | Requested changes (0 for the feed's default). |
+
+###### Returns
+
+`Promise`\<[`ChangesPage`](plugin.md#changespage) \| `null`\>
+
+The page, or `null` when the feed is off (the host lists).
+
+***
+
 ### ExecuteStreamLimits
 
 What a receiver lets a streamed reply grow to.
@@ -805,6 +1301,30 @@ Capability field `maxRows` came from, for the error it raises.
 
 ***
 
+### LeasedMessage
+
+One leased message.
+
+#### Properties
+
+##### body
+
+```ts
+body: Uint8Array;
+```
+
+The message body.
+
+##### receipt
+
+```ts
+receipt: string;
+```
+
+The lease to acknowledge or release it by.
+
+***
+
 ### LimitExceeded
 
 A negotiated SQL-v1 cap that a request or its result exceeded
@@ -835,6 +1355,350 @@ used: number;
 ```
 
 The observed value that exceeded `cap`.
+
+***
+
+### NotificationQueue
+
+A queue of notification messages with leases.
+
+#### Methods
+
+##### delete()
+
+```ts
+delete(receipts): Promise<void>;
+```
+
+Acknowledges handled messages.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `receipts` | `string`[] | Their leases. |
+
+###### Returns
+
+`Promise`\<`void`\>
+
+Resolves once recorded.
+
+##### receive()
+
+```ts
+receive(max): Promise<Received>;
+```
+
+Leases up to `max` waiting messages.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `max` | `number` | Most messages, 1 to 10. |
+
+###### Returns
+
+`Promise`\<[`Received`](#received)\>
+
+The messages.
+
+##### release()
+
+```ts
+release(receipts): Promise<void>;
+```
+
+Offers messages again on the next receive.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `receipts` | `string`[] | Their leases. |
+
+###### Returns
+
+`Promise`\<`void`\>
+
+Resolves once recorded.
+
+***
+
+### ObjectPage
+
+One page of a backend listing.
+
+#### Properties
+
+##### nextCursor?
+
+```ts
+nextCursor?: string;
+```
+
+Cursor for the next page; absent on the last page.
+
+##### objects
+
+```ts
+objects: ObjectInfo[];
+```
+
+Objects on the page, in the backend's order.
+
+***
+
+### ObjectStore
+
+The calls a bucket-style backend makes. Keys are the host's object keys;
+the backend adds its own prefix. Every failure is a [PluginError](#pluginerror):
+`not_found`, `invalid_params` (a key the backend cannot hold),
+`payload_too_large`, `invalid_cursor`, `conflict`, or `internal`.
+
+#### Properties
+
+##### conditionalWrites?
+
+```ts
+readonly conditionalWrites?: "atomic" | "checked";
+```
+
+How [ObjectStore.putConditional](#putconditional) keeps its condition: `atomic`
+(the service enforces it), `checked` (it writes, then checks and removes
+a write that lost), or absent when there is no `putConditional`.
+
+##### prefixBytes
+
+```ts
+readonly prefixBytes: number;
+```
+
+UTF-8 bytes of the backend's own key prefix, for key translation.
+
+##### serverCopy
+
+```ts
+readonly serverCopy: boolean;
+```
+
+Whether [ObjectStore.copy](#copy-1) runs on the server (no bytes through the plugin).
+
+#### Methods
+
+##### copy()
+
+```ts
+copy(from, to): Promise<number>;
+```
+
+Copies `from` to `to` (on the server when [ObjectStore.serverCopy](#servercopy)).
+
+The copy keeps the source's content type, checksum and commit token:
+a commit publishes a stage with this call, and a repeated commit after
+the stage is gone recognizes the published object by its token.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `from` | `string` | Source key. |
+| `to` | `string` | Target key. |
+
+###### Returns
+
+`Promise`\<`number`\>
+
+Bytes copied.
+
+##### delete()
+
+```ts
+delete(key): Promise<void>;
+```
+
+Removes the object at `key`; a missing object is not an error.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `key` | `string` | Object key. |
+
+###### Returns
+
+`Promise`\<`void`\>
+
+Resolves once it is gone.
+
+##### get()
+
+```ts
+get(key, range): Promise<{
+  body: ReadableStream<Uint8Array<ArrayBufferLike>>;
+  object: StoredObject;
+}>;
+```
+
+Streams the object at `key`.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `key` | `string` | Object key. |
+| `range` | [`ByteRange`](plugin.md#byterange) \| `undefined` | A byte range already checked by [checkByteRange](#checkbyterange), or `undefined` for the whole object. |
+
+###### Returns
+
+`Promise`\<\{
+  `body`: `ReadableStream`\<`Uint8Array`\<`ArrayBufferLike`\>\>;
+  `object`: [`StoredObject`](#storedobject);
+\}\>
+
+The object and its body; `not_found` when it is missing.
+
+##### head()
+
+```ts
+head(key): Promise<StoredObject | null>;
+```
+
+The object at `key`, or `null` when there is none.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `key` | `string` | Object key. |
+
+###### Returns
+
+`Promise`\<[`StoredObject`](#storedobject) \| `null`\>
+
+The object, or `null`.
+
+##### list()
+
+```ts
+list(
+   prefix, 
+   cursor, 
+   limit
+): Promise<ObjectPage>;
+```
+
+One page of objects under `prefix`.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `prefix` | `string` | Key prefix. |
+| `cursor` | `string` \| `undefined` | The previous page's cursor, or `undefined` to start. |
+| `limit` | `number` | Most objects to return, already within `1..=MAX_LIST_PAGE`. |
+
+###### Returns
+
+`Promise`\<[`ObjectPage`](#objectpage)\>
+
+The page.
+
+##### put()
+
+```ts
+put(
+   key, 
+   body, 
+   write
+): Promise<WrittenObject>;
+```
+
+Stores `body` at `key`, replacing what is there.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `key` | `string` | Object key. |
+| `body` | `ReadableStream`\<`Uint8Array`\<`ArrayBufferLike`\>\> | The bytes. |
+| `write` | [`ObjectWrite`](#objectwrite) | Type, length, checksum and commit token. |
+
+###### Returns
+
+`Promise`\<[`WrittenObject`](#writtenobject)\>
+
+What was stored.
+
+##### putConditional()?
+
+```ts
+putConditional?(
+   key, 
+   body, 
+   write, 
+   condition
+): Promise<WrittenObject>;
+```
+
+A conditional write, when the backend has one. Leave it out and
+[ObjectStoreDestination](#objectstoredestination) probes first (not atomic).
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `key` | `string` | Object key. |
+| `body` | `ReadableStream`\<`Uint8Array`\<`ArrayBufferLike`\>\> | The bytes. |
+| `write` | [`ObjectWrite`](#objectwrite) | Type, length, checksum and commit token. |
+| `condition` | [`WriteCondition`](#writecondition) | The precondition. |
+
+###### Returns
+
+`Promise`\<[`WrittenObject`](#writtenobject)\>
+
+What was stored; `conflict` when the condition failed.
+
+***
+
+### ObjectWrite
+
+What a write stores alongside the bytes.
+
+#### Properties
+
+##### commitToken?
+
+```ts
+commitToken?: string;
+```
+
+Commit token to record on the object.
+
+##### contentLength?
+
+```ts
+contentLength?: number;
+```
+
+Declared length; the backend refuses a body of another length.
+
+##### contentType?
+
+```ts
+contentType?: string;
+```
+
+MIME type.
+
+##### sha256?
+
+```ts
+sha256?: Uint8Array<ArrayBufferLike>;
+```
+
+Expected SHA-256 of the body; the backend refuses a body that differs.
 
 ***
 
@@ -1068,6 +1932,209 @@ HTTP status code, 100 to 599.
 
 ***
 
+### ParsedChange
+
+One change read from a message, with what orders it.
+
+#### Properties
+
+##### change
+
+```ts
+change: ObjectChange;
+```
+
+The change.
+
+##### sequencer
+
+```ts
+sequencer: string | null;
+```
+
+Per-key event sequencer (hex, sorts after zero-padding), or `null`.
+
+##### time
+
+```ts
+time: string | null;
+```
+
+Comparable event time (text that sorts in time order), or `null`.
+
+***
+
+### QueueFeedOptions
+
+Options for [QueueFeed](#queuefeed).
+
+#### Properties
+
+##### kv
+
+```ts
+kv: KvNamespaceBinding;
+```
+
+KV binding the feed's state lives in.
+
+##### parse
+
+```ts
+parse: MessageParser;
+```
+
+Reads one message into changes.
+
+##### queue
+
+```ts
+queue: NotificationQueue;
+```
+
+Where the messages come from.
+
+##### stateKey
+
+```ts
+stateKey: string;
+```
+
+KV key of the state; name it after the queue, bucket and prefix so a
+changed setting starts a new feed.
+
+***
+
+### Received
+
+What one receive returned.
+
+#### Properties
+
+##### messages
+
+```ts
+messages: LeasedMessage[];
+```
+
+Leased messages, oldest first.
+
+##### missed
+
+```ts
+missed: boolean;
+```
+
+True when the queue dropped messages since the last receive.
+
+***
+
+### StoredObject
+
+One stored object as the backend reports it.
+
+#### Extends
+
+- [`ObjectMetadata`](plugin.md#objectmetadata)
+
+#### Properties
+
+##### commitToken?
+
+```ts
+commitToken?: string;
+```
+
+The commit token the object was written under, when it carries one.
+
+##### contentType?
+
+```ts
+contentType?: string;
+```
+
+###### Inherited from
+
+[`ObjectMetadata`](plugin.md#objectmetadata).[`contentType`](plugin.md#contenttype-1)
+
+##### etag?
+
+```ts
+etag?: string;
+```
+
+###### Inherited from
+
+[`ObjectMetadata`](plugin.md#objectmetadata).[`etag`](plugin.md#etag-1)
+
+##### key
+
+```ts
+key: string;
+```
+
+###### Inherited from
+
+[`ObjectMetadata`](plugin.md#objectmetadata).[`key`](plugin.md#key-3)
+
+##### modifiedAtMs?
+
+```ts
+modifiedAtMs?: number;
+```
+
+Last modification time, UTC unix milliseconds.
+
+###### Inherited from
+
+[`ObjectMetadata`](plugin.md#objectmetadata).[`modifiedAtMs`](plugin.md#modifiedatms-1)
+
+##### sha256?
+
+```ts
+sha256?: Uint8Array<ArrayBufferLike>;
+```
+
+###### Inherited from
+
+[`ObjectMetadata`](plugin.md#objectmetadata).[`sha256`](plugin.md#sha256)
+
+##### signature?
+
+```ts
+signature?: string;
+```
+
+Opaque change signature, as [ObjectInfo.signature](plugin.md#signature).
+
+###### Inherited from
+
+[`ObjectMetadata`](plugin.md#objectmetadata).[`signature`](plugin.md#signature-1)
+
+##### size
+
+```ts
+size: number;
+```
+
+###### Inherited from
+
+[`ObjectMetadata`](plugin.md#objectmetadata).[`size`](plugin.md#size-1)
+
+##### versionId?
+
+```ts
+versionId?: string;
+```
+
+Backend object version id (versioned buckets).
+
+###### Inherited from
+
+[`ObjectMetadata`](plugin.md#objectmetadata).[`versionId`](plugin.md#versionid-1)
+
+***
+
 ### StorePage
 
 One page of a storefront's own library listing, as the plugin fetched it.
@@ -1127,6 +2194,62 @@ On the last store page: the token the host sends as
 `ScanParams.syncToken` on the account's next pass. Ignored on earlier
 pages.
 
+***
+
+### StreamCopySpec
+
+JSON payload of a `stream_copy` job.
+
+#### Properties
+
+##### from
+
+```ts
+from: string;
+```
+
+Source object key, read from `controller.input`.
+
+##### to
+
+```ts
+to: string;
+```
+
+Destination object key, written to `controller.output`.
+
+***
+
+### WrittenObject
+
+What a write stored.
+
+#### Properties
+
+##### bytesWritten
+
+```ts
+bytesWritten: number;
+```
+
+Bytes stored.
+
+##### etag?
+
+```ts
+etag?: string;
+```
+
+The stored object's entity tag.
+
+##### sha256?
+
+```ts
+sha256?: Uint8Array<ArrayBufferLike>;
+```
+
+SHA-256 of the stored body.
+
 ## Type Aliases
 
 ### AdapterBatchStatement
@@ -1159,6 +2282,27 @@ Fetches one store page.
 `Promise`\<[`StorePage`](#storepage)\>
 
 That store page.
+
+***
+
+### MessageParser
+
+```ts
+type MessageParser = (body) => ParsedChange[];
+```
+
+Reads one message body into changes. Throw to drop an unreadable message
+(the page then says it may have missed changes).
+
+#### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `body` | `Uint8Array` |
+
+#### Returns
+
+[`ParsedChange`](#parsedchange)[]
 
 ***
 
@@ -1244,6 +2388,23 @@ type OriginTransportReply =
 
 One transport answer: the library's response, or a typed failure.
 
+***
+
+### WriteCondition
+
+```ts
+type WriteCondition = 
+  | {
+  etag: string;
+  kind: "ifMatch";
+}
+  | {
+  kind: "ifNoneMatch";
+};
+```
+
+A write's precondition.
+
 ## Variables
 
 ### GUEST\_READ\_ONLY\_REPLAY\_PAYLOAD
@@ -1308,6 +2469,66 @@ Largest replay payload, in UTF-8 bytes, a receipt stores for a write batch.
 
 ***
 
+### MAX\_HOST\_KEY\_BYTES
+
+```ts
+const MAX_HOST_KEY_BYTES: 1024 = 1024;
+```
+
+Longest host key, in UTF-8 bytes.
+
+***
+
+### MAX\_OBJECT\_KEY\_BYTES
+
+```ts
+const MAX_OBJECT_KEY_BYTES: 1024 = 1024;
+```
+
+Longest object-store key, in UTF-8 bytes (prefix included).
+
+***
+
+### NO\_FEED\_CURSOR
+
+```ts
+const NO_FEED_CURSOR: "none" = "none";
+```
+
+Cursor a destination with no feed (or a feed that is off) hands out.
+
+***
+
+### QUEUE\_LEASE\_MS
+
+```ts
+const QUEUE_LEASE_MS: number;
+```
+
+How long a received message stays leased: 12 hours, within the binding's cap.
+
+***
+
+### STAGE\_FOLDER
+
+```ts
+const STAGE_FOLDER: ".bookclerk-stage" = ".bookclerk-stage";
+```
+
+Folder under which staged writes wait for their commit.
+
+***
+
+### STREAM\_COPY\_COMMAND
+
+```ts
+const STREAM_COPY_COMMAND: "stream_copy" = "stream_copy";
+```
+
+The job command type this helper runs.
+
+***
+
 ### STREAM\_FRAME\_TARGET\_BYTES
 
 ```ts
@@ -1317,6 +2538,58 @@ const STREAM_FRAME_TARGET_BYTES: number;
 Encoded size an encoder aims for per `rows` frame (one wider row may exceed it).
 
 ## Functions
+
+### checkByteRange()
+
+```ts
+function checkByteRange(range, size?): ByteRange | undefined;
+```
+
+Checks a read range: a length of 0 is ambiguous (leave it out to read to
+the end) and an offset plus length must stay a safe integer. With `size`,
+the range must also lie within the object.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `range` | [`ByteRange`](plugin.md#byterange) \| `undefined` | The requested range, or `undefined`. |
+| `size?` | `number` | The object's size, when known. |
+
+#### Returns
+
+[`ByteRange`](plugin.md#byterange) \| `undefined`
+
+The range.
+
+#### Throws
+
+`invalid_params` for a range that cannot be read.
+
+***
+
+### clampPageLimit()
+
+```ts
+function clampPageLimit(limit): number;
+```
+
+Checks a list or batch page size: 0 asks for the most, and anything else
+is clamped to `1..=MAX_LIST_PAGE`.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `limit` | `number` \| `undefined` | The requested size. |
+
+#### Returns
+
+`number`
+
+The size to use.
+
+***
 
 ### collectExecuteStream()
 
@@ -1620,6 +2893,55 @@ Message text the host and every SDK parse back with [parseLimitExceeded](#parsel
 
 ***
 
+### orderChanges()
+
+```ts
+function orderChanges(events): void;
+```
+
+Orders changes by time (unknown first, stable), then each key's changes
+by sequencer among the places that key already holds.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `events` | [`ParsedChange`](#parsedchange)[] | Changes, reordered in place. |
+
+#### Returns
+
+`void`
+
+***
+
+### parseHostKey()
+
+```ts
+function parseHostKey(key): string;
+```
+
+Checks a host key: 1 to [MAX\_HOST\_KEY\_BYTES](#max_host_key_bytes) bytes of `/`-separated
+segments, none empty, `.` or `..`, and none holding a backslash or a
+control character.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `key` | `string` | The host key. |
+
+#### Returns
+
+`string`
+
+The key.
+
+#### Throws
+
+`invalid_params` when it is not one.
+
+***
+
 ### parseLimitExceeded()
 
 ```ts
@@ -1643,6 +2965,37 @@ The exceeded cap, or `undefined` when the text is not a limit error.
 
 ***
 
+### parseQueueCursor()
+
+```ts
+function parseQueueCursor(cursor): object;
+```
+
+Splits a cursor into its feed id and sequence number.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `cursor` | `string` | A cursor this kind of feed wrote. |
+
+#### Returns
+
+`object`
+
+The feed id and sequence.
+
+| Name | Type |
+| ------ | ------ |
+| `feed` | `string` |
+| `seq` | `number` |
+
+#### Throws
+
+`invalid_cursor` for any other text.
+
+***
+
 ### rawStreamCeiling()
 
 ```ts
@@ -1663,6 +3016,31 @@ plus one eighth for frame headers and one window of slack.
 `number`
 
 Byte ceiling on the whole frame sequence and on any one frame.
+
+***
+
+### requireDisjointPrefixes()
+
+```ts
+function requireDisjointPrefixes(from, to): void;
+```
+
+Refuses a prefix move whose source is empty or whose prefixes overlap.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `from` | `string` | Source prefix. |
+| `to` | `string` | Target prefix. |
+
+#### Returns
+
+`void`
+
+#### Throws
+
+`invalid_params` when they cannot be moved apart.
 
 ***
 
@@ -1817,6 +3195,109 @@ Whether to pad the remaining results instead of running them.
 
 ***
 
+### stageKey()
+
+```ts
+function stageKey(token, key): string;
+```
+
+The key a staged write waits under: `.bookclerk-stage/<token>/<key>`.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `token` | `string` \| `undefined` | The commit token. |
+| `key` | `string` | The object key. |
+
+#### Returns
+
+`string`
+
+The stage key.
+
+#### Throws
+
+`invalid_params` for an empty token, one holding a
+  path separator, `..` or NUL, or an empty key.
+
+***
+
+### streamCopy()
+
+```ts
+function streamCopy(controller): Promise<JobCompletion>;
+```
+
+Runs one `stream_copy` job: open `from` on the input, stage it on the
+output under [streamCopyCommitToken](#streamcopycommittoken), check for cancellation, then
+commit. Cancellation, or a failed put, progress report or commit, aborts
+the stage (best effort) before the error goes back.
+
+Call it from the default entrypoint's `job(controller)`:
+
+```ts
+async job(controller: JobController) {
+  return streamCopy(controller);
+}
+```
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `controller` | [`JobController`](plugin.md#jobcontroller) | The job invocation. |
+
+#### Returns
+
+`Promise`\<[`JobCompletion`](plugin.md#jobcompletion)\>
+
+The completion, carrying the bytes written.
+
+#### Throws
+
+`unsupported` for another command type,
+  `invalid_params` for a bad payload, `unavailable` when the host granted
+  no input or output, `cancelled` when the host cancelled the job, or the
+  input's or output's own error.
+
+***
+
+### streamCopyCommitToken()
+
+```ts
+function streamCopyCommitToken(
+   idempotencyKey, 
+   stepId, 
+   destKey
+): Promise<string>;
+```
+
+The retry-stable commit token for one stream-copy step.
+
+The token is `sc-` and 32 hex digits of SHA-256 over the idempotency key,
+a zero byte, the step id (`stream_copy` when empty), a zero byte, and the
+destination key. It leaves out the invocation id, attempt and generation:
+publishing is at-least-once, so a reclaimed attempt must stage and commit
+the same token, and a destination treats an already-published object
+with a missing stage as committed.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `idempotencyKey` | `string` | The job's durable idempotency key. |
+| `stepId` | `string` | The step id; empty for a single-step job. |
+| `destKey` | `string` | The destination object key. |
+
+#### Returns
+
+`Promise`\<`string`\>
+
+The token (path-safe: letters, digits and `-` only).
+
+***
+
 ### streamsResults()
 
 ```ts
@@ -1836,6 +3317,82 @@ True when `caps` advertises a streamed result budget.
 `boolean`
 
 Whether `executeStreamed` is worth calling on this session.
+
+***
+
+### translateForObjectStore()
+
+```ts
+function translateForObjectStore(key, prefixBytes): string;
+```
+
+Translates a checked host key into a key an object store holds well:
+awkward characters replaced, and the whole key shortened to fit
+[MAX\_OBJECT\_KEY\_BYTES](#max_object_key_bytes) after the backend's own prefix.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `key` | `string` | A key [parseHostKey](#parsehostkey) accepted. |
+| `prefixBytes` | `number` | UTF-8 bytes of the backend's prefix. |
+
+#### Returns
+
+`string`
+
+The object-store key.
+
+***
+
+### webhookQueue()
+
+```ts
+function webhookQueue(webhooks, name): NotificationQueue;
+```
+
+The plugin's `WEBHOOKS` binding as a [NotificationQueue](#notificationqueue) for one
+`[[webhooks]]` row.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `webhooks` | [`WebhooksBinding`](env.md#webhooksbinding) | The binding. |
+| `name` | `string` | The row's name. |
+
+#### Returns
+
+[`NotificationQueue`](#notificationqueue)
+
+The queue.
+
+***
+
+### writeCondition()
+
+```ts
+function writeCondition(options): WriteCondition | null;
+```
+
+The precondition `options` asks for.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `options` | [`WriteOptions`](plugin.md#writeoptions) | The write options. |
+
+#### Returns
+
+[`WriteCondition`](#writecondition) \| `null`
+
+The condition, or `null` for a plain write.
+
+#### Throws
+
+`invalid_params` for both `ifMatch` and
+  `ifNoneMatch`, or for a conditional write that is also staged.
 
 ## References
 

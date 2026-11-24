@@ -77,6 +77,8 @@ Outside the isolate (authoring / unit tests), lightweight stubs stand in for
 | [`transport_queue`](#transport_queue) | function | Wrap the adapter's granted queue stub as a `QueueBinding`. |
 | [`transport_sockets`](#transport_sockets) | function | Wrap the adapter's granted sockets stub as a `SocketsBinding`. |
 | [`transport_webhooks`](#transport_webhooks) | function | Wrap the adapter's granted webhooks stub as a `WebhooksBinding`. |
+| [`stream_copy`](#stream_copy) | function | Run one `stream_copy` job, as the Rust and TypeScript SDKs do. |
+| [`stream_copy_commit_token`](#stream_copy_commit_token) | function | The retry-stable commit token for one stream-copy step. |
 | [`FEATURE_SCALAR_LIMITS`](#feature_scalar_limits) | constant | Guest honors scalar / stream-window / list-page caps (`rpc.scalarLimits`). |
 | [`FEATURE_STORAGE_CHANGES`](#feature_storage_changes) | constant | Guest implements `Destination.changes` (`storage.changes`). |
 | [`FEATURE_STORAGE_CHECKED_WRITE`](#feature_storage_checked_write) | constant | Guest enforces `WriteOptions.ifMatch` / `ifNoneMatch` by writing, then checking and withdrawing its write when another got in first (`storage.checkedWrite`); a reader may briefly see the losing write. |
@@ -104,6 +106,7 @@ Outside the isolate (authoring / unit tests), lightweight stubs stand in for
 | [`MAX_WEBHOOK_PULL_BATCH`](#max_webhook_pull_batch) | constant | Most deliveries one `Webhooks.pull` returns. |
 | [`MAX_WEBHOOK_VISIBILITY_MS`](#max_webhook_visibility_ms) | constant | Longest `Webhooks.pull` visibility timeout, in milliseconds (12 hours). |
 | [`PRODUCT_API_VERSION`](#product_api_version) | constant | Product ABI version (`plugin.toml` `api_version` / `describe().apiVersion`). |
+| [`STREAM_COPY_COMMAND`](#stream_copy_command) | constant | The job command type `stream_copy` runs. |
 
 ## Classes
 
@@ -2792,6 +2795,61 @@ Wrap the adapter's granted webhooks stub as a [`WebhooksBinding`](#webhooksbindi
 
 The author-facing binding.
 
+### stream_copy
+
+```python
+async def stream_copy(job: JobController) -> dict[str, Any]
+```
+
+Run one `stream_copy` job, as the Rust and TypeScript SDKs do.
+
+Opens `from` on the job's input, stages it on the output under
+[`stream_copy_commit_token`](#stream_copy_commit_token), checks for cancellation, then commits.
+Cancellation, or a failed put, progress report or commit, aborts the
+stage (best effort) before the error goes back. Call it from the default
+entrypoint's `job`:
+
+```
+async def job(self, job: JobController) -> dict:
+    return await stream_copy(job)
+```
+
+**Args**
+
+- `job`: The job invocation.
+
+**Returns**
+
+The completion, carrying the bytes written.
+
+**Raises**
+
+- `PluginError`: `unsupported` for another command type, `invalid_params` for a bad payload, `unavailable` when the host granted no input or output, `cancelled` when the host cancelled the job, or the input's or output's own error.
+
+### stream_copy_commit_token
+
+```python
+def stream_copy_commit_token(idempotency_key: str, step_id: str, dest_key: str) -> str
+```
+
+The retry-stable commit token for one stream-copy step.
+
+`sc-` and 32 hex digits of SHA-256 over the idempotency key, a zero
+byte, the step id (`stream_copy` when empty), a zero byte and the
+destination key, as the Rust and TypeScript SDKs write it. It leaves out
+the invocation id and attempt: publishing is at-least-once, so a
+reclaimed attempt stages and commits the same token.
+
+**Args**
+
+- `idempotency_key`: The job's durable idempotency key.
+- `step_id`: The step id; empty for a single-step job.
+- `dest_key`: The destination object key.
+
+**Returns**
+
+The token (letters, digits and `-` only).
+
 ## Constants
 
 ### FEATURE_SCALAR_LIMITS
@@ -3013,3 +3071,11 @@ PRODUCT_API_VERSION: int = 3
 ```
 
 Product ABI version (`plugin.toml` `api_version` / `describe().apiVersion`).
+
+### STREAM_COPY_COMMAND
+
+```python
+STREAM_COPY_COMMAND = 'stream_copy'
+```
+
+The job command type [`stream_copy`](#stream_copy) runs.

@@ -140,6 +140,7 @@ bytes.
 | [`SecretRef`](#secretref) | struct | Names one `encrypted_secrets` row of a store account. It carries no secret material. |
 | [`SecretValue`](#secretvalue) | struct | Secret bytes: zeroized on drop, redacted in `Debug`, and base64url on the wire. |
 | [`SharedBranchBootstrap`](#sharedbranchbootstrap) | struct | What a shared branch receives at redeem: the `[database]` bootstrap and the DEK, for the node id the library recorded (`kind = shared`). `Debug` prints no secret. |
+| [`SharedBranchCredential`](#sharedbranchcredential) | struct | The database plugin's own credential, for a plugin whose connection settings don't carry it (D1's API token; a Postgres URL carries its own). Whatever the plugin, the shared branch keeps it sealed with the DEK in its master key store (file, OS keychain or `systemd-creds`), tagged with the plugin it belongs to. `Debug` prints no secret. |
 | [`ArtifactRequest`](#artifactrequest) | struct | What a signed artifact request covers. |
 | [`AuthContext`](#authcontext) | struct | What a handshake signature covers. |
 | [`UploadPart`](#uploadpart) | struct | A part of a declared file: at least one byte, inside the file. |
@@ -242,6 +243,7 @@ bytes.
 | [`secrets_aad`](#secrets_aad) | function | Associated data of the secret bundle handed to `node_id` for `job_id` under lease generation `fence`: the domain tag, then each field as a 4-byte big-endian length and its bytes. |
 | [`upload_token_aad`](#upload_token_aad) | function | Associated data of the token for upload `upload_id`, granted to `node_id` for `job_id` under lease generation `fence`. |
 | [`open_shared_branch_bootstrap`](#open_shared_branch_bootstrap) | function | Opens a bootstrap made by `seal_shared_branch_bootstrap` with the joining node's box secret, for the library and node ids the redeem answered. |
+| [`parse_shared_branch_bootstrap`](#parse_shared_branch_bootstrap) | function | Reads an opened bootstrap for `library_id` and `node_id`. |
 | [`seal_shared_branch_bootstrap`](#seal_shared_branch_bootstrap) | function | Seals `bootstrap` to the joining node's box key `recipient`, as base64url text for the redeem answer. |
 | [`shared_branch_bootstrap_aad`](#shared_branch_bootstrap_aad) | function | Associated data of a shared branch bootstrap for `node_id` of `library_id`: the domain tag, then each field as a 4-byte big-endian length and its bytes. |
 | [`artifact_transcript`](#artifact_transcript) | function | The bytes a host signs for an artifact request: the domain tag, then each field as a 4-byte big-endian length and its bytes. |
@@ -344,6 +346,9 @@ bytes.
 | [`SECRET_UPDATE_AAD_DOMAIN`](#secret_update_aad_domain) | constant | Domain tag that starts the associated data of a token write-back. |
 | [`UPLOAD_TOKEN_AAD_DOMAIN`](#upload_token_aad_domain) | constant | Domain tag that starts the associated data of an upload token. |
 | [`DEK_LEN`](#dek_len) | constant | Length of the data-encryption key. |
+| [`MAX_BOOTSTRAP_CREDENTIAL_BYTES`](#max_bootstrap_credential_bytes) | constant | The longest database credential (a Postgres URL, a D1 API token) a bootstrap may carry, in bytes. |
+| [`MAX_BOOTSTRAP_CREDENTIAL_ID_BYTES`](#max_bootstrap_credential_id_bytes) | constant | The longest provider id for a database credential a bootstrap may carry, in bytes. |
+| [`MAX_SHARED_BRANCH_BOOTSTRAP_BYTES`](#max_shared_branch_bootstrap_bytes) | constant | The longest opened bootstrap accepted, in bytes. |
 | [`SHARED_BRANCH_BOOTSTRAP_AAD_DOMAIN`](#shared_branch_bootstrap_aad_domain) | constant | Domain tag that starts the associated data of a shared branch bootstrap. |
 | [`SHARED_BRANCH_BOOTSTRAP_VERSION`](#shared_branch_bootstrap_version) | constant | Version of `SharedBranchBootstrap`. |
 | [`SHARED_BRANCH_GRANTED_SCOPE`](#shared_branch_granted_scope) | constant | The scope a shared branch code is granted (stored with the code at consent). |
@@ -1835,6 +1840,7 @@ pub struct SharedBranchBootstrap {
     pub library_id: String,
     pub node_id: String,
     pub database: SharedBranchDatabase,
+    pub database_credential: Option<SharedBranchCredential>,
     pub dek: SecretValue,
 }
 ```
@@ -1849,7 +1855,37 @@ secret.
 - `library_id`: The library id.
 - `node_id`: The node id recorded for this shared branch.
 - `database`: How to reach the library's database.
+- `database_credential`: The database plugin's own credential, when `database` doesn't carry
+  it. Never sent with a Postgres `database`, whose URL is its
+  credential; left out when the library has none to give (a D1
+  library whose token is configured only where it runs).
 - `dek`: The library's 32-byte data-encryption key.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### SharedBranchCredential
+
+```rust
+pub struct SharedBranchCredential {
+    pub secret: SecretValue,
+    pub secret_id: Option<String>,
+}
+```
+
+The database plugin's own credential, for a plugin whose connection
+settings don't carry it (D1's API token; a Postgres URL carries its
+own). Whatever the plugin, the shared branch keeps it sealed with the DEK
+in its master key store (file, OS keychain or `systemd-creds`), tagged
+with the plugin it belongs to. `Debug` prints no secret.
+
+**Fields**
+
+- `secret`: The secret: 1 to [`MAX_BOOTSTRAP_CREDENTIAL_BYTES`](#max_bootstrap_credential_bytes) bytes of UTF-8
+  with no whitespace or control character.
+- `secret_id`: The provider's id for the secret, when the guided setup minted it
+  (so a later setup on the shared branch can replace it): 1 to
+  [`MAX_BOOTSTRAP_CREDENTIAL_ID_BYTES`](#max_bootstrap_credential_id_bytes) ASCII letters, digits, `-` and
+  `_`.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -3115,8 +3151,8 @@ The library's database, as a shared branch needs it to connect.
 
 - `Postgres`: PostgreSQL: the connection URL (it carries credentials).
   - `url`: `postgres://user:password@host/db`.
-- `D1`: Cloudflare D1: the database's ids. The API token stays
-  environment-only bootstrap on each node and is never sent.
+- `D1`: Cloudflare D1: the database's ids. Its API token travels as the
+  bootstrap's [`SharedBranchCredential`](#sharedbranchcredential).
   - `account_id`: Cloudflare account id.
   - `database_id`: D1 database UUID.
   - `api_base`: Cloudflare API base.
@@ -4314,6 +4350,35 @@ Returns [`SealError::Open`](#sealerror) when the box was sealed to another key, 
 another library or node, or was altered, and [`SealError::Bundle`](#sealerror) when
 its content is malformed or names other ids.
 
+### parse_shared_branch_bootstrap
+
+```rust
+pub fn parse_shared_branch_bootstrap(
+    plaintext: &[u8],
+    library_id: &str,
+    node_id: &str,
+) -> Result<SharedBranchBootstrap, SealError>
+```
+
+Reads an opened bootstrap for `library_id` and `node_id`.
+
+#### Arguments
+
+* `plaintext` - the bootstrap JSON, as [`open_shared_branch_bootstrap`](#open_shared_branch_bootstrap)
+  opened it.
+* `library_id`, `node_id` - the ids the redeem answered.
+
+#### Errors
+
+[`SealError::Bundle`](#sealerror) for bytes over [`MAX_SHARED_BRANCH_BOOTSTRAP_BYTES`](#max_shared_branch_bootstrap_bytes),
+bytes that are not a bootstrap, another version, a DEK that is not 32
+bytes, other ids, a Postgres URL or credential secret that is empty,
+longer than [`MAX_BOOTSTRAP_CREDENTIAL_BYTES`](#max_bootstrap_credential_bytes) or holds anything but
+UTF-8 without whitespace or control characters, a credential id longer than
+[`MAX_BOOTSTRAP_CREDENTIAL_ID_BYTES`](#max_bootstrap_credential_id_bytes) or holding anything but ASCII
+letters, digits, `-` and `_`, or a credential sent with a Postgres
+database.
+
 ### seal_shared_branch_bootstrap
 
 ```rust
@@ -5233,6 +5298,32 @@ pub const DEK_LEN: usize = 32;
 ```
 
 Length of the data-encryption key.
+
+### MAX_BOOTSTRAP_CREDENTIAL_BYTES
+
+```rust
+pub const MAX_BOOTSTRAP_CREDENTIAL_BYTES: usize = 4096;
+```
+
+The longest database credential (a Postgres URL, a D1 API token) a
+bootstrap may carry, in bytes.
+
+### MAX_BOOTSTRAP_CREDENTIAL_ID_BYTES
+
+```rust
+pub const MAX_BOOTSTRAP_CREDENTIAL_ID_BYTES: usize = 128;
+```
+
+The longest provider id for a database credential a bootstrap may carry,
+in bytes.
+
+### MAX_SHARED_BRANCH_BOOTSTRAP_BYTES
+
+```rust
+pub const MAX_SHARED_BRANCH_BOOTSTRAP_BYTES: usize = _;
+```
+
+The longest opened bootstrap accepted, in bytes.
 
 ### SHARED_BRANCH_BOOTSTRAP_AAD_DOMAIN
 

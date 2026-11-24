@@ -131,7 +131,7 @@ job runs its guest are the daemon's.
 | [`ENROLL_PATH`](#enroll_path) | constant | Path of the enroll endpoint. |
 | [`MAX_UPLOAD_RESUMES`](#max_upload_resumes) | constant | Most times one file sent in parts resumes before `OwnerEndpoint::put_file` gives up (a later attempt resumes again). |
 | [`DATABASE_ENV_OVERRIDES`](#database_env_overrides) | constant | Environment variables that would outrank a shared branch's `[database]` bootstrap; a shared branch join is refused while one is set. |
-| [`SHARED_BRANCH_POSTGRES_URL_FILE`](#shared_branch_postgres_url_file) | constant | File under the files directory that holds a shared branch's Postgres URL, mode `0600`. `[database.postgres].url_file` names it by its absolute path (a relative `url_file` would be read from the daemon's working directory). |
+| [`SHARED_BRANCH_POSTGRES_URL_FILE`](#shared_branch_postgres_url_file) | constant | File under the files directory where an earlier version kept a shared branch's Postgres URL in the clear (mode `0600`, named by `[database.postgres].url_file`). A join now seals the URL into `database.credential` instead; the name stays one of the files a join record may list, so an earlier join can still be confirmed or undone. |
 
 ## Re-exports
 
@@ -1836,6 +1836,7 @@ Implements: `Debug`, `Drop`
 pub struct AppliedSharedBranch {
     pub database: DatabasePluginKind,
     pub wrapped: bool,
+    pub database_credential: Option<KeyStoreKind>,
     pub config_file: PathBuf,
 }
 ```
@@ -1846,6 +1847,9 @@ What [`apply_shared_branch_bootstrap`](#apply_shared_branch_bootstrap) wrote.
 
 - `database`: The `[database].plugin` now configured.
 - `wrapped`: True when `master.key` is wrapped with this install's password.
+- `database_credential`: The store the database plugin's credential went to (this install's
+  master key store), or `None` when the library sent none (a D1
+  library whose token is only in its environment).
 - `config_file`: The config file written.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
@@ -2541,15 +2545,16 @@ pub fn apply_shared_branch_bootstrap(
 
 Writes `bootstrap` as this install's own bootstrap under `files_dir`:
 
-- `database-postgres.url` (Postgres only): the URL, mode `0600`;
 - `node-identity.json`: the node id the library recorded, bound to its
   library;
+- `database.credential` (when there is one): the database plugin's
+  credential (the Postgres URL, or the D1 token the library sent),
+  sealed with the DEK and put in the store the master key goes to;
 - `master.key`: the library's DEK, wrapped with `password` (this
   install's `BOOKCLERK_AUTH_PASSWORD` or `[auth].password`) when set;
 - `[database]` in `config_file` (other settings kept): `postgres` with
-  `url_file` naming the URL file (never the URL itself in the TOML), or
-  `d1` with its ids (the D1 API token stays this node's
-  environment-only bootstrap).
+  `stored_credential = true` (never the URL itself in the TOML), or `d1`
+  with its ids.
 
 The files go in as one recoverable step. All the new contents are first
 written and synced beside their targets (hidden `.<name>.shared-branch-<hex>`
@@ -2775,7 +2780,8 @@ bootstrap; a shared branch join is refused while one is set.
 pub const SHARED_BRANCH_POSTGRES_URL_FILE: &str = "database-postgres.url";
 ```
 
-File under the files directory that holds a shared branch's Postgres URL, mode
-`0600`. `[database.postgres].url_file` names it by its absolute path
-(a relative `url_file` would be read from the daemon's working
-directory).
+File under the files directory where an earlier version kept a shared
+branch's Postgres URL in the clear (mode `0600`, named by
+`[database.postgres].url_file`). A join now seals the URL into
+`database.credential` instead; the name stays one of the files a join
+record may list, so an earlier join can still be confirmed or undone.

@@ -33,7 +33,7 @@ new WriteChunksError(next, cause): WriteChunksError;
 
 ###### Overrides
 
-[`PluginError`](README.md#pluginerror).[`constructor`](README.md#constructor-1)
+[`PluginError`](README.md#pluginerror).[`constructor`](README.md#constructor-2)
 
 #### Properties
 

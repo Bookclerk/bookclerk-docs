@@ -119,7 +119,14 @@ batches resumably; see
 storefront's `scan` can hand its paging to `scan_page(params, fetch)`
 (`from bookclerk_plugin_sdk.scan_page import scan_page`, which also works
 inside a workerd isolate), which slices the store's own pages into replies
-the host accepts; see [Paged scans](../../abi.md#paged-scans). Generate a typed `Env` protocol from `plugin.toml`:
+the host accepts; see [Paged scans](../../abi.md#paged-scans). A storage
+plugin can build its entrypoint from `ObjectStoreDestination` over a small
+backend, follow bucket notifications with `QueueFeed` and
+`webhook_queue(env.WEBHOOKS, name)` (all from
+`bookclerk_plugin_sdk.object_store`, injected into workerd isolates too), and
+answer the `stream_copy` job with `stream_copy(job)` from
+`bookclerk_plugin_sdk.workerd`; see
+[Translating keys](../../abi.md#translating-keys). Generate a typed `Env` protocol from `plugin.toml`:
 
 ```bash
 python -m bookclerk_plugin_sdk types .   # writes bookclerk_configuration.py
@@ -225,6 +232,13 @@ every profile. A plugin's own `pyproject.toml` is what makes
 `bookclerk-plugin test` run pytest. See
 [Testing against the limits](../../database-limits.md#testing-against-the-limits).
 
+`bookclerk_plugin_sdk.testkit` also has in-memory `KV` and `WEBHOOKS`
+bindings that apply the host's limits and error codes:
+`TestKv(max_value_bytes=..., max_keys=...)` and `TestWebhooks()`, whose
+`deliver(name, body)` stands in for an outside service and whose `acked`,
+`retried` and `mark_missed` let a test check how a plugin settles its
+leases. `fail_next(op, error)` makes one KV call fail.
+
 ## Author tools
 
 ```bash
@@ -272,6 +286,7 @@ module, and what the package itself exports.
 | [`bookclerk_plugin_sdk.db_value`](db_value.md) | Universal Cap'n database value domain (`DbValue`) and unpacked codec. |
 | [`bookclerk_plugin_sdk.guest_sql`](guest_sql.md) | Guest SQL classification — must match host `guest_statement_kind`. |
 | [`bookclerk_plugin_sdk.limits`](limits.md) | Typed `limit_exceeded` errors: the SQL-v1 cap a request or result broke. |
+| [`bookclerk_plugin_sdk.object_store`](object_store.md) | Object-store destination helpers and the queue change feed. |
 | [`bookclerk_plugin_sdk.path_guard`](path_guard.md) | Path containment helpers for authoring tools and sparse workerd launchers. |
 | [`bookclerk_plugin_sdk.plugin_migration`](plugin_migration.md) | Resource bounds for plugin-owned `databaseMigrations` registration. |
 | [`bookclerk_plugin_sdk.scan_page`](scan_page.md) | Paging helper for a storefront's `scan`. |
@@ -280,6 +295,7 @@ module, and what the package itself exports.
 | [`bookclerk_plugin_sdk.sparse_workerd.ensure`](sparse_workerd/ensure.md) | Download / refresh the pinned Cloudflare `workerd` binary (mirrors ensure.rs). |
 | [`bookclerk_plugin_sdk.sparse_workerd.smoke`](sparse_workerd/smoke.md) | Out-of-tree workerd plugin smoke: ensure → materialize → describe + health. |
 | [`bookclerk_plugin_sdk.testkit`](testkit.md) | Contract conformance test kit: a plugin database binding like the host's. |
+| [`bookclerk_plugin_sdk.testkit_bindings`](testkit_bindings.md) | In-memory `KV` and `WEBHOOKS` bindings for plugin tests. |
 | [`bookclerk_plugin_sdk.tools`](tools.md) | check / fmt / types / package / sync-embed — mirrors Rust/TS author tools. |
 | [`bookclerk_plugin_sdk.workerd`](workerd.md) | Workerd author runtime — `BookclerkEntrypoint` and the named entrypoints. |
 

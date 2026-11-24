@@ -6646,7 +6646,7 @@ on success, refusal, or anything else.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
 - `403` — The library's user did not approve (`denied`), the library refused the sign-in (`refused`), or the session is impersonating a user (the standard error body). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorAnswer`](schemas.md#erroranswer) (`application/json`)
-- `409` — This install holds data of its own for a shared branch join (`not_empty`), the library's database plugin is not installed here (`database_guest_missing`), the D1 token is not set here (`d1_token_missing`), or joining would make a loop (`join_cycle`, `ancestry_too_deep`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
+- `409` — This install holds data of its own for a shared branch join (`not_empty`), the library's database plugin is not installed here (`database_guest_missing`), the library sent no D1 token and none is set here (`d1_token_missing`), or joining would make a loop (`join_cycle`, `ancestry_too_deep`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
   - `error` *string*, **required** — Stable machine slug clients branch on.
   - `detail` *string*, **required** — What went wrong, for the person reading the answer.
 - `410` — The sign-in is unknown, already used, or older than ten minutes; start again (`join_expired`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
@@ -7185,11 +7185,11 @@ Schema:
 }
 ```
 
-Status `409`: This install holds data of its own for a shared branch join (`not_empty`), the library's database plugin is not installed here (`database_guest_missing`), the D1 token is not set here (`d1_token_missing`), or joining would make a loop (`join_cycle`, `ancestry_too_deep`).
+Status `409`: This install holds data of its own for a shared branch join (`not_empty`), the library's database plugin is not installed here (`database_guest_missing`), the library sent no D1 token and none is set here (`d1_token_missing`), or joining would make a loop (`join_cycle`, `ancestry_too_deep`).
 
 ```json
 {
-  "detail": "the library's database is Cloudflare D1: set BOOKCLERK_D1_API_TOKEN for this server and restart it (the token is never sent between servers), then try again within 10 minutes (the library holds this server as node 7d2b9e4c-1f3a-4b8d-9c6e-2a5f8b1d4e7c)",
+  "detail": "the library's database is Cloudflare D1 and it sent no API token: set BOOKCLERK_D1_API_TOKEN for this server and restart it, then try again within 10 minutes (the library holds this server as node 7d2b9e4c-1f3a-4b8d-9c6e-2a5f8b1d4e7c)",
   "error": "d1_token_missing"
 }
 ```

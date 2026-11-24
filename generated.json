@@ -49,6 +49,7 @@
     "plugins/sdk/python/db_value",
     "plugins/sdk/python/guest_sql",
     "plugins/sdk/python/limits",
+    "plugins/sdk/python/object_store",
     "plugins/sdk/python/path_guard",
     "plugins/sdk/python/plugin_migration",
     "plugins/sdk/python/scan_page",
@@ -57,6 +58,7 @@
     "plugins/sdk/python/sparse_workerd/ensure",
     "plugins/sdk/python/sparse_workerd/smoke",
     "plugins/sdk/python/testkit",
+    "plugins/sdk/python/testkit_bindings",
     "plugins/sdk/python/tools",
     "plugins/sdk/python/workerd"
    ]

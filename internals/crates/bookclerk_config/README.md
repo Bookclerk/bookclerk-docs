@@ -353,6 +353,7 @@ pub struct DatabasePostgresConfig {
     pub enabled: bool,
     pub url: Option<String>,
     pub url_file: Option<PathBuf>,
+    pub stored_credential: bool,
 }
 ```
 
@@ -372,6 +373,10 @@ URL in TOML.
   Registered as a secret for redaction.  Prefer `url_file` in production.
 - `url_file`: Path to a file containing the connection URL (one line, trimmed).
   Relative paths are resolved under `$BOOKCLERK_FILES_DIR`.
+- `stored_credential`: True when the URL is kept sealed in `database.credential` beside
+  `master.key` (in the master key's store) rather than in `url` or
+  `url_file`: how a joined shared branch keeps its library's URL.
+  `url` and `url_file` still win when set.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 

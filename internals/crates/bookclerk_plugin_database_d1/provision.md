@@ -7,13 +7,14 @@ token that can use D1 and nothing else, for the host to keep.
 The operator's token needs "D1 Edit" (to find and create the database)
 and "Account API Tokens Edit" (to mint and delete the library's token).
 It is used for this run only. The minted token is returned as the
-`api_token` secret; `bookclerk database setup d1` seals it with the
+`api_token` secret; `bookclerk config database setup d1` seals it with the
 library's key and keeps it in the same store as the master key.
 
-A second run mints a fresh token and deletes the one the first run
-minted (its id comes back as the `api_token_id` setting), so a re-run
-rotates the token rather than piling them up. The setup never deletes a
-database: it holds the library. The replies are read by
+A second run keeps the token the first run minted (its id comes back as
+the `api_token_id` setting): shared branches of the library hold a copy,
+and a new token would cut them off. With `rotate_token` it mints a fresh
+token and deletes the earlier one, so tokens never pile up. The setup
+never deletes a database: it holds the library. The replies are read by
 [`bookclerk_storage::cloudflare_api`](../bookclerk_storage/cloudflare_api.md).
 
 | Item | Kind | Summary |

@@ -6967,6 +6967,10 @@ Backend object version id (versioned buckets).
 
 Metadata without a body.
 
+#### Extended by
+
+- [`StoredObject`](README.md#storedobject)
+
 #### Properties
 
 ##### contentType?

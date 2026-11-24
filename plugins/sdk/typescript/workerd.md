@@ -40,7 +40,7 @@ new InvokeError(
 
 ###### Overrides
 
-[`PluginError`](README.md#pluginerror).[`constructor`](README.md#constructor-1)
+[`PluginError`](README.md#pluginerror).[`constructor`](README.md#constructor-2)
 
 #### Properties
 
@@ -609,6 +609,12 @@ Re-exports [canonicalExecuteRequestHash](db-execute.md#canonicalexecuterequestha
 
 ***
 
+### ChangeFeed
+
+Re-exports [ChangeFeed](README.md#changefeed)
+
+***
+
 ### ChangesPage
 
 Re-exports [ChangesPage](plugin.md#changespage)
@@ -621,6 +627,12 @@ Re-exports [ChangesRequest](plugin.md#changesrequest)
 
 ***
 
+### checkByteRange
+
+Re-exports [checkByteRange](README.md#checkbyterange)
+
+***
+
 ### Checkpoint
 
 Re-exports [Checkpoint](plugin.md#checkpoint-4)
@@ -630,6 +642,12 @@ Re-exports [Checkpoint](plugin.md#checkpoint-4)
 ### chunkIndexes
 
 Re-exports [chunkIndexes](db-execute.md#chunkindexes)
+
+***
+
+### clampPageLimit
+
+Re-exports [clampPageLimit](README.md#clamppagelimit)
 
 ***
 
@@ -1335,6 +1353,12 @@ Re-exports [KvValueWithMetadata](env.md#kvvaluewithmetadata)
 
 ***
 
+### LeasedMessage
+
+Re-exports [LeasedMessage](README.md#leasedmessage)
+
+***
+
 ### ListeningProgress
 
 Re-exports [ListeningProgress](generated.md#listeningprogress)
@@ -1383,9 +1407,21 @@ Re-exports [MAX_EVENT_PAYLOAD_BYTES](abi.md#max_event_payload_bytes)
 
 ***
 
+### MAX\_HOST\_KEY\_BYTES
+
+Re-exports [MAX_HOST_KEY_BYTES](README.md#max_host_key_bytes)
+
+***
+
 ### MAX\_LIST\_PAGE
 
 Re-exports [MAX_LIST_PAGE](abi.md#max_list_page)
+
+***
+
+### MAX\_OBJECT\_KEY\_BYTES
+
+Re-exports [MAX_OBJECT_KEY_BYTES](README.md#max_object_key_bytes)
 
 ***
 
@@ -1428,6 +1464,12 @@ Re-exports [MAX_WRITE_KEY_BYTES](db-execute.md#max_write_key_bytes)
 ### MediaKind
 
 Re-exports [MediaKind](abi.md#mediakind)
+
+***
+
+### MessageParser
+
+Re-exports [MessageParser](README.md#messageparser)
 
 ***
 
@@ -1563,6 +1605,12 @@ Re-exports [NamedSockets](plugin.md#namedsockets)
 
 ***
 
+### NO\_FEED\_CURSOR
+
+Re-exports [NO_FEED_CURSOR](README.md#no_feed_cursor)
+
+***
+
 ### NotificationAlertAction
 
 Re-exports [NotificationAlertAction](abi.md#notificationalertaction)
@@ -1584,6 +1632,12 @@ Re-exports [NotificationField](generated.md#notificationfield)
 ### NotificationMessage
 
 Re-exports [NotificationMessage](generated.md#notificationmessage)
+
+***
+
+### NotificationQueue
+
+Re-exports [NotificationQueue](README.md#notificationqueue)
 
 ***
 
@@ -1671,6 +1725,30 @@ Re-exports [ObjectMetadata](plugin.md#objectmetadata)
 
 ***
 
+### ObjectPage
+
+Re-exports [ObjectPage](README.md#objectpage)
+
+***
+
+### ObjectStore
+
+Re-exports [ObjectStore](README.md#objectstore)
+
+***
+
+### ObjectStoreDestination
+
+Re-exports [ObjectStoreDestination](README.md#objectstoredestination)
+
+***
+
+### ObjectWrite
+
+Re-exports [ObjectWrite](README.md#objectwrite)
+
+***
+
 ### OidcClientTemplate
 
 Re-exports [OidcClientTemplate](generated.md#oidcclienttemplate)
@@ -1680,6 +1758,12 @@ Re-exports [OidcClientTemplate](generated.md#oidcclienttemplate)
 ### OidcEntrypoint
 
 Re-exports [OidcEntrypoint](plugin.md#oidcentrypoint)
+
+***
+
+### orderChanges
+
+Re-exports [orderChanges](README.md#orderchanges)
 
 ***
 
@@ -1740,6 +1824,24 @@ Re-exports [packEmbeddingVectors](plugin.md#packembeddingvectors)
 ### parseDbValue
 
 Re-exports [parseDbValue](db-value.md#parsedbvalue)
+
+***
+
+### ParsedChange
+
+Re-exports [ParsedChange](README.md#parsedchange)
+
+***
+
+### parseHostKey
+
+Re-exports [parseHostKey](README.md#parsehostkey)
+
+***
+
+### parseQueueCursor
+
+Re-exports [parseQueueCursor](README.md#parsequeuecursor)
 
 ***
 
@@ -1845,6 +1947,12 @@ Re-exports [PutResult](plugin.md#putresult)
 
 ***
 
+### QUEUE\_LEASE\_MS
+
+Re-exports [QUEUE_LEASE_MS](README.md#queue_lease_ms)
+
+***
+
 ### QueueBatch
 
 Re-exports [QueueBatch](plugin.md#queuebatch)
@@ -1860,6 +1968,18 @@ Re-exports [queueBatchResults](plugin.md#queuebatchresults)
 ### QueueBinding
 
 Re-exports [QueueBinding](env.md#queuebinding)
+
+***
+
+### QueueFeed
+
+Re-exports [QueueFeed](README.md#queuefeed)
+
+***
+
+### QueueFeedOptions
+
+Re-exports [QueueFeedOptions](README.md#queuefeedoptions)
 
 ***
 
@@ -1911,9 +2031,21 @@ Re-exports [ReadResult](plugin.md#readresult)
 
 ***
 
+### Received
+
+Re-exports [Received](README.md#received)
+
+***
+
 ### RemoteLibraryEntrypoint
 
 Re-exports [RemoteLibraryEntrypoint](plugin.md#remotelibraryentrypoint)
+
+***
+
+### requireDisjointPrefixes
+
+Re-exports [requireDisjointPrefixes](README.md#requiredisjointprefixes)
 
 ***
 
@@ -2019,6 +2151,18 @@ Re-exports [Source](plugin.md#source-2)
 
 ***
 
+### STAGE\_FOLDER
+
+Re-exports [STAGE_FOLDER](README.md#stage_folder)
+
+***
+
+### stageKey
+
+Re-exports [stageKey](README.md#stagekey)
+
+***
+
 ### StatementResult
 
 Re-exports [StatementResult](db-execute.md#statementresult)
@@ -2043,6 +2187,12 @@ Re-exports [StorageEntrypoint](plugin.md#storageentrypoint)
 
 ***
 
+### StoredObject
+
+Re-exports [StoredObject](README.md#storedobject)
+
+***
+
 ### StorefrontEntrypoint
 
 Re-exports [StorefrontEntrypoint](plugin.md#storefrontentrypoint)
@@ -2055,9 +2205,33 @@ Re-exports [StorePage](README.md#storepage)
 
 ***
 
+### STREAM\_COPY\_COMMAND
+
+Re-exports [STREAM_COPY_COMMAND](README.md#stream_copy_command)
+
+***
+
 ### STREAM\_FRAME\_TARGET\_BYTES
 
 Re-exports [STREAM_FRAME_TARGET_BYTES](README.md#stream_frame_target_bytes)
+
+***
+
+### streamCopy
+
+Re-exports [streamCopy](README.md#streamcopy)
+
+***
+
+### streamCopyCommitToken
+
+Re-exports [streamCopyCommitToken](README.md#streamcopycommittoken)
+
+***
+
+### StreamCopySpec
+
+Re-exports [StreamCopySpec](README.md#streamcopyspec)
 
 ***
 
@@ -2070,6 +2244,12 @@ Re-exports [streamsResults](README.md#streamsresults)
 ### toBridgeJson
 
 Re-exports [toBridgeJson](plugin.md#tobridgejson)
+
+***
+
+### translateForObjectStore
+
+Re-exports [translateForObjectStore](README.md#translateforobjectstore)
 
 ***
 
@@ -2112,6 +2292,12 @@ Re-exports [WebhookPullOptions](env.md#webhookpulloptions)
 ### WebhookPullResult
 
 Re-exports [WebhookPullResult](env.md#webhookpullresult)
+
+***
+
+### webhookQueue
+
+Re-exports [webhookQueue](README.md#webhookqueue)
 
 ***
 
@@ -2163,6 +2349,18 @@ Re-exports [WriteChunksOptions](db-execute.md#writechunksoptions)
 
 ***
 
+### writeCondition
+
+Re-exports [writeCondition](README.md#writecondition-1)
+
+***
+
+### WriteCondition
+
+Re-exports [WriteCondition](README.md#writecondition)
+
+***
+
 ### WriteOptions
 
 Re-exports [WriteOptions](plugin.md#writeoptions)
@@ -2172,3 +2370,9 @@ Re-exports [WriteOptions](plugin.md#writeoptions)
 ### WriteProgress
 
 Re-exports [WriteProgress](db-execute.md#writeprogress)
+
+***
+
+### WrittenObject
+
+Re-exports [WrittenObject](README.md#writtenobject)
