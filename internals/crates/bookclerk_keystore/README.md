@@ -18,6 +18,10 @@ record ([`KeychainPointer`](#keychainpointer)) that `master.key` holds on a keyc
 install. What the item's bytes mean (`BCK1` or `BCK2`, the fingerprint
 check) stays in `bookclerk-library`'s `master_key` module.
 
+The same stores also keep a hosted database's API token, already sealed
+with the DEK, as a second [`ItemKind`](#itemkind) with its own service and
+credential names.
+
 [`OsKeychain`](#oskeychain) is the real store. [`MemoryVault`](#memoryvault) keeps items in memory,
 for tests and for hosts that must never touch the keychain.
 
@@ -30,19 +34,22 @@ See `docs/adr/master-key-store.md`.
 | Item | Kind | Summary |
 | --- | --- | --- |
 | [`Vault`](#vault) | trait | A store of master-key items: the OS keychain, or memory in tests. |
-| [`SystemdCredsVault`](#systemdcredsvault) | struct | A master-key store that seals items with `systemd-creds`. |
+| [`SystemdCredsVault`](#systemdcredsvault) | struct | A key store that seals items with `systemd-creds`. |
 | [`KeystoreError`](#keystoreerror) | struct | A key store failure, without any item bytes. |
 | [`KeychainItemId`](#keychainitemid) | struct | Identifier of one install's master-key item: the item's account name under `KEYCHAIN_SERVICE`. |
 | [`KeychainPointer`](#keychainpointer) | struct | What `master.key` holds on a keychain or `systemd-creds` install: which store and item carry the key, and the fingerprint the key inside must match. No key material. |
 | [`OsKeychain`](#oskeychain) | struct | The operating system's credential store. |
 | [`MemoryVault`](#memoryvault) | struct | Items kept in process memory: for tests, and for hosts that must not touch the OS keychain. |
+| [`ItemKind`](#itemkind) | enum | What an item holds, which decides the names it is stored under. |
 | [`KeystoreErrorKind`](#keystoreerrorkind) | enum | Why a keychain operation failed. |
 | [`ErrorStore`](#errorstore) | enum | Which store a `KeystoreError` came from, so messages name the store the operator configured. |
 | [`PointerStore`](#pointerstore) | enum | Which store a pointer record names. |
 | [`PointerError`](#pointererror) | enum | Why a byte string is not a pointer record. |
 | [`Result`](#result) | type alias | Result alias for keychain operations. |
 | [`CREDENTIAL_NAME`](#credential_name) | constant | The credential name the key is sealed under, and the name a service unit hands it in as (`LoadCredentialEncrypted=bookclerk-master-key`). |
+| [`DATABASE_CREDENTIAL_NAME`](#database_credential_name) | constant | The credential name a database credential is sealed under, and the name a service unit hands one in as (`LoadCredentialEncrypted=bookclerk-database-credential`). |
 | [`KEYCHAIN_SERVICE`](#keychain_service) | constant | Keychain service name every Bookclerk master-key item is stored under. |
+| [`DATABASE_CREDENTIAL_SERVICE`](#database_credential_service) | constant | Keychain service name a database credential item is stored under (the DEK-sealed API token of a hosted database such as Cloudflare D1). |
 | [`POINTER_MAGIC`](#pointer_magic) | constant | Four-byte header of a `master.key` pointer record for an OS keychain item (`BCK3`). |
 | [`CREDS_POINTER_MAGIC`](#creds_pointer_magic) | constant | Four-byte header of a `master.key` pointer record for a key sealed with `systemd-creds` (`BCK4`): the same layout as `POINTER_MAGIC`'s. |
 | [`FINGERPRINT_LEN`](#fingerprint_len) | constant | Length in bytes of a key fingerprint (SHA-256 of the DEK). |
@@ -113,10 +120,11 @@ pub struct SystemdCredsVault {
 }
 ```
 
-A master-key store that seals items with `systemd-creds`.
+A key store that seals items with `systemd-creds`.
 
 Items live in one directory (the files directory) as
-`master-key-<item>.cred`. See the module docs.
+`master-key-<item>.cred` (or `database-credential-<item>.cred` for
+[`ItemKind::DatabaseCredential`](#itemkind)). See the module docs.
 
 #### SystemdCredsVault::new
 
@@ -150,17 +158,31 @@ and for systems that install `systemd-creds` elsewhere.
 * `program` - the `systemd-creds` binary, or `None` for none.
 * `credentials_dir` - the unit's credentials directory, if any.
 
+#### SystemdCredsVault::for_kind
+
+```rust
+pub fn for_kind(self, kind: ItemKind) -> Self
+```
+
+The same store, sealing items of `kind` (its own file prefix and
+credential name) instead of master-key items.
+
+##### Arguments
+
+* `kind` - the kind of item to seal.
+
 #### SystemdCredsVault::sealed_path
 
 ```rust
 pub fn sealed_path(&self, item: KeychainItemId) -> PathBuf
 ```
 
-Where `item` is sealed: `<dir>/master-key-<item>.cred`.
+Where `item` is sealed: `<dir>/<prefix>-<item>.cred`, the prefix
+being `master-key` or `database-credential` ([`ItemKind::file_prefix`](#itemkindfile_prefix)).
 
 ##### Arguments
 
-* `item` - the item id `master.key` names.
+* `item` - the item id the pointer file names.
 
 #### SystemdCredsVault::unit_credential
 
@@ -324,7 +346,19 @@ none, and every call then fails with [`KeystoreErrorKind::Unavailable`](#keystor
 pub fn new() -> Self
 ```
 
-A handle to this machine's credential store.
+A handle to this machine's credential store for master-key items.
+
+#### OsKeychain::for_kind
+
+```rust
+pub fn for_kind(kind: ItemKind) -> Self
+```
+
+A handle to this machine's credential store for items of `kind`.
+
+##### Arguments
+
+* `kind` - decides the keychain service items are stored under.
 
 Implements: `Default`, `Vault`
 
@@ -378,6 +412,63 @@ True when the vault holds no items.
 Implements: `Default`, `Vault`
 
 ## Enums
+
+### ItemKind
+
+```rust
+pub enum ItemKind {
+    MasterKey,
+    DatabaseCredential,
+}
+```
+
+What an item holds, which decides the names it is stored under.
+
+Each kind has its own keychain service, `systemd-creds` credential name
+and sealed-file prefix, so an item of one kind can never be read as the
+other (a unit-provided master key is never returned for a database
+credential, and a sealed file can't be renamed into the other's place).
+
+**Variants**
+
+- `MasterKey`: The library's data-encryption key envelope (`BCK1`/`BCK2`).
+- `DatabaseCredential`: A hosted database's API credential, already sealed with the DEK.
+
+#### ItemKind::service
+
+```rust
+pub fn service(self) -> &'static str
+```
+
+The keychain service items of this kind are stored under.
+
+#### ItemKind::credential_name
+
+```rust
+pub fn credential_name(self) -> &'static str
+```
+
+The `systemd-creds` credential name items of this kind are sealed
+under, and the name a service unit hands one in as.
+
+#### ItemKind::file_prefix
+
+```rust
+pub fn file_prefix(self) -> &'static str
+```
+
+The file-name prefix of a sealed `systemd-creds` item:
+`<prefix>-<item>.cred`.
+
+#### ItemKind::label
+
+```rust
+pub fn label(self) -> &'static str
+```
+
+The human-readable label a keychain shows for an item of this kind.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Eq`, `Hash`, `PartialEq`
 
 ### KeystoreErrorKind
 
@@ -503,6 +594,16 @@ pub const CREDENTIAL_NAME: &str = "bookclerk-master-key";
 The credential name the key is sealed under, and the name a service
 unit hands it in as (`LoadCredentialEncrypted=bookclerk-master-key`).
 
+### DATABASE_CREDENTIAL_NAME
+
+```rust
+pub const DATABASE_CREDENTIAL_NAME: &str = "bookclerk-database-credential";
+```
+
+The credential name a database credential is sealed under, and the name
+a service unit hands one in as
+(`LoadCredentialEncrypted=bookclerk-database-credential`).
+
 ### KEYCHAIN_SERVICE
 
 ```rust
@@ -514,6 +615,15 @@ Keychain service name every Bookclerk master-key item is stored under.
 The item's account (user) name is its [`KeychainItemId`](#keychainitemid), so two installs
 for one OS user (a development checkout beside an installed app) keep
 separate items.
+
+### DATABASE_CREDENTIAL_SERVICE
+
+```rust
+pub const DATABASE_CREDENTIAL_SERVICE: &str = "app.bookclerk.database-credential";
+```
+
+Keychain service name a database credential item is stored under (the
+DEK-sealed API token of a hosted database such as Cloudflare D1).
 
 ### POINTER_MAGIC
 

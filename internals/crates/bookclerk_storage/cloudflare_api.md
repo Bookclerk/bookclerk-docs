@@ -1,12 +1,14 @@
 # bookclerk_storage::cloudflare_api
 
-Cloudflare API replies the `r2` destination's guided setup reads, and
-the request parts it builds.
+Cloudflare API replies the guided setups of the `r2` destination and the
+`d1` database read, and the request parts they build.
 
-The guided setup calls the Cloudflare v4 API with the operator's token:
-it finds the account, creates (or reuses) the bucket, looks up the
+The R2 setup calls the Cloudflare v4 API with the operator's token: it
+finds the account, creates (or reuses) the bucket, looks up the
 bucket-scoped permission group, mints a token for that one bucket, and
-deletes the token it minted on an earlier run. Every reply comes from
+deletes the token it minted on an earlier run. The D1 setup finds (or
+creates) the database, looks up the D1 write permission group, and mints
+an account token that can use D1 and nothing else. Every reply comes from
 outside Bookclerk, so this module is the boundary that reads them: pure
 functions over bytes, with no I/O, fuzzed by the `cloudflare_api`
 target. The caller does the HTTP.
@@ -33,6 +35,10 @@ messages; nothing else from a failed reply reaches the operator.
 | [`find_permission_group`](#find_permission_group) | function | Reads a `GET /accounts/{id}/tokens/permission_groups` reply and returns the id of the group named `name`. |
 | [`parse_minted_token`](#parse_minted_token) | function | Reads a `POST /accounts/{id}/tokens` reply. |
 | [`parse_done`](#parse_done) | function | Reads a reply whose result the setup does not need (a token delete). |
+| [`find_d1_database`](#find_d1_database) | function | Reads a `GET /accounts/{id}/d1/database?name=` reply and returns the id of the database named exactly `name` (the filter also matches names that only contain it). |
+| [`parse_d1_created`](#parse_d1_created) | function | Reads a `POST /accounts/{id}/d1/database` reply and returns the new database's UUID, lowercased. |
+| [`check_d1_database_name`](#check_d1_database_name) | function | Checks a D1 database name: 1 to `MAX_D1_DATABASE_NAME_CHARS` lowercase letters, digits, hyphens and underscores, starting with a letter or digit. |
+| [`account_resource`](#account_resource) | function | The token policy resource that names a whole account. |
 | [`check_bucket_name`](#check_bucket_name) | function | Checks an R2 bucket name: 3 to 63 lowercase letters, digits and hyphens, not starting or ending with a hyphen. |
 | [`bucket_resource`](#bucket_resource) | function | The token policy resource that names one bucket. |
 | [`token_request`](#token_request) | function | The body of the token create call: one policy allowing `group` on one bucket. |
@@ -43,6 +49,9 @@ messages; nothing else from a failed reply reaches the operator.
 | [`MAX_TOKEN_VALUE_BYTES`](#max_token_value_bytes) | constant | Longest token value accepted from a create reply, in bytes. |
 | [`BUCKET_ALREADY_OWNED`](#bucket_already_owned) | constant | The error code the bucket create call answers when the caller already owns a bucket of that name. |
 | [`BUCKET_ITEM_WRITE`](#bucket_item_write) | constant | The permission group that lets a token read and write the objects of the buckets it names, and nothing else. |
+| [`D1_WRITE`](#d1_write) | constant | The permission group that lets a token read and write the account's D1 databases (shown as "D1 Edit" in the dashboard). |
+| [`D1_EDIT`](#d1_edit) | constant | The dashboard's name for `D1_WRITE`, which some accounts' permission group lists use. |
+| [`MAX_D1_DATABASE_NAME_CHARS`](#max_d1_database_name_chars) | constant | Longest D1 database name accepted, in characters. |
 
 ## Structs
 
@@ -249,6 +258,65 @@ Reads a reply whose result the setup does not need (a token delete).
 
 As [`parse_envelope`](#parse_envelope).
 
+### find_d1_database
+
+```rust
+pub fn find_d1_database(reply: &[u8], name: &str) -> Result<Option<String>, ApiReplyError>
+```
+
+Reads a `GET /accounts/{id}/d1/database?name=` reply and returns the id
+of the database named exactly `name` (the filter also matches names
+that only contain it).
+
+#### Returns
+
+The database's UUID, lowercased, or `None` when none has that name.
+
+#### Errors
+
+As [`parse_envelope`](#parse_envelope), and [`ApiReplyError::Malformed`](#apireplyerror) when the
+matching entry's `uuid` is not a UUID.
+
+### parse_d1_created
+
+```rust
+pub fn parse_d1_created(reply: &[u8]) -> Result<String, ApiReplyError>
+```
+
+Reads a `POST /accounts/{id}/d1/database` reply and returns the new
+database's UUID, lowercased.
+
+#### Errors
+
+As [`parse_envelope`](#parse_envelope), and [`ApiReplyError::Malformed`](#apireplyerror) when the result
+has no UUID.
+
+### check_d1_database_name
+
+```rust
+pub fn check_d1_database_name(name: &str) -> Result<(), String>
+```
+
+Checks a D1 database name: 1 to [`MAX_D1_DATABASE_NAME_CHARS`](#max_d1_database_name_chars)
+lowercase letters, digits, hyphens and underscores, starting with a
+letter or digit.
+
+#### Errors
+
+A sentence saying what is wrong.
+
+### account_resource
+
+```rust
+pub fn account_resource(account: &str) -> String
+```
+
+The token policy resource that names a whole account.
+
+#### Arguments
+
+* `account` - the account id.
+
 ### check_bucket_name
 
 ```rust
@@ -345,3 +413,29 @@ pub const BUCKET_ITEM_WRITE: &str = "Workers R2 Storage Bucket Item Write";
 
 The permission group that lets a token read and write the objects of
 the buckets it names, and nothing else.
+
+### D1_WRITE
+
+```rust
+pub const D1_WRITE: &str = "D1 Write";
+```
+
+The permission group that lets a token read and write the account's
+D1 databases (shown as "D1 Edit" in the dashboard).
+
+### D1_EDIT
+
+```rust
+pub const D1_EDIT: &str = "D1 Edit";
+```
+
+The dashboard's name for [`D1_WRITE`](#d1_write), which some accounts' permission
+group lists use.
+
+### MAX_D1_DATABASE_NAME_CHARS
+
+```rust
+pub const MAX_D1_DATABASE_NAME_CHARS: usize = 64;
+```
+
+Longest D1 database name accepted, in characters.

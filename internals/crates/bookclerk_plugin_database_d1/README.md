@@ -22,3 +22,4 @@ interactive `BEGIN`.
 - [`adapter`](adapter.md): The `AdapterDatabaseSession` the D1 guest serves.
 - [`atomic`](atomic.md): Generic D1 HTTP `batch()` executor for host-authored SQL plans.
 - [`d1`](d1.md): Cloudflare D1 HTTP API proxy for SeaORM.
+- [`provision`](provision.md): The D1 database's guided setup: with the operator's Cloudflare API token it finds (or creates) the library's D1 database and mints an account token that can use D1 and nothing else, for the host to keep.

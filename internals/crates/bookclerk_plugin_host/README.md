@@ -261,6 +261,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`storefront_activates_on_demand`](#storefront_activates_on_demand) | function | True when a storefront deployment of `manifest` may sleep while idle. |
 | [`storage_activates_on_demand`](#storage_activates_on_demand) | function | True when a storage deployment of `manifest` may sleep while idle. |
 | [`deprovision_instance`](#deprovision_instance) | function | Asks `plugin` to remove what its guided setup created for `instance_id`. |
+| [`provision_bootstrap`](#provision_bootstrap) | function | Runs the guided setup of a bootstrap plugin, one configured in `config.toml` rather than through a library instance (a hosted database such as Cloudflare D1, which must work before the library opens). |
 | [`provision_instance`](#provision_instance) | function | Runs `plugin`'s guided setup for `instance_id` with `token`. |
 | [`family_keyword`](#family_keyword) | function | Family-specific crates.io keyword (`bookclerk-source`, …). |
 | [`host_target_triple`](#host_target_triple) | function | Host target triple used when selecting release assets. |
@@ -7828,6 +7829,42 @@ Asks `plugin` to remove what its guided setup created for
 Returns [`ProvisionRunError::NotOffered`](#provisionrunerror) unless the manifest sets
 `[provisioning] deprovision = true`, and the other variants as
 [`provision_instance`](#provision_instance) does.
+
+### provision_bootstrap
+
+```rust
+pub async fn provision_bootstrap(
+    config: &Config,
+    plugin: &DiscoveredPlugin,
+    settings: &Map<String, Value>,
+    token: &ProvisionToken,
+    inputs: &BTreeMap<String, Value>,
+) -> Result<CheckedProvision, ProvisionRunError>
+```
+
+Runs the guided setup of a bootstrap plugin, one configured in
+`config.toml` rather than through a library instance (a hosted database
+such as Cloudflare D1, which must work before the library opens).
+
+The guest is opened with `settings` (what the caller's configuration
+already holds) with `inputs` laid over them, and no secrets.
+
+#### Arguments
+
+* `config` - Host configuration, for the spawn.
+* `plugin` - The installed plugin.
+* `settings` - The plugin's current settings, as a JSON object.
+* `token` - The operator's pasted token.
+* `inputs` - The operator's choices, keyed by `[provisioning] inputs`.
+
+#### Returns
+
+The checked settings, credentials and summary lines, for the caller to
+write into its configuration and credential store.
+
+#### Errors
+
+Returns a [`ProvisionRunError`](#provisionrunerror) for each way the run can fail.
 
 ### provision_instance
 
