@@ -14275,8 +14275,9 @@ Completes registration, stores the passkey, and revokes elevated operator sessio
 
 ### Responses
 
-- `200` — The passkey was stored. Body: [`OkResponse`](schemas.md#okresponse) (`application/json`)
-  - `ok` *boolean*, **required** — Always `true`: a failure answers with an error status instead.
+- `200` — The passkey was stored; the first second factor also brings recovery codes. Body: [`PasskeyRegistered`](schemas.md#passkeyregistered) (`application/json`)
+  - `ok` *boolean*, **required** — Always `true`.
+  - `recovery_codes` *array of string or null* — Ten single-use recovery codes, when this is the caller's first second factor; shown this once. Absent when the caller already had codes.
 - `400` — The challenge is unknown or expired, the attestation is invalid, or the daemon's origin is not a valid WebAuthn relying party. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ApiError`](schemas.md#apierror) (`application/json`); string (`text/plain`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -14361,11 +14362,15 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The passkey was stored.
+Status `200`: The passkey was stored; the first second factor also brings recovery codes.
 
 ```json
 {
-  "ok": true
+  "ok": true,
+  "recovery_codes": [
+    "7K3M-Q9TB-2XWD-HF6P",
+    "M4RE-8N2V-TQ7K-ZC3J"
+  ]
 }
 ```
 
@@ -14374,15 +14379,29 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "Acknowledgement body (`{\"ok\": true}`) for actions with nothing else to report.",
+  "description": "The answer to a stored passkey.",
   "required": [
     "ok"
   ],
   "properties": {
     "ok": {
       "type": "boolean",
-      "description": "Always `true`: a failure answers with an error status instead.",
+      "description": "Always `true`.",
       "example": true
+    },
+    "recovery_codes": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "string"
+      },
+      "description": "Ten single-use recovery codes, when this is the caller's first\nsecond factor; shown this once. Absent when the caller already had\ncodes.",
+      "example": [
+        "7K3M-Q9TB-2XWD-HF6P",
+        "M4RE-8N2V-TQ7K-ZC3J"
+      ]
     }
   }
 }
@@ -14688,7 +14707,8 @@ A `text/plain` body: a string.
 
 ## `DELETE /api/auth/passkeys/{id}`
 
-Deletes one passkey after recent reauth; 404 when the id is not this user's.
+Deletes one passkey after recent reauth; 404 when the id is not this
+user's. The recovery codes go too when it was the last second factor.
 
 **Access:** No auth layer. Routes that need a caller say so in `security`; the handler checks it.
 
@@ -17511,8 +17531,9 @@ Confirms the pending secret with a valid code and sets `users.totp_enabled`.
 
 ### Responses
 
-- `200` — TOTP is on. Body: [`OkResponse`](schemas.md#okresponse) (`application/json`)
-  - `ok` *boolean*, **required** — Always `true`: a failure answers with an error status instead.
+- `200` — TOTP is on; the first second factor also brings recovery codes. Body: [`TotpEnrolled`](schemas.md#totpenrolled) (`application/json`)
+  - `ok` *boolean*, **required** — Always `true`.
+  - `recovery_codes` *array of string or null* — Ten single-use recovery codes, when this is the caller's first second factor; shown this once. Absent when the caller already had codes.
 - `400` — No enrollment is pending; start one first. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ApiError`](schemas.md#apierror) (`application/json`); string (`text/plain`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -17597,11 +17618,15 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: TOTP is on.
+Status `200`: TOTP is on; the first second factor also brings recovery codes.
 
 ```json
 {
-  "ok": true
+  "ok": true,
+  "recovery_codes": [
+    "7K3M-Q9TB-2XWD-HF6P",
+    "M4RE-8N2V-TQ7K-ZC3J"
+  ]
 }
 ```
 
@@ -17610,15 +17635,29 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "Acknowledgement body (`{\"ok\": true}`) for actions with nothing else to report.",
+  "description": "The answer to a confirmed TOTP enrollment.",
   "required": [
     "ok"
   ],
   "properties": {
     "ok": {
       "type": "boolean",
-      "description": "Always `true`: a failure answers with an error status instead.",
+      "description": "Always `true`.",
       "example": true
+    },
+    "recovery_codes": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "string"
+      },
+      "description": "Ten single-use recovery codes, when this is the caller's first\nsecond factor; shown this once. Absent when the caller already had\ncodes.",
+      "example": [
+        "7K3M-Q9TB-2XWD-HF6P",
+        "M4RE-8N2V-TQ7K-ZC3J"
+      ]
     }
   }
 }
@@ -18161,7 +18200,8 @@ A `text/plain` body: a string.
 
 ## `DELETE /api/auth/totp`
 
-Disables TOTP after recent reauth and deletes sealed secrets.
+Disables TOTP after recent reauth and deletes sealed secrets; the
+recovery codes go too when no passkey remains.
 
 **Access:** No auth layer. Routes that need a caller say so in `security`; the handler checks it.
 
@@ -19673,6 +19713,7 @@ toward the client's sign-in throttle.
 
 - `200` — The link works. Body: [`PasswordResetLinkState`](schemas.md#passwordresetlinkstate) (`application/json`)
   - `second_factor` *[`ResetFactor`](schemas.md#resetfactor)*, **required** — The second factor the finish step asks for.
+  - `recovery_code` *boolean*, **required** — Whether the account has an unused recovery code, which the finish step takes (`recovery_code`) in place of `second_factor`.
 - `400` — `bad_request` when the body is not one object whose only key is `token`; `invalid_link` when the link is unknown, used, expired, for an address the account no longer has verified, or for a disabled account. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
@@ -19747,7 +19788,8 @@ Status `200`: The link works.
 
 ```json
 {
-  "second_factor": "none"
+  "second_factor": "none",
+  "recovery_code": true
 }
 ```
 
@@ -19758,7 +19800,8 @@ Schema:
   "type": "object",
   "description": "What a working reset link needs to finish.",
   "required": [
-    "second_factor"
+    "second_factor",
+    "recovery_code"
   ],
   "properties": {
     "second_factor": {
@@ -19769,6 +19812,11 @@ Schema:
         "totp",
         "passkey"
       ]
+    },
+    "recovery_code": {
+      "type": "boolean",
+      "description": "Whether the account has an unused recovery code, which the finish\nstep takes (`recovery_code`) in place of `second_factor`.",
+      "example": true
     }
   }
 }
@@ -20473,6 +20521,7 @@ does not work counts toward the client's sign-in throttle.
 - `password` *string*, **required** — The new password: 1 to 1024 bytes after trimming.
 - `totp_code` *string or null* — Six-digit authenticator code, when the link asks for `totp`.
 - `passkey` *[`PasswordResetPasskeyBody`](schemas.md#passwordresetpasskeybody) or null* — Passkey assertion, when the link asks for `passkey`.
+- `recovery_code` *string or null* — One of the account's recovery codes, in place of the authenticator code or passkey: 16 letters and digits, case, spaces and hyphens ignored. Finishing with one also removes the account's authenticator, passkeys and other codes.
 
 ### Responses
 
@@ -20824,6 +20873,700 @@ Status `500`: The password could not be hashed, or the library could not be read
   "error": "internal_error",
   "message": "Something went wrong on the Bookclerk daemon.",
   "status": 500
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `GET /api/auth/recovery-codes`
+
+How many recovery codes the caller has left.
+
+Access: any signed-in user, for their own account.
+
+**Access:** No auth layer. Routes that need a caller say so in `security`; the handler checks it.
+
+**Credentials:** `portalSession`
+
+### Responses
+
+- `200` — How many unused codes the caller has. Body: [`RecoveryCodeStatus`](schemas.md#recoverycodestatus) (`application/json`)
+  - `remaining` *integer (int64)*, **required** — Unused codes; 0 when the caller has no second factor. At least 0.
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `500` — The library could not be read. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`); ask again after `Retry-After` seconds. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/recovery-codes' \
+    -b 'bookclerk_portal_session=<portalSession>'
+```
+
+```powershell
+$session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+$session.Cookies.Add((New-Object System.Net.Cookie('bookclerk_portal_session', '<portalSession>', '/', '127.0.0.1')))
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/recovery-codes' `
+    -WebSession $session
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/auth/recovery-codes",
+    headers={"Cookie": "bookclerk_portal_session=<portalSession>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/recovery-codes", {
+  headers: { Cookie: "bookclerk_portal_session=<portalSession>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/auth/recovery-codes")
+    .header("Cookie", "bookclerk_portal_session=<portalSession>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: How many unused codes the caller has.
+
+```json
+{
+  "remaining": 8
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "How many recovery codes the caller has left.",
+  "required": [
+    "remaining"
+  ],
+  "properties": {
+    "remaining": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Unused codes; 0 when the caller has no second factor.",
+      "example": 8,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `500`: The library could not be read.
+
+```json
+{
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`); ask again after `Retry-After` seconds.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `POST /api/auth/recovery-codes`
+
+Makes a new set of ten recovery codes, replacing the caller's current
+set, and shows it this once.
+
+Access: any signed-in user with a second factor, for their own account;
+a sign-in older than fifteen minutes must send `current_password`.
+
+**Access:** No auth layer. Routes that need a caller say so in `security`; the handler checks it.
+
+**Credentials:** `portalSession`
+
+### Request body
+
+`application/json`: [`RecoveryCodesReauthBody`](schemas.md#recoverycodesreauthbody)
+
+- `current_password` *string or null* — The caller's password, needed when their sign-in is older than fifteen minutes.
+
+### Responses
+
+- `200` — The new set; the old codes no longer work. Body: [`RecoveryCodeSet`](schemas.md#recoverycodeset) (`application/json`)
+  - `codes` *array of string*, **required** — Ten single-use codes, each four groups of four letters and digits. They are never shown again; a new set replaces them.
+- `400` — The body is not syntactically valid JSON. Body: string (`text/plain`)
+- `401` — The caller is not signed in, or the session is older than fifteen minutes and `current_password` is missing or wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `409` — The caller has no authenticator app or passkey, so recovery codes have nothing to stand in for. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `429` — Too many wrong `current_password` attempts for this account; try again after the lockout. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `500` — The codes could not be hashed or stored. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`); ask again after `Retry-After` seconds. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/recovery-codes' \
+    -X POST \
+    -b 'bookclerk_portal_session=<portalSession>' \
+    -H 'Origin: http://127.0.0.1:8787' \
+    -H 'Content-Type: application/json' \
+    -d '{}'
+```
+
+```powershell
+$session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+$session.Cookies.Add((New-Object System.Net.Cookie('bookclerk_portal_session', '<portalSession>', '/', '127.0.0.1')))
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/recovery-codes' `
+    -Method Post `
+    -WebSession $session `
+    -Headers @{ Origin = 'http://127.0.0.1:8787' } `
+    -ContentType 'application/json' `
+    -Body '{}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/auth/recovery-codes",
+    headers={"Cookie": "bookclerk_portal_session=<portalSession>", "Origin": "http://127.0.0.1:8787"},
+    json={},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/recovery-codes", {
+  method: "POST",
+  headers: { Cookie: "bookclerk_portal_session=<portalSession>", Origin: "http://127.0.0.1:8787", "Content-Type": "application/json" },
+  body: JSON.stringify({}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/auth/recovery-codes")
+    .header("Cookie", "bookclerk_portal_session=<portalSession>")
+    .header("Origin", "http://127.0.0.1:8787")
+    .json(&serde_json::json!({}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The new set; the old codes no longer work.
+
+```json
+{
+  "codes": [
+    "7K3M-Q9TB-2XWD-HF6P",
+    "M4RE-8N2V-TQ7K-ZC3J"
+  ]
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "A new set of recovery codes, shown this once.",
+  "required": [
+    "codes"
+  ],
+  "properties": {
+    "codes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Ten single-use codes, each four groups of four letters and digits.\nThey are never shown again; a new set replaces them.",
+      "example": [
+        "7K3M-Q9TB-2XWD-HF6P",
+        "M4RE-8N2V-TQ7K-ZC3J"
+      ]
+    }
+  }
+}
+```
+
+Status `400`: The body is not syntactically valid JSON.
+
+```text
+Failed to parse the request body as JSON: expected value at line 1 column 1
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `401`: The caller is not signed in, or the session is older than fifteen minutes and `current_password` is missing or wrong.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `409`: The caller has no authenticator app or passkey, so recovery codes have nothing to stand in for.
+
+```json
+{
+  "error": "conflict",
+  "message": "Conflict",
+  "status": 409
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: current_password: invalid type: integer `1`, expected a string at line 1 column 21
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `429`: Too many wrong `current_password` attempts for this account; try again after the lockout.
+
+```json
+{
+  "error": "too_many_requests",
+  "message": "Too many requests. Try again shortly.",
+  "status": 429
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `500`: The codes could not be hashed or stored.
+
+```json
+{
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`); ask again after `Retry-After` seconds.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
 }
 ```
 

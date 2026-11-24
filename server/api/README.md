@@ -102,7 +102,7 @@ Sign-in, sessions, passkeys, TOTP and the operator's elevation.
 | [`GET /api/auth/passkeys`](auth.md#get-apiauthpasskeys) | Lists this user's stored passkeys as `{ id, credential_id }` rows. |
 | [`POST /api/auth/passkeys/register/begin`](auth.md#post-apiauthpasskeysregisterbegin) | Starts passkey registration (skips reauth only for first local-only setup). |
 | [`POST /api/auth/passkeys/register/finish`](auth.md#post-apiauthpasskeysregisterfinish) | Completes registration, stores the passkey, and revokes elevated operator sessions. |
-| [`DELETE /api/auth/passkeys/{id}`](auth.md#delete-apiauthpasskeysid) | Deletes one passkey after recent reauth; 404 when the id is not this user's. |
+| [`DELETE /api/auth/passkeys/{id}`](auth.md#delete-apiauthpasskeysid) | Deletes one passkey after recent reauth; 404 when the id is not this user's. The recovery codes go too when it was the last second factor. |
 | [`POST /api/auth/passkeys/login/begin`](auth.md#post-apiauthpasskeysloginbegin) | Rate-limits and starts passkey login; records a failure on any error. |
 | [`POST /api/auth/passkeys/login/finish`](auth.md#post-apiauthpasskeysloginfinish) | Verifies the assertion, updates the credential counter, and issues a portal session. |
 | [`POST /api/auth/passkeys/elevate/begin`](auth.md#post-apiauthpasskeyselevatebegin) | Starts Owner elevation; 403 unless the signed-in user is an Owner with passkeys. |
@@ -111,7 +111,7 @@ Sign-in, sessions, passkeys, TOTP and the operator's elevation.
 | [`POST /api/auth/totp/enroll/begin`](auth.md#post-apiauthtotpenrollbegin) | Starts TOTP enrollment: new pending secret, otpauth URL, and QR SVG. |
 | [`POST /api/auth/totp/enroll/finish`](auth.md#post-apiauthtotpenrollfinish) | Confirms the pending secret with a valid code and sets `users.totp_enabled`. |
 | [`GET /api/auth/totp`](auth.md#get-apiauthtotp) | GET `/api/auth/totp` — whether TOTP is confirmed for this user. |
-| [`DELETE /api/auth/totp`](auth.md#delete-apiauthtotp) | Disables TOTP after recent reauth and deletes sealed secrets. |
+| [`DELETE /api/auth/totp`](auth.md#delete-apiauthtotp) | Disables TOTP after recent reauth and deletes sealed secrets; the recovery codes go too when no passkey remains. |
 | [`GET /api/auth/mfa-policy`](auth.md#get-apiauthmfa-policy) | Current MFA policy (`require_second_factor`). |
 | [`PUT /api/auth/mfa-policy`](auth.md#put-apiauthmfa-policy) | Persists `daemon.auth.require_second_factor` to `config.toml`. |
 | [`GET /api/auth/password-reset`](auth.md#get-apiauthpassword-reset) | Whether self-service password reset is on, for the sign-in page. |
@@ -119,6 +119,8 @@ Sign-in, sessions, passkeys, TOTP and the operator's elevation.
 | [`POST /api/auth/password-reset/check`](auth.md#post-apiauthpassword-resetcheck) | Checks a reset link without using it, and says which second factor finishing it asks for. |
 | [`POST /api/auth/password-reset/passkey`](auth.md#post-apiauthpassword-resetpasskey) | Begins the passkey step of a reset, for an account whose link asks for a passkey. The challenge works once, for five minutes. |
 | [`POST /api/auth/password-reset/finish`](auth.md#post-apiauthpassword-resetfinish) | Finishes a reset: checks the account's second factor when it has one, uses the link up, sets the password, signs every device out and mails a password-changed notice to the verified address. |
+| [`GET /api/auth/recovery-codes`](auth.md#get-apiauthrecovery-codes) | How many recovery codes the caller has left. |
+| [`POST /api/auth/recovery-codes`](auth.md#post-apiauthrecovery-codes) | Makes a new set of ten recovery codes, replacing the caller's current set, and shows it this once. |
 | [`GET /api/auth/player-passwords`](auth.md#get-apiauthplayer-passwords) | Lists the caller's player passwords. |
 | [`POST /api/auth/player-passwords`](auth.md#post-apiauthplayer-passwords) | Makes a player password for the caller and shows it once. |
 | [`DELETE /api/auth/player-passwords/{id}`](auth.md#delete-apiauthplayer-passwordsid) | Removes one of the caller's player passwords and signs out every app it signed in. |

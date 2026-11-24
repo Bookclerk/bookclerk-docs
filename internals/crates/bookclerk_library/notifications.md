@@ -58,7 +58,7 @@ A paused destination is skipped.
 | [`DestinationKind`](#destinationkind) | enum | Whether a destination is a library channel or one patron's address. |
 | [`DeliveryState`](#deliverystate) | enum | Where one delivery stands. |
 | [`AccountMailKind`](#accountmailkind) | enum | What an account-mail message says. |
-| [`PasswordResetFactor`](#passwordresetfactor) | enum | The second factor an account required when its reset was checked. |
+| [`PasswordResetFactor`](#passwordresetfactor) | enum | The second factor a reset was checked with. |
 | [`ResetSecondFactor`](#resetsecondfactor) | enum | The second factor a reset is finished with. |
 | [`StallOutcome`](#stalloutcome) | enum | What failing one `StalledSend` did. |
 | [`FailureEffect`](#failureeffect) | enum | What a finished send attempt did to its destination. |
@@ -404,9 +404,11 @@ The token, the trimmed password and the second factor.
 
 [`crate::LibraryError::Invalid`](README.md#libraryerror) naming the first rule the body
 breaks: the token is not a link token; the password is empty or
-longer than [`MAX_PASSWORD_BYTES`](#max_password_bytes); `totp_code` is not six digits;
-the passkey's challenge id is not 1 to 64 printable characters or
-its credential is not an object; or both factors are sent.
+longer than [`MAX_PASSWORD_BYTES`](#max_password_bytes); more than one second factor is
+sent; `totp_code` is not six digits; the passkey's challenge id is
+not 1 to 64 printable characters or its credential is not an
+object; or `recovery_code` is not a recovery code
+([`crate::recovery_code::RecoveryCode::parse`](recovery_code.md#recoverycodeparse)).
 
 Implements: `Debug`, `Deserialize<'de>`
 
@@ -955,10 +957,11 @@ pub enum PasswordResetFactor {
     None,
     Totp,
     Passkey,
+    RecoveryCode { selector: String },
 }
 ```
 
-The second factor an account required when its reset was checked.
+The second factor a reset was checked with.
 
 Redeeming a link repeats the check inside the same atomic write, so a
 factor enrolled or removed after the check makes the redemption fail
@@ -969,8 +972,14 @@ rather than set a password without it.
 - `None`: No authenticator and no passkey.
 - `Totp`: An authenticator app (it takes precedence over passkeys).
 - `Passkey`: At least one passkey and no authenticator.
+- `RecoveryCode`: One of the account's recovery codes, in place of its authenticator
+  or passkey. The redemption uses the code up and removes the
+  account's authenticator, passkeys and other codes, since the patron
+  no longer has them.
+  - `selector`: The selector of the code that was checked; it must still be
+    unused when the reset is redeemed.
 
-Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ### ResetSecondFactor
 
@@ -979,6 +988,7 @@ pub enum ResetSecondFactor {
     None,
     Totp(String),
     Passkey { challenge_id: String, credential: Value },
+    RecoveryCode(RecoveryCode),
 }
 ```
 
@@ -991,6 +1001,8 @@ The second factor a reset is finished with.
 - `Passkey`: A passkey assertion answering the challenge the reset began.
   - `challenge_id`: The challenge from `POST /api/auth/password-reset/passkey`.
   - `credential`: The browser's credential, a JSON object WebAuthn reads.
+- `RecoveryCode`: One of the account's recovery codes, in place of its authenticator
+  or passkey.
 
 Implements: `Clone`, `Debug`, `PartialEq`
 

@@ -3232,6 +3232,13 @@ Optional current password for step-up before register or delete.
 
 - `current_password` *string or null* — Password used for recent-reauth when the user already has a credential.
 
+## PasskeyRegistered
+
+The answer to a stored passkey.
+
+- `ok` *boolean*, **required** — Always `true`.
+- `recovery_codes` *array of string or null* — Ten single-use recovery codes, when this is the caller's first second factor; shown this once. Absent when the caller already had codes.
+
 ## PasskeyRequestOptions
 
 WebAuthn request options for `navigator.credentials.get()`, plus the challenge id for the finish step.
@@ -3308,6 +3315,7 @@ The body of `POST /api/auth/password-reset/finish`.
 - `password` *string*, **required** — The new password: 1 to 1024 bytes after trimming.
 - `totp_code` *string or null* — Six-digit authenticator code, when the link asks for `totp`.
 - `passkey` *[`PasswordResetPasskeyBody`](#passwordresetpasskeybody) or null* — Passkey assertion, when the link asks for `passkey`.
+- `recovery_code` *string or null* — One of the account's recovery codes, in place of the authenticator code or passkey: 16 letters and digits, case, spaces and hyphens ignored. Finishing with one also removes the account's authenticator, passkeys and other codes.
 
 ## PasswordResetLinkBody
 
@@ -3321,6 +3329,7 @@ The body of `POST /api/auth/password-reset/check` and
 What a working reset link needs to finish.
 
 - `second_factor` *[`ResetFactor`](#resetfactor)*, **required** — The second factor the finish step asks for.
+- `recovery_code` *boolean*, **required** — Whether the account has an unused recovery code, which the finish step takes (`recovery_code`) in place of `second_factor`.
 
 ## PasswordResetPasskeyBody
 
@@ -4435,6 +4444,24 @@ One ranked recommendation (typically an unowned storefront title).
 - `starter_genre` *string or null* — Starter genre this card was browsed from while the taste was thin.
 - `available_through` *array of [`BranchAvailability`](#branchavailability)* — Branches of this library that currently list this title (they answered a catalog lookup for its work). Filled when the feed is read, never stored with it.
 
+## RecoveryCodeSet
+
+A new set of recovery codes, shown this once.
+
+- `codes` *array of string*, **required** — Ten single-use codes, each four groups of four letters and digits. They are never shown again; a new set replaces them.
+
+## RecoveryCodesReauthBody
+
+The body of `POST /api/auth/recovery-codes`.
+
+- `current_password` *string or null* — The caller's password, needed when their sign-in is older than fifteen minutes.
+
+## RecoveryCodeStatus
+
+How many recovery codes the caller has left.
+
+- `remaining` *integer (int64)*, **required** — Unused codes; 0 when the caller has no second factor. At least 0.
+
 ## RecoveryCopyAnswer
 
 What the operator recorded about a recovery copy of the key in use.
@@ -5413,6 +5440,13 @@ The pending second-factor step after a password login.
 
 - `method` *string*, **required** — Always `totp`: finish with `POST /api/auth/totp/login`.
 - `challenge_id` *string*, **required** — Challenge to send with the code; expires after five minutes.
+
+## TotpEnrolled
+
+The answer to a confirmed TOTP enrollment.
+
+- `ok` *boolean*, **required** — Always `true`.
+- `recovery_codes` *array of string or null* — Ten single-use recovery codes, when this is the caller's first second factor; shown this once. Absent when the caller already had codes.
 
 ## TotpEnrollment
 

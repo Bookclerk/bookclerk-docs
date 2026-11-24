@@ -241,6 +241,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`WorkSort`](#worksort) | enum | How a page of library works is ordered. |
 | [`HoldingHolder`](#holdingholder) | enum | Who holds a listing. |
 | [`WorkTagSource`](#worktagsource) | enum | Where a library tag came from (`work_tags.source`). |
+| [`RecoveryCodeIssue`](#recoverycodeissue) | enum | How a new set of codes meets the user's current one. |
 | [`OfferAudience`](#offeraudience) | enum | Who a `ListingOffer` price is for. |
 | [`ChapterCheck`](#chaptercheck) | enum | How strictly `ChapterList::new` reads its input. |
 | [`ChapterSource`](#chaptersource) | enum | Who states a chapter claim, as a writer names it. |
@@ -596,6 +597,7 @@ the external guest RPC. This crate owns the greenfield schema
 - [`password`](password.md): Argon2id password hashing for first-party local login.
 - [`proxy_txn`](proxy_txn.md): Fail-closed transaction injects re-exported from `bookclerk_db_exec`.
 - [`quality`](quality.md): When a store's offer is a better file than the one the library holds.
+- [`recovery_code`](recovery_code.md): Single-use second-factor recovery codes (`docs/adr/notifications.md` decision 8).
 - [`scope`](scope.md): Plugin-scoped library access.
 - [`secrets`](secrets.md): Encrypted secrets store — DB-backed credential storage.
 - [`sql_plan`](sql_plan/README.md): Host-owned generic SQL atomic plans for database adapters. Host-owned SQL atomic plans for database plugins.
@@ -7558,7 +7560,8 @@ pub async fn redeem_password_reset(
 
 Redeems a reset link: sets the new password, signs the account out
 everywhere (portal and elevated sessions, and OpenID refresh
-tokens), records `password_reset_self` in the security audit log and
+tokens), records `password_reset_self` in the security audit log
+(`password_reset_recovery_code` when a recovery code was used) and
 spends the link, all in one atomic batch.
 
 The first statement claims the link: it marks the row with
@@ -7582,7 +7585,9 @@ batch was this one.
 
 * `token` - The link's token.
 * `user_id` - The account the link was checked for.
-* `factor` - The second factor the account required when checked.
+* `factor` - The second factor the reset was checked with. A
+  recovery code is used up, and the account's authenticator,
+  passkeys and other codes are removed in the same write.
 * `password_hash` - The new Argon2id hash. Its salt makes it unique
   to this attempt.
 * `now` - The current time.
@@ -12963,6 +12968,71 @@ Removes every row of one plugin (retire / uninstall).
 
 Returns an error when the delete fails.
 
+#### LibraryStore::issue_recovery_codes
+
+```rust
+pub async fn issue_recovery_codes(
+    &self,
+    user_id: i64,
+    codes: &[RecoveryCode],
+    issue: RecoveryCodeIssue,
+    now: DateTime<Utc>,
+) -> Result<bool>
+```
+
+Stores a new set of recovery codes for `user_id`, in one atomic
+write with an audit row (`recovery_codes_issued`).
+
+The set is stored only while the user has a second factor, and for
+[`RecoveryCodeIssue::First`](#recoverycodeissue) only when they have no codes yet.
+
+##### Arguments
+
+* `user_id` - The user the codes recover.
+* `codes` - The set, from [`RecoveryCode::generate_set`](recovery_code.md#recoverycodegenerate_set); it must
+  not be empty and its selectors must differ.
+* `issue` - Whether the set replaces the current one.
+* `now` - When the set was made.
+
+##### Returns
+
+Whether the set was stored. When it was not, nothing changed.
+
+##### Errors
+
+[`LibraryError::Invalid`](#libraryerror) for an empty set, an error when a code
+cannot be hashed, or when the write fails. A lost reply
+([`LibraryError::Unavailable`](#libraryerror)) may still have stored the set; the
+patron can make another.
+
+#### LibraryStore::count_recovery_codes
+
+```rust
+pub async fn count_recovery_codes(&self, user_id: i64) -> Result<u64>
+```
+
+How many unused recovery codes `user_id` has.
+
+##### Errors
+
+An error when the library cannot be read.
+
+#### LibraryStore::recovery_code_hash
+
+```rust
+pub async fn recovery_code_hash(
+    &self,
+    user_id: i64,
+    selector: &str,
+) -> Result<Option<String>>
+```
+
+The stored hash of `user_id`'s unused code with this selector.
+
+##### Errors
+
+An error when the library cannot be read.
+
 #### LibraryStore::replace_request_queue_ranks
 
 ```rust
@@ -16285,7 +16355,12 @@ Returns an error when the operation fails.
 pub async fn delete_webauthn_credential(&self, user_id: i64, id: i64) -> Result<bool>
 ```
 
-Delete a passkey owned by `user_id`.
+Delete a passkey owned by `user_id`, and the user's recovery codes
+in the same write when it was their last second factor.
+
+##### Returns
+
+Whether the passkey existed.
 
 ##### Errors
 
@@ -16302,7 +16377,8 @@ Set whether this user has a confirmed TOTP authenticator.
 ##### Arguments
 
 * `user_id` - First-party user id.
-* `enabled` - `true` after a successful enroll confirm; `false` on disable.
+* `enabled` - `true` after a successful enroll confirm; `false` on
+  disable, which also drops the recovery codes when no passkey remains.
 
 ##### Errors
 
@@ -16326,7 +16402,8 @@ Returns [`LibraryError::NotFound`](#libraryerror) when the user does not exist.
 pub async fn disable_user_totp(&self, user_id: i64) -> Result<()>
 ```
 
-Delete TOTP secrets and clear `totp_enabled` in one transaction.
+Delete TOTP secrets and clear `totp_enabled` in one transaction,
+together with the user's recovery codes when no passkey remains.
 
 ##### Errors
 
@@ -19657,6 +19734,25 @@ pub fn as_str(self) -> &'static str
 The stored value.
 
 Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Eq`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`, `ToSchema`
+
+### RecoveryCodeIssue
+
+```rust
+pub enum RecoveryCodeIssue {
+    First,
+    Replace,
+}
+```
+
+How a new set of codes meets the user's current one.
+
+**Variants**
+
+- `First`: Store the set only when the user has no codes: the set a first
+  second factor comes with.
+- `Replace`: Replace whatever codes the user has.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
 ### OfferAudience
 

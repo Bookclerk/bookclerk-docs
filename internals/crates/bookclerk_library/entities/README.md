@@ -125,6 +125,7 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`plugin_webhooks`](plugin_webhooks.md): SeaORM entity for `plugin_webhooks`: one inbound webhook of one plugin instance, with its URL token (storage destinations ADR, `docs/adr/storage-destinations.md`, decision 6).
 - [`portal_identities`](portal_identities.md): SeaORM entity for the `portal_identities` table.
 - [`portal_sessions`](portal_sessions.md): SeaORM entity for the `portal_sessions` table.
+- [`recovery_codes`](recovery_codes.md): SeaORM entity for `recovery_codes`: one unused second-factor recovery code of a user, its secret stored as an Argon2id hash.
 - [`remote_plugin_consents`](remote_plugin_consents.md): SeaORM entity for `remote_plugin_consents`: on a branch node, this install's operator consent for each owner plugin a library wants to run here (written by `control_plane::remote_consents`).
 - [`resolution_conflicts`](resolution_conflicts.md): SeaORM entity for the `resolution_conflicts` table (composite primary key).
 - [`resolution_overrides`](resolution_overrides.md): SeaORM entity for the `resolution_overrides` table (composite primary key).

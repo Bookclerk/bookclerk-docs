@@ -6290,6 +6290,30 @@ ports: number[];
 
 ***
 
+### ResetLinkState
+
+What a working password-reset link needs to finish.
+
+#### Properties
+
+##### recovery\_code
+
+```ts
+recovery_code: boolean;
+```
+
+Whether a recovery code may stand in for that factor.
+
+##### second\_factor
+
+```ts
+second_factor: ResetFactor;
+```
+
+The second factor finishing the reset asks for.
+
+***
+
 ### ScopeRule
 
 One rule of a patron scope.
@@ -8888,7 +8912,7 @@ The checks and the merged advice.
 ### checkPasswordReset()
 
 ```ts
-function checkPasswordReset(token): Promise<ResetFactor>;
+function checkPasswordReset(token): Promise<ResetLinkState>;
 ```
 
 Checks a password-reset link without using it up.
@@ -8901,9 +8925,10 @@ Checks a password-reset link without using it up.
 
 #### Returns
 
-`Promise`\<[`ResetFactor`](#resetfactor)\>
+`Promise`\<[`ResetLinkState`](#resetlinkstate)\>
 
-The second factor finishing the reset asks for.
+The second factor finishing the reset asks for, and whether a
+  recovery code may stand in for it.
 
 ***
 
@@ -9659,6 +9684,22 @@ Hints list plus optional best pick (client-cached).
 
 ***
 
+### fetchRecoveryCodeCount()
+
+```ts
+function fetchRecoveryCodeCount(): Promise<number>;
+```
+
+How many unused recovery codes the current user has.
+
+#### Returns
+
+`Promise`\<`number`\>
+
+The count; 0 without a second factor.
+
+***
+
 ### fetchRequestQueue()
 
 ```ts
@@ -9977,11 +10018,12 @@ Finishes a password reset: sets the password and signs every device out.
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
-| `body` | \{ `passkey?`: \{ `challenge_id`: `string`; `credential`: `Record`\<`string`, `unknown`\>; \}; `password`: `string`; `token`: `string`; `totp_code?`: `string`; \} | The link's token, the new password, and the second factor the link asked for (a code or a passkey assertion), if any. |
+| `body` | \{ `passkey?`: \{ `challenge_id`: `string`; `credential`: `Record`\<`string`, `unknown`\>; \}; `password`: `string`; `recovery_code?`: `string`; `token`: `string`; `totp_code?`: `string`; \} | The link's token, the new password, and the second factor the link asked for (a code or a passkey assertion) or a recovery code in its place, if any. |
 | `body.passkey?` | \{ `challenge_id`: `string`; `credential`: `Record`\<`string`, `unknown`\>; \} | - |
 | `body.passkey.challenge_id` | `string` | - |
 | `body.passkey.credential` | `Record`\<`string`, `unknown`\> | - |
 | `body.password` | `string` | - |
+| `body.recovery_code?` | `string` | - |
 | `body.token` | `string` | - |
 | `body.totp_code?` | `string` | - |
 
@@ -10575,7 +10617,7 @@ Begin WebAuthn registration (authenticated).
 ### passkeyRegisterFinish()
 
 ```ts
-function passkeyRegisterFinish(body): Promise<void>;
+function passkeyRegisterFinish(body): Promise<string[] | undefined>;
 ```
 
 Finish WebAuthn registration.
@@ -10584,14 +10626,17 @@ Finish WebAuthn registration.
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
-| `body` | \{ `challenge_id`: `string`; `credential`: `Record`\<`string`, `unknown`\>; `name?`: `string`; \} | - |
+| `body` | \{ `challenge_id`: `string`; `credential`: `Record`\<`string`, `unknown`\>; `name?`: `string`; \} | The challenge id, the browser's credential and an optional label. |
 | `body.challenge_id` | `string` | - |
 | `body.credential` | `Record`\<`string`, `unknown`\> | - |
 | `body.name?` | `string` | - |
 
 #### Returns
 
-`Promise`\<`void`\>
+`Promise`\<`string`[] \| `undefined`\>
+
+The ten recovery codes a first second factor brings, shown once;
+  `undefined` when the user already had codes.
 
 ***
 
@@ -11550,6 +11595,28 @@ The queued job.
 
 ***
 
+### regenerateRecoveryCodes()
+
+```ts
+function regenerateRecoveryCodes(currentPassword?): Promise<string[]>;
+```
+
+Makes a new set of ten recovery codes, replacing the current set.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `currentPassword?` | `string` | Required when the portal session is older than the reauth window. |
+
+#### Returns
+
+`Promise`\<`string`[]\>
+
+The new codes, shown this once.
+
+***
+
 ### removeWishlistItem()
 
 ```ts
@@ -12064,7 +12131,7 @@ Pending secret, otpauth URL, and QR SVG.
 ### totpEnrollFinish()
 
 ```ts
-function totpEnrollFinish(code): Promise<void>;
+function totpEnrollFinish(code): Promise<string[] | undefined>;
 ```
 
 Confirms the pending TOTP secret with an authenticator code.
@@ -12077,9 +12144,10 @@ Confirms the pending TOTP secret with an authenticator code.
 
 #### Returns
 
-`Promise`\<`void`\>
+`Promise`\<`string`[] \| `undefined`\>
 
-Resolves when enrollment is confirmed.
+The ten recovery codes a first second factor brings, shown once;
+  `undefined` when the user already had codes.
 
 ***
 
