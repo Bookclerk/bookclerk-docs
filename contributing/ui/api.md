@@ -8268,9 +8268,19 @@ Audible review sort modes for title detail.
 type TitleSample = object;
 ```
 
-The answer of `POST /api/discover/title-sample`.
+The answer of `POST /api/discover/title-sample`: at most one path; none
+means no sample can be played here.
 
 #### Properties
+
+##### edition\_sample\_path?
+
+```ts
+edition_sample_path?: string | null;
+```
+
+Same-origin path of a sample cut from the held edition, when the
+caller may hear it and this node reaches its audio.
 
 ##### sample\_path?
 
@@ -8279,7 +8289,23 @@ sample_path?: string | null;
 ```
 
 Same-origin path of a storefront's public sample, served through this
-daemon; absent when no store offers one.
+daemon; absent when an edition sample is offered or no store offers one.
+
+***
+
+### TitleSampleQuery
+
+```ts
+type TitleSampleQuery = TitleMetaQuery & object;
+```
+
+The body of `POST /api/discover/title-sample`.
+
+#### Type Declaration
+
+| Name | Type | Description |
+| ------ | ------ | ------ |
+| `edition_id?` | `string` \| `null` | The library edition the details show, when the library holds one; the stores are asked only when this node cannot cut a sample from it. |
 
 ***
 
@@ -9649,22 +9675,23 @@ Reviews page payload.
 ### fetchTitleSample()
 
 ```ts
-function fetchTitleSample(body): Promise<string | null>;
+function fetchTitleSample(body): Promise<TitleSample>;
 ```
 
-Asks the storefronts that listed a title for their public audio sample.
+Asks the daemon which sample a title's details can play: one cut from
+the held edition, else a storefront's public sample, else none.
 
 #### Parameters
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
-| `body` | [`TitleMetaQuery`](#titlemetaquery) | The title, as sent to title-meta. |
+| `body` | [`TitleSampleQuery`](#titlesamplequery) | The title, as sent to title-meta, and the held edition. |
 
 #### Returns
 
-`Promise`\<`string` \| `null`\>
+`Promise`\<[`TitleSample`](#titlesample)\>
 
-The sample's same-origin path, or `null` when no store offers one.
+The daemon's answer.
 
 ***
 

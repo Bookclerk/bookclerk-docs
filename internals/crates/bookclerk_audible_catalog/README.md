@@ -23,7 +23,7 @@ library stack.
 | [`fetch_audible_catalog_rating`](#fetch_audible_catalog_rating) | function | Fetch Audible community ratings for one ASIN (public catalog; no account). |
 | [`fetch_audible_catalog_reviews`](#fetch_audible_catalog_reviews) | function | Fetch a short list of helpful Audible customer reviews (public; no account). |
 | [`fetch_audible_catalog_reviews_page`](#fetch_audible_catalog_reviews_page) | function | Paginated Audible catalog reviews (`page` is 1-based). |
-| [`fetch_products_by_asins`](#fetch_products_by_asins) | function | Looks titles up by ASIN in the public catalog, with their genre ladders. |
+| [`fetch_products_by_asins`](#fetch_products_by_asins) | function | Looks titles up by ASIN in the public catalog, with their genre ladders and audio sample. |
 | [`is_audible_podcast_product`](#is_audible_podcast_product) | function | True for Audible podcast shows / episodes (`content_type` / delivery type). |
 | [`normalize_region`](#normalize_region) | function | Normalize a marketplace string to an Audible / Audnexus `region` value. |
 | [`normalize_review_body`](#normalize_review_body) | function | Normalize review text for clients: decode HTML entities and preserve Audible guided questionnaire JSON (`[{ type, question, id, answer }, …]`) so the UI can render Q&A sections. Unrelated JSON arrays are left unchanged. |
@@ -122,9 +122,10 @@ One Audible catalog product (public search hit).
 - `rating_count`: Count of star ratings (`rating.num_ratings`) when present.
 - `is_explicit`: Audible's adult flag (`is_adult_product`, in `product_attrs`):
   `Some(true)` for explicit content, `None` when the reply omits it.
-- `sample_url`: Public `https` URL of the title's audio sample (`sample_url`, in the
-  `media` response group); `None` when the reply has none or it is not
-  an absolute `https` URL.
+- `sample_url`: Public `https` URL of the title's audio sample (`sample_url`, sent
+  only with the `sample` response group, which by-ASIN lookups ask
+  for); `None` when the reply has none or it is not an absolute
+  `https` URL.
 
 Implements: `Clone`, `Debug`, `PartialEq`
 
@@ -417,7 +418,8 @@ pub async fn fetch_products_by_asins(
 ) -> Result<Vec<CatalogProduct>>
 ```
 
-Looks titles up by ASIN in the public catalog, with their genre ladders.
+Looks titles up by ASIN in the public catalog, with their genre ladders
+and audio sample.
 
 #### Arguments
 

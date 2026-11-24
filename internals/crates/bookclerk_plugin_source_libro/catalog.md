@@ -212,7 +212,8 @@ pub fn parse_details(body: &[u8]) -> Result<LibroDetails>
 Parses one `explore/audiobook_details` body.
 
 Sans-IO so the unit tests drive the same code as the network path. The
-list price (`purchase_info.price`) is copied onto the audiobook hit.
+list price (`purchase_info.price`) and the audio sample (`sample_url`)
+are copied onto the audiobook hit.
 
 #### Errors
 

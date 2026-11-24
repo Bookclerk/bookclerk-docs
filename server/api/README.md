@@ -249,7 +249,7 @@ Recommendations, catalog search and title metadata.
 | [`GET /api/images/{token}`](discover.md#get-apiimagestoken) | Serves a signed image that is not a cover as a 128 px JPEG. |
 | [`GET /api/stores/{id}/icon`](discover.md#get-apistoresidicon) | Serves a storefront's or integration's icon as a 128 px JPEG through the cover service. |
 | [`GET /api/samples/{token}`](discover.md#get-apisamplestoken) | Plays a storefront's sample of a title. |
-| [`POST /api/discover/title-sample`](discover.md#post-apidiscovertitle-sample) | Finds a storefront's sample of a title. |
+| [`POST /api/discover/title-sample`](discover.md#post-apidiscovertitle-sample) | Finds the sample a title's details can play: one cut from the held edition when this node can, else a storefront's. |
 | [`GET /api/discover/status`](discover.md#get-apidiscoverstatus) | Reports whether the caller's Discover shelves are stored yet, so provisioning can wait for a new visitor's shelves before sending them in. |
 | [`POST /api/discover/refresh`](discover.md#post-apidiscoverrefresh) | Queues a storefront fetch and ranking for the caller's shelves now, as the Discover page's Refresh button asks. Unchanged store calls answer from the day's cache, so a refresh is cheap; a fetch already waiting absorbs the request. |
 | [`GET /api/discover/recommendations`](discover.md#get-apidiscoverrecommendations) | Returns the caller's stored Discover shelves; never builds them on the request. |

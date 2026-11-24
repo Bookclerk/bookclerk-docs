@@ -1782,7 +1782,8 @@ A `text/plain` body: a string.
 
 ## `POST /api/discover/title-sample`
 
-Finds a storefront's sample of a title.
+Finds the sample a title's details can play: one cut from the held
+edition when this node can, else a storefront's.
 
 **Access:** The operator, or any library session, including a library card (refused with 403 `transport_insecure` off loopback without TLS, or `clerk_sign_in_unavailable` where remote installs are not served).
 
@@ -1790,21 +1791,15 @@ Finds a storefront's sample of a title.
 
 ### Request body
 
-`application/json`: [`TitleMetaQuery`](schemas.md#titlemetaquery)
+`application/json`: [`TitleSampleQuery`](schemas.md#titlesamplequery)
 
-- `title` *string* — Display title as shown on the storefront or library card.
-- `authors` *string or null* — Comma-separated author names when the storefront provides them.
-- `asin` *string or null* — Audible / Amazon ASIN when this edition is sold on Audible.
-- `isbn` *string or null* — Canonical ISBN-13 (or ISBN-10 normalized) when published.
-- `narrators` *string or null* — Comma-separated narrator names when known.
-- `length_minutes` *integer (int64) or null* — Audiobook runtime in whole minutes when known.
-- `region` *string* — Marketplace / region code (`us`, `uk`, …) for catalog lookups.
-- `store_editions` *array of [`StoreEdition`](schemas.md#storeedition)* — Store editions that listed this title (the search hit's or card's `store_editions`), at most 16. A sparse record is filled from each of these stores that declared `detailByProductId`, by the product id it gave the title, before the stores that declared `detailByIsbn` are asked by ISBN.
+- `edition_id` *string or null* — The library edition the caller would hear a sample of (an `id` in a work's `editions`); the stores are asked only when this node cannot cut a sample from it.
 
 ### Responses
 
-- `200` — The sample's same-origin path, or none when no listing store offers one. Body: [`TitleSampleJson`](schemas.md#titlesamplejson) (`application/json`)
-  - `sample_path` *string or null* — Same-origin path of a storefront's sample of the title, to play with `GET`; absent when no store that lists it offers one.
+- `200` — The path of the sample to play: the held edition's, else a store's; neither when no sample can be played here (no confined media worker, or no source offers one). Body: [`TitleSampleJson`](schemas.md#titlesamplejson) (`application/json`)
+  - `edition_sample_path` *string or null* — Same-origin path of a sample cut from the held edition (`GET /api/library/editions/{id}/sample`); present when the caller may hear that edition and this node reaches its audio.
+  - `sample_path` *string or null* — Same-origin path of a storefront's sample of the title, to play with `GET`; absent when an edition sample is offered instead, or no store that lists the title offers one.
 - `400` — The query is malformed or too large. As `text/plain`, when the body is not syntactically valid JSON. Body: string (`text/plain`)
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
@@ -1873,10 +1868,11 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The sample's same-origin path, or none when no listing store offers one.
+Status `200`: The path of the sample to play: the held edition's, else a store's; neither when no sample can be played here (no confined media worker, or no source offers one).
 
 ```json
 {
+  "edition_sample_path": "/api/library/editions/5d2c8e1a-7b3f-4a6e-9c0d-1e2f3a4b5c6d/sample",
   "sample_path": "/api/samples/aHR0cHM6Ly9zYW1wbGVzLmV4YW1wbGUvYS5tcDM.q2fW1n4bJm0Rg9xV3kTzPA"
 }
 ```
@@ -1886,14 +1882,22 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "`POST /api/discover/title-sample` answer.",
+  "description": "`POST /api/discover/title-sample` answer. At most one path is given;\nnone means no sample can be played here, so the app shows no sample\ncontrol.",
   "properties": {
+    "edition_sample_path": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Same-origin path of a sample cut from the held edition\n(`GET /api/library/editions/{id}/sample`); present when the caller\nmay hear that edition and this node reaches its audio.",
+      "example": "/api/library/editions/5d2c8e1a-7b3f-4a6e-9c0d-1e2f3a4b5c6d/sample"
+    },
     "sample_path": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Same-origin path of a storefront's sample of the title, to play\nwith `GET`; absent when no store that lists it offers one.",
+      "description": "Same-origin path of a storefront's sample of the title, to play\nwith `GET`; absent when an edition sample is offered instead, or no\nstore that lists the title offers one.",
       "example": "/api/samples/aHR0cHM6Ly9zYW1wbGVzLmV4YW1wbGUvYS5tcDM.q2fW1n4bJm0Rg9xV3kTzPA"
     }
   }
@@ -2011,7 +2015,7 @@ A `text/plain` body: a string.
 Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
 
 ```text
-Failed to deserialize the JSON body into the target type: title: invalid type: integer `1`, expected a string at line 1 column 10
+Failed to deserialize the JSON body into the target type: invalid type: null, expected a map at line 1 column 4
 ```
 
 Schema:

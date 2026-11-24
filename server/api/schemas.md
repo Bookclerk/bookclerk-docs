@@ -5253,9 +5253,21 @@ Query for a page of Audible customer reviews.
 
 ## TitleSampleJson
 
-`POST /api/discover/title-sample` answer.
+`POST /api/discover/title-sample` answer. At most one path is given;
+none means no sample can be played here, so the app shows no sample
+control.
 
-- `sample_path` *string or null* — Same-origin path of a storefront's sample of the title, to play with `GET`; absent when no store that lists it offers one.
+- `edition_sample_path` *string or null* — Same-origin path of a sample cut from the held edition (`GET /api/library/editions/{id}/sample`); present when the caller may hear that edition and this node reaches its audio.
+- `sample_path` *string or null* — Same-origin path of a storefront's sample of the title, to play with `GET`; absent when an edition sample is offered instead, or no store that lists the title offers one.
+
+## TitleSampleQuery
+
+`POST /api/discover/title-sample` request: the title as title-meta
+sees it, and the edition this library holds of it, when it holds one.
+
+Includes every field of [`TitleMetaQuery`](#titlemetaquery).
+
+- `edition_id` *string or null* — The library edition the caller would hear a sample of (an `id` in a work's `editions`); the stores are asked only when this node cannot cut a sample from it.
 
 ## TokenError
 

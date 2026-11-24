@@ -24,6 +24,7 @@ Uses the reverse-engineered Android Mockingjay GraphQL API
 | [`ChirpError`](#chirperror) | enum | Failures from Chirp GraphQL sign-in, library listing, or DRM-free download. |
 | [`chirp_slug_candidates`](#chirp_slug_candidates) | function | Slug guesses for Chirp `series(slug:)` / `author(slug:)`. |
 | [`fetch_title_materials`](#fetch_title_materials) | function | Fetch one audiobook id into `cache_dir` via AndroidSingleAudiobook track URLs. |
+| [`audiobook_detail_record`](#audiobook_detail_record) | function | Reads Chirp's answer to a title detail query (`audiobook(id:)`) as a catalog record with its audio sample. Sans-IO, so the fuzz target and the tests drive the same code as `ChirpSource::catalog_detail`. |
 | [`audiobook_to_scan_book`](#audiobook_to_scan_book) | function | Map a Chirp audiobook to a structured scan row. Chirp returns one display string per role, so names are split with `records::credits_from_display`. |
 | [`collect_account_books`](#collect_account_books) | function | Fetch all library pages for one client and collect books (no DB writes). |
 | [`fetch_account_page`](#fetch_account_page) | function | Fetch one Chirp library page as scan rows (no DB writes). |
@@ -159,6 +160,7 @@ pub struct CatalogAudiobook {
     pub language: Option<String>,
     pub abridged: Option<bool>,
     pub promoted_tags: Vec<CatalogTag>,
+    pub sample_url: Option<String>,
 }
 ```
 
@@ -181,6 +183,8 @@ Catalog-oriented audiobook (search / related / series).
 - `language`: Chirp display language (`English`, `Spanish`, …).
 - `abridged`: Abridged.
 - `promoted_tags`: Storefront genre chips (`Thrillers`, `Crime Fiction & Mysteries`, …).
+- `sample_url`: The title's public audio sample, a signed `https` M4A link valid
+  for about a day; only the detail query asks for it.
 
 #### CatalogAudiobook::title
 
@@ -373,6 +377,24 @@ Catalog search (`audiobooks(query:)`) — no auth required.
 ##### Errors
 
 Returns an error when the operation fails.
+
+#### ChirpClient::audiobook_detail
+
+```rust
+pub async fn audiobook_detail(&self, id: &str) -> Result<Option<Value>>
+```
+
+One title's catalog record, with its audio sample, by Chirp id —
+no auth required. Read the answer with
+[`crate::audiobook_detail_record`](#audiobook_detail_record).
+
+##### Returns
+
+The GraphQL answer, or `None` when Chirp does not list the id.
+
+##### Errors
+
+Returns an error when the request fails.
 
 #### ChirpClient::related_audiobooks
 
@@ -686,6 +708,28 @@ Returns an error when a storefront request or its parse fails and the
 method cannot fall back. Some lookups fail soft and only yield fewer
 results (or none), so an empty result does not prove the store has none.
 
+#### ChirpSource::catalog_detail
+
+```rust
+pub async fn catalog_detail(&self, product_id: &str) -> Result<Option<CatalogHit>>
+```
+
+The catalog record of one Chirp title, with its audio sample
+(`catalogDetail` by product id).
+
+##### Arguments
+
+* `product_id` - Chirp's numeric audiobook id.
+
+##### Returns
+
+`None` when the id is not numeric or Chirp does not list it.
+
+##### Errors
+
+Returns an error when the request fails or Chirp's answer is not a
+catalog record.
+
 #### ChirpSource::expand_candidates
 
 ```rust
@@ -891,6 +935,29 @@ Fetch one audiobook id into `cache_dir` via AndroidSingleAudiobook track URLs.
 #### Errors
 
 Returns an error when the operation fails.
+
+### audiobook_detail_record
+
+```rust
+pub fn audiobook_detail_record(answer: &Value) -> Result<Option<CatalogHit>>
+```
+
+Reads Chirp's answer to a title detail query (`audiobook(id:)`) as a
+catalog record with its audio sample. Sans-IO, so the fuzz target and
+the tests drive the same code as [`ChirpSource::catalog_detail`](#chirpsourcecatalog_detail).
+
+#### Arguments
+
+* `answer` - The GraphQL answer (`{"data": {"audiobook": …}}`).
+
+#### Returns
+
+`None` when the answer names no audiobook.
+
+#### Errors
+
+Returns an error when the audiobook object is not a catalog record (no
+string `id`, or a field of the wrong type).
 
 ### audiobook_to_scan_book
 

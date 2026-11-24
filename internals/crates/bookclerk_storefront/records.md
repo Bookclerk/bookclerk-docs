@@ -27,6 +27,7 @@ until the library schema stores works, expressions and editions
 | [`audio_kinds`](#audio_kinds) | function | The expression and media kinds an audio storefront's item has, given its work kind: a podcast is original audio, a book a narration, and both come as downloadable audio. |
 | [`fill_credits`](#fill_credits) | function | Adds the credits of `fill` whose role `base` has none of, so a merge of two hits for one edition never overwrites the credits already known. |
 | [`fill_identifiers`](#fill_identifiers) | function | Adds the identifiers of `fill` whose scheme `base` has none of. |
+| [`sample_url`](#sample_url) | function | A store's audio sample link as `crate::CatalogHit::sample_url` takes it: trimmed, an absolute `https` URL with a host and no whitespace or control characters, else `None`. The host parses it again before any plugin fetches it, so this only keeps obvious junk off the record. |
 | [`NAME_SEPARATOR`](#name_separator) | constant | Separator the flat `books` row view uses between contributor names. |
 
 ## Re-exports
@@ -243,6 +244,21 @@ pub fn fill_identifiers(base: &mut Vec<Identifier>, fill: Vec<Identifier>)
 ```
 
 Adds the identifiers of `fill` whose scheme `base` has none of.
+
+### sample_url
+
+```rust
+pub fn sample_url(raw: &str) -> Option<String>
+```
+
+A store's audio sample link as [`crate::CatalogHit::sample_url`](README.md#cataloghit) takes
+it: trimmed, an absolute `https` URL with a host and no whitespace or
+control characters, else `None`. The host parses it again before any
+plugin fetches it, so this only keeps obvious junk off the record.
+
+#### Arguments
+
+* `raw` - The link as the store gave it.
 
 ## Constants
 
