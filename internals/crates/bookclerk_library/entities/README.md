@@ -15,6 +15,8 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`account_credential_revisions`](account_credential_revisions.md): SeaORM entity for the `account_credential_revisions` table: the newest sign-in of a single-keeper account that crossed each share (`control_plane::keeper`).
 - [`account_downloads`](account_downloads.md): SeaORM entity for `account_downloads`: each download that reached a store, counted against the account's rolling daily budget.
 - [`account_links`](account_links.md): SeaORM entity for the `account_links` table.
+- [`account_mail`](account_mail.md): SeaORM entity for `account_mail`: one account-mail message (an invite, a verification link or a test) and its delivery.
+- [`account_mail_settings`](account_mail_settings.md): SeaORM entity for `account_mail_settings`: the notifier instance administrators chose for account mail (one row, `id = 1`).
 - [`account_pace`](account_pace.md): SeaORM entity for `account_pace`: the operator's override of a storefront's download pace for one store account, and the store's cool-down.
 - [`account_scan_state`](account_scan_state.md): SeaORM entity for `account_scan_state`: where each account's storefront scan stands between passes and between pages.
 - [`account_shares`](account_shares.md): SeaORM entity for the `account_shares` table: where a store account travelled with its person (`control_plane::carried_accounts`).
@@ -52,6 +54,7 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`edition_files`](edition_files.md): SeaORM entity for `edition_files`: every file key an acquire or a host upload wrote, per output destination, and the edition it belongs to (library data model ADR, `docs/adr/library-data-model.md`, section 3). Written by the acquire pipeline (`crate::LibraryStore::record_edition_file`) and by `control_plane::uploads`, which refuses an upload a key another edition holds and deletes an aborted upload's copy only while the key is still its own.
 - [`edition_identifiers`](edition_identifiers.md): SeaORM entity for the `edition_identifiers` table (composite primary key).
 - [`editions`](editions.md): SeaORM entity for the `editions` table (text primary key).
+- [`email_verifications`](email_verifications.md): SeaORM entity for `email_verifications`: the live verification link of one user's email address, stored as a hash.
 - [`embeddings`](embeddings.md): SeaORM entity for the `embeddings` table.
 - [`encrypted_secrets`](encrypted_secrets.md): SeaORM entity for the `encrypted_secrets` table.
 - [`event_deliveries`](event_deliveries.md): SeaORM entity for per-subscriber `event_deliveries`.

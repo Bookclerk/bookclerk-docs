@@ -1068,6 +1068,7 @@ Status `200`: Who the caller is (operator, portal user, or impersonation).
     "display_name": "Sam",
     "email": "sam@example.com",
     "has_password": true,
+    "email_verified": false,
     "has_avatar": false,
     "avatar_source": "auto",
     "gravatar_hash": "0bc83cb571cd1c50ba6f3e8a78ef1346b6b31bd4d35b8d3dc1f0c8a3b4a9f7e2",
@@ -1220,6 +1221,7 @@ Schema:
             "id",
             "role",
             "has_password",
+            "email_verified",
             "has_avatar",
             "avatar_source"
           ],
@@ -1255,6 +1257,11 @@ Schema:
               "type": "boolean",
               "description": "True when a local password hash is stored (invite users may be false).",
               "example": true
+            },
+            "email_verified": {
+              "type": "boolean",
+              "description": "True when the email address was proven by a link mailed to it.",
+              "example": false
             },
             "has_avatar": {
               "type": "boolean",
@@ -1520,6 +1527,7 @@ Schema:
             "id",
             "role",
             "has_password",
+            "email_verified",
             "has_avatar",
             "avatar_source"
           ],
@@ -1555,6 +1563,11 @@ Schema:
               "type": "boolean",
               "description": "True when a local password hash is stored (invite users may be false).",
               "example": true
+            },
+            "email_verified": {
+              "type": "boolean",
+              "description": "True when the email address was proven by a link mailed to it.",
+              "example": false
             },
             "has_avatar": {
               "type": "boolean",
@@ -3714,6 +3727,261 @@ Schema:
 
 A `text/plain` body: a string.
 
+## `POST /api/auth/verify-email`
+
+Uses a verification link. The link is the proof, so no sign-in is
+needed; it works once, for 24 hours, and only while the patron still
+has the address it was sent to.
+
+Access: anyone holding the link.
+
+**Access:** No auth layer. Routes that need a caller say so in `security`; the handler checks it.
+
+**Credentials:** none
+
+### Request body
+
+`application/json`: [`VerifyEmailBody`](schemas.md#verifyemailbody)
+
+- `token` *string*, **required** — The token from the link: 64 lowercase hex characters.
+
+### Responses
+
+- `200` — The address is verified. Body: [`EmailVerified`](schemas.md#emailverified) (`application/json`)
+  - `verified` *boolean*, **required** — Always true; a link that did not verify is a `400`.
+- `400` — The body is malformed, or the link is unknown, used, expired or for an address the patron no longer has. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`); string (`text/plain`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `415` — The body is not sent as `application/json`. As `text/plain`, when the request did not declare a JSON body. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`); string (`text/plain`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `500` — The library could not be read or changed. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/verify-email' \
+    -X POST \
+    -H 'Content-Type: application/json' \
+    -d '{"token": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/verify-email' `
+    -Method Post `
+    -ContentType 'application/json' `
+    -Body '{"token": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/auth/verify-email",
+    json={"token": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/verify-email", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({"token": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/auth/verify-email")
+    .json(&serde_json::json!({"token": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The address is verified.
+
+```json
+{
+  "verified": true
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "The answer to a used verification link.",
+  "required": [
+    "verified"
+  ],
+  "properties": {
+    "verified": {
+      "type": "boolean",
+      "description": "Always true; a link that did not verify is a `400`.",
+      "example": true
+    }
+  }
+}
+```
+
+Status `400`: The body is malformed, or the link is unknown, used, expired or for an address the patron no longer has. As `text/plain`, when the body is not syntactically valid JSON.
+
+```json
+{
+  "error": "this link is invalid or has expired"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `415`: The body is not sent as `application/json`. As `text/plain`, when the request did not declare a JSON body.
+
+```json
+{
+  "error": "send the body with Content-Type: application/json"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: missing field `token` at line 1 column 2
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `500`: The library could not be read or changed.
+
+```json
+{
+  "error": "the library could not be read or changed"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
 ## `POST /api/auth/impersonate`
 
 Operator (or elevated) session starts impersonating a User.
@@ -4350,6 +4618,336 @@ Schema:
       "examples": [
         404
       ]
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `POST /api/auth/profile/email/verification`
+
+Sends the caller a new link to verify their email address, voiding the
+last one. A patron may ask once every five minutes.
+
+Access: any signed-in library user, for themselves.
+
+**Access:** The operator, or any signed-in user.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Responses
+
+- `202` — The message is queued. Body: [`AccountMailQueued`](schemas.md#accountmailqueued) (`application/json`)
+  - `mail_id` *string*, **required** — The message's id. The send runs as a job; its outcome is kept for 30 days.
+- `401` — No one is signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — The session has no library user. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `409` — There is no address to verify, it is already verified, or account mail is not set up. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `429` — A link was sent less than five minutes ago. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The message could not be written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/profile/email/verification' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/profile/email/verification' `
+    -Method Post `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/auth/profile/email/verification",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/profile/email/verification", {
+  method: "POST",
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/auth/profile/email/verification")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `202`: The message is queued.
+
+```json
+{
+  "mail_id": "1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "The answer to a queued account mail.",
+  "required": [
+    "mail_id"
+  ],
+  "properties": {
+    "mail_id": {
+      "type": "string",
+      "description": "The message's id. The send runs as a job; its outcome is kept for\n30 days.",
+      "example": "1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e"
+    }
+  }
+}
+```
+
+Status `401`: No one is signed in.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: The session has no library user. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `409`: There is no address to verify, it is already verified, or account mail is not set up.
+
+```json
+{
+  "error": "your email address is already verified"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `429`: A link was sent less than five minutes ago.
+
+```json
+{
+  "error": "a link was sent recently; try again in a few minutes"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `500`: The message could not be written.
+
+```json
+{
+  "error": "the library could not be read or changed"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
@@ -8084,7 +8682,7 @@ Updates the caller's display name and/or email.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `409` — The email is used by another account (`email_in_use`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `409` — The email is used by another account (`email_in_use`), or another change to the address landed while this one was being applied (`email_changed`; reload and try again). It does not detect a change made before this request read the address, so it does not reject a stale form. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -8162,6 +8760,7 @@ Status `200`: The profile after the change.
     "display_name": "Sam",
     "email": "sam@example.com",
     "has_password": true,
+    "email_verified": false,
     "has_avatar": false,
     "avatar_source": "auto",
     "gravatar_hash": "0bc83cb571cd1c50ba6f3e8a78ef1346b6b31bd4d35b8d3dc1f0c8a3b4a9f7e2",
@@ -8201,6 +8800,7 @@ Schema:
         "id",
         "role",
         "has_password",
+        "email_verified",
         "has_avatar",
         "avatar_source"
       ],
@@ -8236,6 +8836,11 @@ Schema:
           "type": "boolean",
           "description": "True when a local password hash is stored (invite users may be false).",
           "example": true
+        },
+        "email_verified": {
+          "type": "boolean",
+          "description": "True when the email address was proven by a link mailed to it.",
+          "example": false
         },
         "has_avatar": {
           "type": "boolean",
@@ -8484,7 +9089,7 @@ Schema:
 }
 ```
 
-Status `409`: The email is used by another account (`email_in_use`).
+Status `409`: The email is used by another account (`email_in_use`), or another change to the address landed while this one was being applied (`email_changed`; reload and try again). It does not detect a change made before this request read the address, so it does not reject a stale form.
 
 ```json
 {

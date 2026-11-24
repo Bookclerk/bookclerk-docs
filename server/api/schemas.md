@@ -8,6 +8,27 @@ Whether an expression is abridged.
 
 Type: one of `unknown`, `unabridged`, `abridged`
 
+## AccountMailQueued
+
+The answer to a queued account mail.
+
+- `mail_id` *string*, **required** — The message's id. The send runs as a job; its outcome is kept for 30 days.
+
+## AccountMailSettingsBody
+
+The body of `PUT /api/notifications/account-mail`.
+
+- `plugin_instance_id` *string or null*, **required** — A notifier instance whose plugin sends account mail, or `null` to turn account mail off. The key is required.
+
+## AccountMailStatus
+
+Account mail's settings and whether it can be sent.
+
+- `plugin_instance_id` *string or null* — The notifier instance that sends account mail; `null` when none is chosen.
+- `ready` *boolean*, **required** — Whether invites and verification messages are sent.
+- `not_ready` *[`NotReady`](#notready) or null* — Why not, when not ready.
+- `tested_at` *string (date-time) or null* — When a test message through this instance was last delivered.
+
 ## AccountRef
 
 One store account, by storefront plugin key and store account id.
@@ -220,6 +241,7 @@ First-party user snapshot attached to `/me` when a `users` row is linked.
 - `display_name` *string or null* — Optional human-readable name from the user row.
 - `email` *string or null* — Optional email; omitted from JSON when unset.
 - `has_password` *boolean*, **required** — True when a local password hash is stored (invite users may be false).
+- `email_verified` *boolean*, **required** — True when the email address was proven by a link mailed to it.
 - `has_avatar` *boolean*, **required** — True when a JPEG avatar is stored under `files_dir/avatars/{id}.*`.
 - `avatar_source` *string*, **required** — Selected picture source (`auto`, `monogram`, `gravatar`, `upload`, `sso:{id}`).
 - `gravatar_hash` *string or null* — SHA-256 hex of the contact email for Gravatar, when an email is set.
@@ -1105,7 +1127,7 @@ Provisioner body for creating a user and optional invite ticket.
 - `login_name` *string or null* — Optional local login name for the new user.
 - `email` *string or null* — Optional email for the new user.
 - `password` *string or null* — Optional password; hashed before persist. Empty or omitted leaves the user passwordless.
-- `mint_invite` *boolean* — When true (default), also mint an invite/claim ticket.
+- `mint_invite` *boolean* — When true (default), also invite the user: by mail when account mail is ready and an email is given, otherwise as a claim ticket and link in the answer.
 
 ## DatabaseMigrateRequest
 
@@ -1459,6 +1481,12 @@ JSON body after a successful Owner elevation.
 JSON body for Owner password re-auth before issuing an elevated operator cookie.
 
 - `password` *string*, **required** — Owner account password (re-authentication).
+
+## EmailVerified
+
+The answer to a used verification link.
+
+- `verified` *boolean*, **required** — Always true; a link that did not verify is a `400`.
 
 ## EmptyPage
 
@@ -2756,6 +2784,13 @@ One notifier instance.
 - `channel` *boolean*, **required** — Whether administrators can make library channels on it.
 - `personal` *boolean*, **required** — Whether patrons can add their own address on it.
 - `address_fields` *array of [`AddressFieldJson`](#addressfieldjson)*, **required** — What a patron enters for a personal destination.
+- `account_mail` *boolean*, **required** — Whether it can send account mail (invites, email verification and password resets).
+
+## NotReady
+
+Why account mail cannot be sent yet.
+
+Type: one of `not_configured`, `notifier_missing`, `no_public_origin`
 
 ## OAuthEnrollAnswer
 
@@ -5461,6 +5496,7 @@ the invite that lets them claim it.
 - `user` *[`UserSummary`](#usersummary)*, **required** — The user as created.
 - `claim_ticket` *string or null* — Opaque single-use claim ticket, when `mint_invite` was true.
 - `invite_url` *string or null* — Invite link that redeems the claim ticket, when one was minted.
+- `invite_emailed` *boolean*, **required** — True when the invite was mailed to the user's address instead of returned: account mail is ready and the user has an email address. The ticket is minted when the mail is sent, so `claim_ticket` and `invite_url` are then empty.
 
 ## UserDeletedResponse
 
@@ -5579,6 +5615,13 @@ status, never the password hash.
 - `login_name` *string or null* — Local username for password login, when set.
 - `email` *string or null* — Contact email, when set.
 - `has_password` *boolean*, **required** — Whether a local password is stored for the user.
+- `email_verified` *boolean*, **required** — Whether the email address was proven by a link mailed to it.
+
+## VerifyEmailBody
+
+The body of `POST /api/auth/verify-email`.
+
+- `token` *string*, **required** — The token from the link: 64 lowercase hex characters.
 
 ## WindowBooks
 

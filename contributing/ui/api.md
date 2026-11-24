@@ -103,6 +103,46 @@ The account's storefront plugin (`audible`, `libro`, ...).
 
 ***
 
+### AccountMailStatus
+
+Account mail's settings and whether it can be sent.
+
+#### Properties
+
+##### not\_ready
+
+```ts
+not_ready: AccountMailNotReady | null;
+```
+
+Why not, when not ready.
+
+##### plugin\_instance\_id
+
+```ts
+plugin_instance_id: string | null;
+```
+
+The notifier instance that sends account mail, or `null`.
+
+##### ready
+
+```ts
+ready: boolean;
+```
+
+Whether invites and verification messages are sent.
+
+##### tested\_at
+
+```ts
+tested_at: string | null;
+```
+
+When a test message last arrived (RFC 3339), or `null`.
+
+***
+
 ### ActionResponse
 
 Ack payload for scan / acquire job triggers.
@@ -180,6 +220,14 @@ display_name: string | null;
 ```ts
 email?: string | null;
 ```
+
+##### email\_verified?
+
+```ts
+email_verified?: boolean;
+```
+
+True when the email address was proven by a link mailed to it.
 
 ##### gravatar\_hash?
 
@@ -2429,6 +2477,14 @@ display_name: string | null;
 email?: string | null;
 ```
 
+##### email\_verified?
+
+```ts
+email_verified?: boolean;
+```
+
+True when the email address was proven by a link mailed to it.
+
 ##### gravatar\_hash?
 
 ```ts
@@ -2936,6 +2992,38 @@ schedulable: boolean;
 ```ts
 started_at: string;
 ```
+
+***
+
+### NotifierOption
+
+A notifier instance from the notifications catalog.
+
+#### Properties
+
+##### account\_mail
+
+```ts
+account_mail: boolean;
+```
+
+Whether it can send account mail.
+
+##### name
+
+```ts
+name: string;
+```
+
+Name shown in pickers.
+
+##### plugin\_instance\_id
+
+```ts
+plugin_instance_id: string;
+```
+
+Plugin instance id.
 
 ***
 
@@ -6917,6 +7005,14 @@ Created / patched user response from RBAC provisioning APIs.
 claim_ticket?: string | null;
 ```
 
+##### invite\_emailed?
+
+```ts
+invite_emailed?: boolean;
+```
+
+True when the invite was mailed to the user instead of returned.
+
 ##### invite\_url?
 
 ```ts
@@ -7533,6 +7629,16 @@ type Abridgement = "unknown" | "unabridged" | "abridged";
 ```
 
 Whether an expression is abridged.
+
+***
+
+### AccountMailNotReady
+
+```ts
+type AccountMailNotReady = "not_configured" | "notifier_missing" | "no_public_origin";
+```
+
+Why account mail cannot be sent yet.
 
 ***
 
@@ -8960,6 +9066,32 @@ Resolves when elevation succeeds.
 
 ***
 
+### emailUserInvite()
+
+```ts
+function emailUserInvite(id): Promise<{
+  mail_id: string;
+}>;
+```
+
+Mails a user a new invite.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `id` | `number` | User id. |
+
+#### Returns
+
+`Promise`\<\{
+  `mail_id`: `string`;
+\}\>
+
+The queued message's id.
+
+***
+
 ### endElevation()
 
 ```ts
@@ -9616,6 +9748,22 @@ The page and the next page's cursor.
 
 ***
 
+### getAccountMail()
+
+```ts
+function getAccountMail(): Promise<AccountMailStatus>;
+```
+
+Reads account mail's settings and status.
+
+#### Returns
+
+`Promise`\<[`AccountMailStatus`](#accountmailstatus)\>
+
+The status.
+
+***
+
 ### getCollections()
 
 ```ts
@@ -9852,6 +10000,22 @@ run here. Operator only.
 `Promise`\<[`LibraryConsentsResponse`](#libraryconsentsresponse)\>
 
 Links and consent rows.
+
+***
+
+### listNotifiers()
+
+```ts
+function listNotifiers(): Promise<NotifierOption[]>;
+```
+
+Lists the installed notifier instances (`GET /api/notifications/catalog`).
+
+#### Returns
+
+`Promise`\<[`NotifierOption`](#notifieroption)[]\>
+
+The notifiers, in the server's order.
 
 ***
 
@@ -10690,6 +10854,28 @@ The stored settings and the plugin's summary.
 
 ***
 
+### putAccountMail()
+
+```ts
+function putAccountMail(pluginInstanceId): Promise<AccountMailStatus>;
+```
+
+Chooses the notifier instance that sends account mail.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `pluginInstanceId` | `string` \| `null` | The instance, or `null` to turn account mail off. |
+
+#### Returns
+
+`Promise`\<[`AccountMailStatus`](#accountmailstatus)\>
+
+The status after the change.
+
+***
+
 ### putCollections()
 
 ```ts
@@ -11111,6 +11297,26 @@ The caller's Discover status once the fetch is queued.
 
 ***
 
+### requestEmailVerification()
+
+```ts
+function requestEmailVerification(): Promise<{
+  mail_id: string;
+}>;
+```
+
+Asks for a new link that verifies the caller's email address.
+
+#### Returns
+
+`Promise`\<\{
+  `mail_id`: `string`;
+\}\>
+
+The queued message's id.
+
+***
+
 ### requestFromBranch()
 
 ```ts
@@ -11345,6 +11551,26 @@ than 2 characters. Language defaults to the browser locale unless
 `Promise`\<[`CatalogSearchPage`](#catalogsearchpage)\>
 
 Cursor-paginated search page (or an empty stub when `q` is too short).
+
+***
+
+### sendAccountMailTest()
+
+```ts
+function sendAccountMailTest(): Promise<{
+  mail_id: string;
+}>;
+```
+
+Mails a test message to the caller's own address.
+
+#### Returns
+
+`Promise`\<\{
+  `mail_id`: `string`;
+\}\>
+
+The queued message's id.
 
 ***
 
@@ -11724,3 +11950,29 @@ Keeps branded daemon messages when they already read as plain language.
 `string`
 
 Message suitable for inline SPA error banners.
+
+***
+
+### verifyEmail()
+
+```ts
+function verifyEmail(token): Promise<{
+  verified: boolean;
+}>;
+```
+
+Uses a mailed verification link. Needs no sign-in.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `token` | `string` | The token from the link. |
+
+#### Returns
+
+`Promise`\<\{
+  `verified`: `boolean`;
+\}\>
+
+Whether the address was verified.

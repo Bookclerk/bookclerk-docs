@@ -88,6 +88,7 @@ Status `200`: The library's users.
       "login_name": "sam",
       "email": "sam@example.com",
       "has_password": true,
+      "email_verified": false,
       "online": true,
       "last_active_at": "2026-10-28T09:15:10+00:00",
       "last_seen_at": "2026-10-28T09:15:10+00:00",
@@ -152,7 +153,8 @@ Schema:
               "id",
               "role",
               "status",
-              "has_password"
+              "has_password",
+              "email_verified"
             ],
             "properties": {
               "id": {
@@ -206,6 +208,11 @@ Schema:
                 "type": "boolean",
                 "description": "Whether a local password is stored for the user.",
                 "example": true
+              },
+              "email_verified": {
+                "type": "boolean",
+                "description": "Whether the email address was proven by a link mailed to it.",
+                "example": false
               }
             }
           },
@@ -615,7 +622,7 @@ Owner/admin or operator creates a user and optional invite magic link.
 - `login_name` *string or null* — Optional local login name for the new user.
 - `email` *string or null* — Optional email for the new user.
 - `password` *string or null* — Optional password; hashed before persist. Empty or omitted leaves the user passwordless.
-- `mint_invite` *boolean* — When true (default), also mint an invite/claim ticket.
+- `mint_invite` *boolean* — When true (default), also invite the user: by mail when account mail is ready and an email is given, otherwise as a claim ticket and link in the answer.
 
 ### Responses
 
@@ -624,6 +631,7 @@ Owner/admin or operator creates a user and optional invite magic link.
   - `user` *[`UserSummary`](schemas.md#usersummary)*, **required** — The user as created.
   - `claim_ticket` *string or null* — Opaque single-use claim ticket, when `mint_invite` was true.
   - `invite_url` *string or null* — Invite link that redeems the claim ticket, when one was minted.
+  - `invite_emailed` *boolean*, **required** — True when the invite was mailed to the user's address instead of returned: account mail is ready and the user has an email address. The ticket is minted when the mail is sent, so `claim_ticket` and `invite_url` are then empty.
 - `400` — The request is invalid. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ApiError`](schemas.md#apierror) (`application/json`); string (`text/plain`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -711,10 +719,12 @@ Status `200`: The new user, with an invite link when one was asked for.
     "display_name": "Sam Reader",
     "login_name": "sam",
     "email": "sam@example.com",
-    "has_password": true
+    "has_password": true,
+    "email_verified": false
   },
   "claim_ticket": "7Qf3kZp0wL2mN9xT1cRb8vHd",
-  "invite_url": "https://books.example.com/invite?ticket=7Qf3kZp0wL2mN9xT1cRb8vHd"
+  "invite_url": "https://books.example.com/invite?ticket=7Qf3kZp0wL2mN9xT1cRb8vHd",
+  "invite_emailed": false
 }
 ```
 
@@ -726,7 +736,8 @@ Schema:
   "description": "Body of `POST /api/users`: the new user and, when one was asked for,\nthe invite that lets them claim it.",
   "required": [
     "ok",
-    "user"
+    "user",
+    "invite_emailed"
   ],
   "properties": {
     "ok": {
@@ -741,7 +752,8 @@ Schema:
         "id",
         "role",
         "status",
-        "has_password"
+        "has_password",
+        "email_verified"
       ],
       "properties": {
         "id": {
@@ -795,6 +807,11 @@ Schema:
           "type": "boolean",
           "description": "Whether a local password is stored for the user.",
           "example": true
+        },
+        "email_verified": {
+          "type": "boolean",
+          "description": "Whether the email address was proven by a link mailed to it.",
+          "example": false
         }
       }
     },
@@ -813,6 +830,11 @@ Schema:
       ],
       "description": "Invite link that redeems the claim ticket, when one was minted.",
       "example": "https://books.example.com/invite?ticket=7Qf3kZp0wL2mN9xT1cRb8vHd"
+    },
+    "invite_emailed": {
+      "type": "boolean",
+      "description": "True when the invite was mailed to the user's address instead of\nreturned: account mail is ready and the user has an email address.\nThe ticket is minted when the mail is sent, so `claim_ticket` and\n`invite_url` are then empty.",
+      "example": false
     }
   }
 }
@@ -1532,7 +1554,8 @@ Status `200`: The user after the change.
     "display_name": "Sam Reader",
     "login_name": "sam",
     "email": "sam@example.com",
-    "has_password": true
+    "has_password": true,
+    "email_verified": false
   }
 }
 ```
@@ -1560,7 +1583,8 @@ Schema:
         "id",
         "role",
         "status",
-        "has_password"
+        "has_password",
+        "email_verified"
       ],
       "properties": {
         "id": {
@@ -1614,6 +1638,11 @@ Schema:
           "type": "boolean",
           "description": "Whether a local password is stored for the user.",
           "example": true
+        },
+        "email_verified": {
+          "type": "boolean",
+          "description": "Whether the email address was proven by a link mailed to it.",
+          "example": false
         }
       }
     }
@@ -6697,6 +6726,330 @@ Schema:
       "examples": [
         404
       ]
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`); ask again after `Retry-After` seconds.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `POST /api/users/{id}/invite-email`
+
+Mails a user a new invite through account mail. The invite's ticket is
+minted when the mail is sent and voids the user's other unredeemed
+tickets, so only the newest invite works.
+
+**Access:** No auth layer. Routes that need a caller say so in `security`; the handler checks it.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Parameters
+
+- `id` (path) *integer (int64)*, **required** — User id.
+
+### Responses
+
+- `202` — The invite is queued. Body: [`AccountMailQueued`](schemas.md#accountmailqueued) (`application/json`)
+  - `mail_id` *string*, **required** — The message's id. The send runs as a job; its outcome is kept for 30 days.
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — The caller may not do this, or the user is disabled. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `404` — No such user. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `409` — The user has no email address, or account mail is not set up. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`); ask again after `Retry-After` seconds. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/users/<id>/invite-email' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/users/<id>/invite-email' `
+    -Method Post `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/users/<id>/invite-email",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/users/<id>/invite-email", {
+  method: "POST",
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/users/<id>/invite-email")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `202`: The invite is queued.
+
+```json
+{
+  "mail_id": "1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "The answer to a queued account mail.",
+  "required": [
+    "mail_id"
+  ],
+  "properties": {
+    "mail_id": {
+      "type": "string",
+      "description": "The message's id. The send runs as a job; its outcome is kept for\n30 days.",
+      "example": "1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e"
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: The caller may not do this, or the user is disabled. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `404`: No such user.
+
+```json
+{
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `409`: The user has no email address, or account mail is not set up.
+
+```json
+{
+  "error": "the user has no email address"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }

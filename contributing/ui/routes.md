@@ -214,6 +214,16 @@ const PLAYER_APPROVE_PATH: "/apps/approve" = "/apps/approve";
 
 The library's consent page for a player app's browser sign-in.
 
+***
+
+### VERIFY\_EMAIL\_PATH
+
+```ts
+const VERIFY_EMAIL_PATH: "/verify-email" = "/verify-email";
+```
+
+The page a mailed link that verifies an email address opens.
+
 ## Functions
 
 ### dropTicketUnlessInvitePath()
@@ -294,6 +304,28 @@ True when this document is the magic-link invite route.
 `boolean`
 
 True for `/invite` (trailing slash ignored).
+
+***
+
+### isVerifyEmailPath()
+
+```ts
+function isVerifyEmailPath(pathname?): boolean;
+```
+
+True when this document is the page a mailed verification link opens.
+
+#### Parameters
+
+| Parameter | Type | Default value | Description |
+| ------ | ------ | ------ | ------ |
+| `pathname?` | `string` | `window.location.pathname` | Document pathname. |
+
+#### Returns
+
+`boolean`
+
+True for `/verify-email` (trailing slash ignored).
 
 ***
 

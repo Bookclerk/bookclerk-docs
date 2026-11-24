@@ -2253,6 +2253,7 @@ pub struct ClaimTicketRecord {
     pub redeemed_at: Option<DateTime<Utc>>,
     pub created_by: String,
     pub created_at: DateTime<Utc>,
+    pub emailed_to: Option<String>,
 }
 ```
 
@@ -2267,6 +2268,7 @@ Claim ticket metadata (token plaintext is never stored).
 - `redeemed_at`: RFC 3339 time when the ticket/invite was redeemed, if any.
 - `created_by`: Actor that created the row (user id or operator label).
 - `created_at`: RFC 3339 timestamp when the row was inserted.
+- `emailed_to`: The address account mail sent this ticket to, when it was emailed.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
 
@@ -2931,6 +2933,7 @@ pub struct JobPayload {
     pub ingest_batch: Option<String>,
     pub convert: Option<OutputCopy>,
     pub notify_delivery: Option<String>,
+    pub account_mail: Option<String>,
 }
 ```
 
@@ -3014,6 +3017,8 @@ JSON command envelope stored on a job row.
   Run only by nodes that hold the library database, since the copy is
   made from the edition's recorded files.
 - `notify_delivery`: For [`JobKind::NotifySend`]: the `notify_deliveries.id` to send.
+- `account_mail`: For [`JobKind::NotifySend`]: the `account_mail.id` to send instead of
+  a delivery-log row. The job mints the message's link when it sends.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -3871,6 +3876,7 @@ pub struct UserRecord {
     pub last_seen_at: Option<DateTime<Utc>>,
     pub avatar_source: Option<String>,
     pub totp_enabled: bool,
+    pub email_verified: bool,
 }
 ```
 
@@ -3891,6 +3897,8 @@ First-party Bookclerk user (security principal for portal paths).
 - `last_seen_at`: Last authenticated portal activity (RFC 3339); survives session expiry.
 - `avatar_source`: Explicit picture choice (`monogram` / `gravatar` / `upload` / `sso:{id}`); `None` is auto.
 - `totp_enabled`: True when a TOTP authenticator has been confirmed for local password login.
+- `email_verified`: True when `email` was proven by a link sent to it (an emailed
+  invite or a verification link) and has not changed since.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
 
@@ -7060,6 +7068,406 @@ Plugin-scoped view — first-party and third-party sources use this.
 
 `plugin_key` isolates rows; `source_id` is the display alias written
 to the `source` column.
+
+#### LibraryStore::account_mail_settings
+
+```rust
+pub async fn account_mail_settings(&self) -> Result<Option<AccountMailSettings>>
+```
+
+The instance account mail goes through; `None` when none is chosen.
+
+##### Errors
+
+An error when the read fails.
+
+#### LibraryStore::set_account_mail_instance
+
+```rust
+pub async fn set_account_mail_instance(
+    &self,
+    plugin_instance_id: Option<&str>,
+) -> Result<()>
+```
+
+Chooses the instance account mail goes through, or none.
+
+Choosing another instance clears the record of a delivered test;
+choosing the same one again keeps it.
+
+##### Arguments
+
+* `plugin_instance_id` - The notifier instance; `None` turns account
+  mail off. The caller checks that it can carry account mail.
+
+##### Errors
+
+An error when the batch fails.
+
+#### LibraryStore::queue_account_mail
+
+```rust
+pub async fn queue_account_mail(
+    &self,
+    kind: AccountMailKind,
+    user_id: i64,
+    address: &str,
+    plugin_instance_id: &str,
+    limits: NotifyQueueLimits,
+) -> Result<String>
+```
+
+Records a message for `user_id` at `address` and enqueues its send.
+
+##### Returns
+
+The message id. A queue that is full leaves the message pending
+without a job; the notification sweep enqueues it later.
+
+##### Errors
+
+An error when the write fails.
+
+#### LibraryStore::queue_account_mail_unless_since
+
+```rust
+pub async fn queue_account_mail_unless_since(
+    &self,
+    kind: AccountMailKind,
+    user_id: i64,
+    address: &str,
+    plugin_instance_id: &str,
+    limits: NotifyQueueLimits,
+    since: Option<DateTime<Utc>>,
+) -> Result<Option<String>>
+```
+
+[`Self::queue_account_mail`](#librarystorequeue_account_mail), refused when a message of the same
+kind for the user was recorded after `since`.
+
+With `since`, the batch first takes the user's `bookclerk_slots`
+write lock for that kind (`account_mail_slot`), so on every
+database profile (`READ COMMITTED` PostgreSQL included) the guard
+reads what an overlapping request committed, and two overlapping
+requests cannot both pass it.
+
+##### Returns
+
+The message id, or `None` when a recent message refused it.
+
+##### Errors
+
+An error when the write fails.
+
+#### LibraryStore::enqueue_account_mail_send
+
+```rust
+pub async fn enqueue_account_mail_send(
+    &self,
+    mail_id: &str,
+    plugin_instance_id: &str,
+    limits: NotifyQueueLimits,
+) -> Result<Option<String>>
+```
+
+Enqueues the send job of one message and records its id.
+
+##### Returns
+
+The job id, or `None` when the queue is full.
+
+##### Errors
+
+An error when the enqueue or the write fails.
+
+#### LibraryStore::account_mail
+
+```rust
+pub async fn account_mail(&self, id: &str) -> Result<Option<AccountMail>>
+```
+
+One message; `None` when it is gone (pruned, or its user deleted).
+
+##### Errors
+
+An error when the read fails or a stored value is malformed.
+
+#### LibraryStore::last_account_mail_at
+
+```rust
+pub async fn last_account_mail_at(
+    &self,
+    user_id: i64,
+    kind: AccountMailKind,
+) -> Result<Option<DateTime<Utc>>>
+```
+
+When the newest message of `kind` for `user_id` was queued, for
+throttling patrons who ask again.
+
+##### Errors
+
+An error when the read fails.
+
+#### LibraryStore::unscheduled_account_mail
+
+```rust
+pub async fn unscheduled_account_mail(&self, limit: u64) -> Result<Vec<AccountMail>>
+```
+
+Pending messages no send job was recorded for, oldest first.
+
+##### Errors
+
+An error when the read fails or a stored value is malformed.
+
+#### LibraryStore::drop_orphaned_account_mail
+
+```rust
+pub async fn drop_orphaned_account_mail(&self) -> Result<u64>
+```
+
+Drops pending messages whose send job ended without recording a
+result, as [`Self::drop_orphaned_notify_deliveries`](#librarystoredrop_orphaned_notify_deliveries) does for
+deliveries.
+
+##### Returns
+
+How many messages were dropped.
+
+##### Errors
+
+An error when the batch fails.
+
+#### LibraryStore::drop_account_mail_if_job_ended
+
+```rust
+pub async fn drop_account_mail_if_job_ended(&self, mail_id: &str) -> Result<bool>
+```
+
+Drops a pending message that has no job id when a send job for it
+already ended: its enqueue succeeded but the link write did not,
+and the job was then cancelled or failed. As
+[`Self::drop_notify_delivery_if_job_ended`](#librarystoredrop_notify_delivery_if_job_ended) does for deliveries, this
+keeps the sweep from sending a message an operator cancelled, since
+the ended job no longer blocks a new one with the same dedup key.
+
+##### Returns
+
+Whether the message was dropped (and must not be enqueued again).
+
+##### Errors
+
+An error when the read or the batch fails.
+
+#### LibraryStore::record_account_mail_delivered
+
+```rust
+pub async fn record_account_mail_delivered(
+    &self,
+    id: &str,
+    fence: Option<&JobFence>,
+) -> Result<bool>
+```
+
+Records a delivered message. A delivered test marks the instance
+tested, when it is still the account-mail instance.
+
+##### Returns
+
+`false` when the message was no longer pending.
+
+##### Arguments
+
+* `fence` - The send job's claim; nothing is written once it lost
+  the job.
+
+##### Errors
+
+An error when the batch fails.
+
+#### LibraryStore::record_account_mail_retry
+
+```rust
+pub async fn record_account_mail_retry(
+    &self,
+    id: &str,
+    reason: &str,
+    fence: Option<&JobFence>,
+) -> Result<Option<i64>>
+```
+
+Records a send attempt the notifier asked to retry.
+
+##### Returns
+
+The attempts made, this one included; `None` when the message was
+no longer pending.
+
+##### Errors
+
+An error when the batch or the read fails.
+
+#### LibraryStore::record_account_mail_ended
+
+```rust
+pub async fn record_account_mail_ended(
+    &self,
+    id: &str,
+    state: DeliveryState,
+    reason: &str,
+    attempt: FailedAttempt,
+    fence: Option<&JobFence>,
+) -> Result<bool>
+```
+
+Records a message that failed for good, or that was not sent
+(`state` [`DeliveryState::Dropped`](notifications.md#deliverystate)).
+
+##### Returns
+
+`false` when the message was no longer pending.
+
+##### Arguments
+
+* `state` - [`DeliveryState::Failed`](notifications.md#deliverystate) or [`DeliveryState::Dropped`](notifications.md#deliverystate).
+* `attempt` - Whether this answer spends an attempt of its own.
+
+##### Errors
+
+[`LibraryError::Invalid`](#libraryerror) for another state; an error when the batch
+fails.
+
+#### LibraryStore::mint_invite_ticket
+
+```rust
+pub async fn mint_invite_ticket(
+    &self,
+    user_id: i64,
+    identity_id: i64,
+    emailed_to: &str,
+    created_by: &str,
+    fence: Option<&JobFence>,
+) -> Result<Option<MintedToken>>
+```
+
+Mints the claim ticket an invite carries: a new ticket for the
+user's local sign-in that remembers the address it was mailed to,
+in the same batch that voids the user's other unredeemed tickets
+(so only the newest invite works).
+
+##### Arguments
+
+* `user_id` - The user; nothing is minted or voided unless their
+  stored address is still `emailed_to`.
+* `identity_id` - The user's local portal identity.
+* `emailed_to` - The address the invite goes to.
+* `created_by` - Audit label of whoever asked for the invite.
+* `fence` - The send job's claim; nothing is minted or voided once
+  it lost the job, so a stale send cannot void a newer link.
+
+##### Returns
+
+The raw ticket, for the link; `None` when the fence no longer holds
+or the user's address changed.
+
+##### Errors
+
+An error when the batch fails.
+
+#### LibraryStore::mint_email_verification
+
+```rust
+pub async fn mint_email_verification(
+    &self,
+    user_id: i64,
+    email: &str,
+    fence: Option<&JobFence>,
+) -> Result<Option<MintedToken>>
+```
+
+Mints the link a verification message carries, voiding the user's
+last one.
+
+##### Arguments
+
+* `user_id` - The user.
+* `email` - The address it goes to; the link verifies it only while
+  the user still has it.
+* `fence` - The send job's claim; nothing is minted or voided once
+  it lost the job, so a stale send cannot void a newer link.
+
+##### Returns
+
+The raw token, for the link; `None` when the fence no longer holds
+or the user's address is no longer `email`.
+
+##### Errors
+
+An error when the batch fails.
+
+#### LibraryStore::use_email_verification
+
+```rust
+pub async fn use_email_verification(
+    &self,
+    token: &VerifyEmailToken,
+    now: DateTime<Utc>,
+) -> Result<Option<i64>>
+```
+
+Uses a verification link: the user's address is verified when the
+link is live and the user still has the address it was sent to.
+The link is used up either way.
+
+##### Arguments
+
+* `token` - The raw token from the link.
+* `now` - The current time.
+
+##### Returns
+
+The verified user's id; `None` for a link that is unknown, used,
+expired, or for an address the user no longer has.
+
+##### Errors
+
+An error when the read or the batch fails.
+
+#### LibraryStore::verify_user_email_if
+
+```rust
+pub async fn verify_user_email_if(&self, user_id: i64, email: &str) -> Result<bool>
+```
+
+Marks the user's address verified when it is still `email`: used
+when an invite mailed to that address is redeemed.
+
+##### Returns
+
+Whether the address was verified.
+
+##### Errors
+
+An error when the batch fails.
+
+#### LibraryStore::prune_account_mail
+
+```rust
+pub async fn prune_account_mail(&self, now: DateTime<Utc>) -> Result<u64>
+```
+
+Deletes account-mail records older than
+[`ACCOUNT_MAIL_RETENTION_DAYS`](notifications.md#account_mail_retention_days) that are no longer pending, and
+verification links that expired.
+
+##### Returns
+
+How many account-mail records were deleted.
+
+##### Errors
+
+An error when the batch fails.
 
 #### LibraryStore::acquire_title
 
@@ -10721,7 +11129,8 @@ destination's pause), and the cancel never lands without the count.
 A delivery whose destination is already paused is dropped instead,
 with no attempt or failure counted, as a send would drop it. Only
 call this for a job whose notifier runs nowhere; a job that is only
-waiting for a worker is not a notifier failure.
+waiting for a worker is not a notifier failure. A stalled account
+mail fails the same way; it has no destination to pause.
 
 ##### Returns
 
@@ -14583,9 +14992,19 @@ pub async fn set_user_email(&self, id: i64, email: Option<&str>) -> Result<UserR
 
 Set contact email (unique when set); does not bump security_version.
 
+A different address is no longer verified, and the old address's
+pending verification link stops working. The same address writes
+nothing, so it keeps its verification.
+
+The write applies only while the stored address is still the one
+read here, so a stale request cannot pair an address with a
+verification issued for another.
+
 ##### Errors
 
-Returns an error when the operation fails.
+[`LibraryError::Conflict`](#libraryerror) when the address changed since it was
+read (the caller reloads and retries); another error when the
+address is invalid, already used, or the write fails.
 
 #### LibraryStore::set_user_avatar_source
 
@@ -18198,7 +18617,8 @@ Kind of durable daemon work stored in the `jobs` table.
   [`JobPayload::node_id`](#jobpayload) to the node whose disk holds the staged
   bytes, and run only by a node that holds the library database.
 - `NotifySend`: Send one notification to one destination (`notify_send`): the
-  delivery-log row [`JobPayload::notify_delivery`](#jobpayload) names, through its
+  delivery-log row [`JobPayload::notify_delivery`](#jobpayload) names, or the
+  account-mail row [`JobPayload::account_mail`](#jobpayload) names, through its
   notifier instance ([`JobPayload::plugin_instance_id`](#jobpayload), also in
   [`JobPayload::requires`](#jobpayload)), so only a node running that instance
   claims it.
@@ -19296,6 +19716,7 @@ pub enum RecordPruneStep {
     ConfigurationAudit,
     ConfigurationChanges,
     Notifications,
+    AccountMail,
 }
 ```
 
@@ -19324,11 +19745,14 @@ One delete of [`LibraryStore::prune_record_step`](#librarystoreprune_record_step
 - `Notifications`: Notifications older than
   [`crate::notifications::NOTIFICATION_RETENTION_DAYS`](notifications.md#notification_retention_days), with their
   inbox entries and delivery-log rows.
+- `AccountMail`: Account-mail records older than
+  [`crate::notifications::ACCOUNT_MAIL_RETENTION_DAYS`](notifications.md#account_mail_retention_days) that are no
+  longer pending, and expired email-verification links.
 
 #### RecordPruneStep::ALL
 
 ```rust
-pub const ALL: [Self; 13] = _
+pub const ALL: [Self; 14] = _
 ```
 
 Every step, in the order a maintenance pass runs them.

@@ -20,12 +20,20 @@ Routing, for a notification of type `T`:
   (when on); when they did not, every personal destination of theirs on
   an instance the administrators offer for `T` with `default_on`. Either
   way only instances the administrators offer for `T` are used.
-- **Account** is the host's own mail and is not routed here yet.
+- **Account** is the host's own mail. It is never routed: each message
+  goes by itself, through the instance administrators chose for it
+  (`store::account_mail`).
 
 A paused destination is skipped.
 
 | Item | Kind | Summary |
 | --- | --- | --- |
+| [`AccountMailSettings`](#accountmailsettings) | struct | The notifier instance administrators chose for account mail. |
+| [`AccountMail`](#accountmail) | struct | One account-mail message and where its delivery stands. |
+| [`MintedToken`](#mintedtoken) | struct | The link token an account-mail send mints: the raw value goes into the message once and only its hash is stored. |
+| [`VerifyEmailToken`](#verifyemailtoken) | struct | The token of a verification link, as a patron's browser sends it back: exactly `VERIFY_TOKEN_CHARS` lowercase hex characters. |
+| [`AccountMailSettingsRequest`](#accountmailsettingsrequest) | struct | The body of `PUT /api/notifications/account-mail`, read from a JSON object only, before `AccountMailSettingsRequest::validate` checks it. |
+| [`VerifyEmailRequest`](#verifyemailrequest) | struct | The body of `POST /api/auth/verify-email`, read from a JSON object only, before `VerifyEmailRequest::validate` checks it. |
 | [`HostNotificationType`](#hostnotificationtype) | struct | A notification type the host itself raises. |
 | [`NewNotification`](#newnotification) | struct | A notification for the router to accept: rendered once, copied to every destination. |
 | [`PendingDelivery`](#pendingdelivery) | struct | One accepted notification's delivery waiting for its send job. |
@@ -42,9 +50,12 @@ A paused destination is skipped.
 | [`InboxEntry`](#inboxentry) | struct | One inbox entry. |
 | [`DestinationKind`](#destinationkind) | enum | Whether a destination is a library channel or one patron's address. |
 | [`DeliveryState`](#deliverystate) | enum | Where one delivery stands. |
+| [`AccountMailKind`](#accountmailkind) | enum | What an account-mail message says. |
 | [`StallOutcome`](#stalloutcome) | enum | What failing one `StalledSend` did. |
 | [`FailureEffect`](#failureeffect) | enum | What a finished send attempt did to its destination. |
 | [`FailedAttempt`](#failedattempt) | enum | Whether recording a failed delivery spends one more attempt. |
+| [`parse_account_mail_settings`](#parse_account_mail_settings) | function | Parses the body of `PUT /api/notifications/account-mail` from bytes (sans-IO), for the fuzz target and tests. The route reads the same `AccountMailSettingsRequest` with the JSON extractor and calls the same validation. |
+| [`parse_verify_email_request`](#parse_verify_email_request) | function | Parses the body of `POST /api/auth/verify-email` from bytes (sans-IO), for the fuzz target and tests. The route reads the same `VerifyEmailRequest` with the JSON extractor and calls the same validation. |
 | [`host_notification_type`](#host_notification_type) | function | The host type named `id`, if it is one. |
 | [`qualified_plugin_type`](#qualified_plugin_type) | function | The routed id of a plugin's type: `<plugin id>:<type id>`. |
 | [`fields_text`](#fields_text) | function | A plain-text body from labelled fields: one `name: value` line each, cut at a character boundary (ending in `…`) when it would pass `maxNotificationTextBytes`, so a raise within the field limits is never refused for its rendered body; the fields themselves are kept whole. |
@@ -58,12 +69,165 @@ A paused destination is skipped.
 | [`MAX_ROUTES_PER_TYPE`](#max_routes_per_type) | constant | Most routes, offers or patron targets one notification type may have. |
 | [`IN_APP_DESTINATION`](#in_app_destination) | constant | The reserved destination id of the built-in "In app" target: an operational route to it puts the notification in the inbox of every active Owner and Administrator, where the web app's bell, browser notifications and the desktop window's system notifications show it. It is not a stored destination and runs no plugin. |
 | [`TEST_NOTIFICATION_TYPE`](#test_notification_type) | constant | The host's built-in `test` type: an administrator or a patron sends it to one destination to check that it works. |
+| [`ACCOUNT_MAIL_RETENTION_DAYS`](#account_mail_retention_days) | constant | How long a delivered or failed account-mail record is kept. |
+| [`EMAIL_VERIFICATION_HOURS`](#email_verification_hours) | constant | How long an email verification link works. |
+| [`INVITE_DAYS`](#invite_days) | constant | How long an emailed invite works, as for every claim ticket. |
+| [`VERIFY_TOKEN_CHARS`](#verify_token_chars) | constant | Length of a verification link's token: 32 random bytes as lowercase hex. |
+| [`MAX_INSTANCE_ID_BYTES`](#max_instance_id_bytes) | constant | Longest plugin instance id the account-mail settings body takes. |
 | [`AUDIENCES`](#audiences) | constant | Every audience, in the order of the `audience` column's CHECK list. |
 | [`SEVERITIES`](#severities) | constant | Every severity, lowest first, in the order of the CHECK lists. |
 | [`ALERT_ACTIONS`](#alert_actions) | constant | Every alert action, in the order of the `alert_action` CHECK list. |
 | [`HOST_NOTIFICATION_TYPES`](#host_notification_types) | constant | The host's own notification types. Producers of operational and patron events add theirs here as they land. |
 
 ## Structs
+
+### AccountMailSettings
+
+```rust
+pub struct AccountMailSettings {
+    pub plugin_instance_id: String,
+    pub tested_at: Option<DateTime<Utc>>,
+}
+```
+
+The notifier instance administrators chose for account mail.
+
+**Fields**
+
+- `plugin_instance_id`: The instance that sends account mail.
+- `tested_at`: When a test message through it was last delivered; `None` until one
+  is, and again after the instance changes.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### AccountMail
+
+```rust
+pub struct AccountMail {
+    pub id: String,
+    pub kind: AccountMailKind,
+    pub user_id: i64,
+    pub address: String,
+    pub plugin_instance_id: String,
+    pub state: DeliveryState,
+    pub attempts: i64,
+}
+```
+
+One account-mail message and where its delivery stands.
+
+**Fields**
+
+- `id`: Message id.
+- `kind`: What it says.
+- `user_id`: The user it is for.
+- `address`: The address it goes to.
+- `plugin_instance_id`: The notifier instance that sends it.
+- `state`: Where it stands.
+- `attempts`: Send attempts made.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### MintedToken
+
+```rust
+pub struct MintedToken(/* private */);
+```
+
+The link token an account-mail send mints: the raw value goes into the
+message once and only its hash is stored.
+
+#### MintedToken::expose
+
+```rust
+pub fn expose(&self) -> &str
+```
+
+The raw token, for the link in the message. Never logged.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### VerifyEmailToken
+
+```rust
+pub struct VerifyEmailToken(/* private */);
+```
+
+The token of a verification link, as a patron's browser sends it back:
+exactly [`VERIFY_TOKEN_CHARS`](#verify_token_chars) lowercase hex characters.
+
+#### VerifyEmailToken::expose
+
+```rust
+pub fn expose(&self) -> &str
+```
+
+The raw token, to hash and look up. Never logged.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### AccountMailSettingsRequest
+
+```rust
+pub struct AccountMailSettingsRequest(/* private */);
+```
+
+The body of `PUT /api/notifications/account-mail`, read from a JSON
+object only, before [`AccountMailSettingsRequest::validate`](#accountmailsettingsrequestvalidate) checks it.
+
+The route reads it with the web framework's JSON extractor and
+[`parse_account_mail_settings`](#parse_account_mail_settings) reads it from bytes; both go through
+this type's reader and the same validation.
+
+#### AccountMailSettingsRequest::validate
+
+```rust
+pub fn validate(self) -> Result<Option<String>>
+```
+
+Checks the instance id.
+
+##### Returns
+
+The instance id: 1 to [`MAX_INSTANCE_ID_BYTES`](#max_instance_id_bytes) printable ASCII
+bytes with no space, or `None` for `null`.
+
+##### Errors
+
+[`crate::LibraryError::Invalid`](README.md#libraryerror) when the id breaks those rules.
+
+Implements: `Debug`, `Deserialize<'de>`
+
+### VerifyEmailRequest
+
+```rust
+pub struct VerifyEmailRequest(/* private */);
+```
+
+The body of `POST /api/auth/verify-email`, read from a JSON object
+only, before [`VerifyEmailRequest::validate`](#verifyemailrequestvalidate) checks it.
+
+The route reads it with the web framework's JSON extractor and
+[`parse_verify_email_request`](#parse_verify_email_request) reads it from bytes; both go through
+this type's reader and the same validation.
+
+#### VerifyEmailRequest::validate
+
+```rust
+pub fn validate(self) -> Result<VerifyEmailToken>
+```
+
+Checks the token.
+
+##### Returns
+
+The token: exactly [`VERIFY_TOKEN_CHARS`](#verify_token_chars) lowercase hex characters.
+
+##### Errors
+
+[`crate::LibraryError::Invalid`](README.md#libraryerror) when the token breaks that rule.
+
+Implements: `Debug`, `Deserialize<'de>`
 
 ### HostNotificationType
 
@@ -182,6 +346,7 @@ pub struct StalledSend {
     pub run_after: String,
     pub lease_generation: i64,
     pub delivery_id: Option<String>,
+    pub account_mail_id: Option<String>,
     pub notifier: Option<String>,
 }
 ```
@@ -199,8 +364,11 @@ node; otherwise it is waiting for a worker.
 - `delivery_id`: Its pending delivery, named by the job's dedup key; `None` when the
   delivery is gone, already finished or linked to another job, and
   the job only needs cancelling.
-- `notifier`: The notifier instance the delivery goes through; `None` exactly
-  when `delivery_id` is.
+- `account_mail_id`: Its pending account mail, when the job sends one instead of a
+  delivery; `None` when the mail is gone, finished or linked to
+  another job.
+- `notifier`: The notifier instance the delivery or account mail goes through;
+  `None` exactly when both of those are.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
@@ -543,6 +711,51 @@ Parses the stored spelling; `None` when unknown.
 
 Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `Hash`, `PartialEq`, `Serialize`, `ToSchema`
 
+### AccountMailKind
+
+```rust
+pub enum AccountMailKind {
+    Test,
+    Invite,
+    VerifyEmail,
+}
+```
+
+What an account-mail message says.
+
+**Variants**
+
+- `Test`: A test message from the account-mail settings; delivering it marks
+  the instance tested.
+- `Invite`: An invite: a link that sets up the account (a claim ticket).
+- `VerifyEmail`: A link that proves the user's email address.
+
+#### AccountMailKind::ALL
+
+```rust
+pub const ALL: [Self; 3] = _
+```
+
+Every kind, in the order of the `kind` column's CHECK list.
+
+#### AccountMailKind::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+The stored spelling.
+
+#### AccountMailKind::parse
+
+```rust
+pub fn parse(s: &str) -> Option<Self>
+```
+
+Parses the stored spelling; `None` when unknown.
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `Hash`, `PartialEq`, `Serialize`, `ToSchema`
+
 ### StallOutcome
 
 ```rust
@@ -604,6 +817,49 @@ Whether recording a failed delivery spends one more attempt.
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
 ## Functions
+
+### parse_account_mail_settings
+
+```rust
+pub fn parse_account_mail_settings(body: &[u8]) -> Result<Option<String>>
+```
+
+Parses the body of `PUT /api/notifications/account-mail`
+from bytes (sans-IO), for the fuzz target and tests. The route reads
+the same [`AccountMailSettingsRequest`](#accountmailsettingsrequest) with the JSON extractor and
+calls the same validation.
+
+The body is one JSON object whose only key is `plugin_instance_id`: a
+string of 1 to [`MAX_INSTANCE_ID_BYTES`](#max_instance_id_bytes) printable ASCII bytes with no
+space, or `null` to turn account mail off. The key is required and may
+not repeat.
+
+#### Returns
+
+The instance id, or `None` for `null`.
+
+#### Errors
+
+[`crate::LibraryError::Invalid`](README.md#libraryerror) naming the first rule the body breaks.
+
+### parse_verify_email_request
+
+```rust
+pub fn parse_verify_email_request(body: &[u8]) -> Result<VerifyEmailToken>
+```
+
+Parses the body of `POST /api/auth/verify-email` from bytes (sans-IO),
+for the fuzz target and tests. The route reads the same
+[`VerifyEmailRequest`](#verifyemailrequest) with the JSON extractor and calls the same
+validation.
+
+The body is one JSON object whose only key is `token`: exactly
+[`VERIFY_TOKEN_CHARS`](#verify_token_chars) lowercase hex characters. The key is required
+and may not repeat.
+
+#### Errors
+
+[`crate::LibraryError::Invalid`](README.md#libraryerror) naming the first rule the body breaks.
 
 ### host_notification_type
 
@@ -727,6 +983,46 @@ pub const TEST_NOTIFICATION_TYPE: &str = "test";
 
 The host's built-in `test` type: an administrator or a patron sends it to
 one destination to check that it works.
+
+### ACCOUNT_MAIL_RETENTION_DAYS
+
+```rust
+pub const ACCOUNT_MAIL_RETENTION_DAYS: i64 = 30;
+```
+
+How long a delivered or failed account-mail record is kept.
+
+### EMAIL_VERIFICATION_HOURS
+
+```rust
+pub const EMAIL_VERIFICATION_HOURS: i64 = 24;
+```
+
+How long an email verification link works.
+
+### INVITE_DAYS
+
+```rust
+pub const INVITE_DAYS: i64 = 7;
+```
+
+How long an emailed invite works, as for every claim ticket.
+
+### VERIFY_TOKEN_CHARS
+
+```rust
+pub const VERIFY_TOKEN_CHARS: usize = 64;
+```
+
+Length of a verification link's token: 32 random bytes as lowercase hex.
+
+### MAX_INSTANCE_ID_BYTES
+
+```rust
+pub const MAX_INSTANCE_ID_BYTES: usize = 128;
+```
+
+Longest plugin instance id the account-mail settings body takes.
 
 ### AUDIENCES
 

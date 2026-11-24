@@ -74,8 +74,10 @@ Sign-in, sessions, passkeys, TOTP and the operator's elevation.
 | [`POST /api/auth/bootstrap`](auth.md#post-apiauthbootstrap) | Operator-only bootstrap of the first Owner when none exist. |
 | [`PUT /api/auth/password`](auth.md#put-apiauthpassword) | Set password for self (portal) or target user (operator/admin); revokes sessions. |
 | [`POST /api/auth/password`](auth.md#post-apiauthpassword) | Local password login → portal session cookie, or a TOTP challenge when enabled. |
+| [`POST /api/auth/verify-email`](auth.md#post-apiauthverify-email) | Uses a verification link. The link is the proof, so no sign-in is needed; it works once, for 24 hours, and only while the patron still has the address it was sent to. |
 | [`POST /api/auth/impersonate`](auth.md#post-apiauthimpersonate) | Operator (or elevated) session starts impersonating a User. |
 | [`DELETE /api/auth/impersonate`](auth.md#delete-apiauthimpersonate) | Clear impersonation on the current operator session. |
+| [`POST /api/auth/profile/email/verification`](auth.md#post-apiauthprofileemailverification) | Sends the caller a new link to verify their email address, voiding the last one. A patron may ask once every five minutes. |
 | [`GET /api/auth/branch-consent`](auth.md#get-apiauthbranch-consent) | `GET /api/auth/branch-consent?<authorize params>`: what the consent page shows. 400 `invalid_request` for a malformed request (the page then shows the problem and never redirects). |
 | [`POST /api/auth/branch-consent`](auth.md#post-apiauthbranch-consent) | `POST /api/auth/branch-consent`: approve or deny. Answers `{redirect}`, the URL to send the browser to: the branch's callback with a code (or `error=access_denied`). Approving needs an active signed-in user, host enrollment on, and a connection the transport policy allows. |
 | [`POST /api/auth/branch-consent/step-up`](auth.md#post-apiauthbranch-consentstep-up) | `POST /api/auth/branch-consent/step-up`: starts a passkey step-up for a shared branch consent (an Owner with a passkey). Answers the WebAuthn request options with a `challenge_id` to send back in the consent's `step_up`. |
@@ -141,6 +143,7 @@ Library users and their claim tickets.
 | [`GET /api/users/{id}/admin-controls`](users.md#get-apiusersidadmin-controls) | Reads what an Administrator may do: the library's default, their own overrides, and what applies. An Administrator may read their own. |
 | [`PATCH /api/users/{id}/admin-controls`](users.md#patch-apiusersidadmin-controls) | Changes the named switches for one Administrator; every switch it does not name keeps what it had. Only an Owner or the operator may, and switches stored for someone who is not an Administrator apply only if their role changes to Administrator. |
 | [`POST /api/users/{id}/claim-ticket`](users.md#post-apiusersidclaim-ticket) | Mint a fresh local claim ticket for an active first-party user. |
+| [`POST /api/users/{id}/invite-email`](users.md#post-apiusersidinvite-email) | Mails a user a new invite through account mail. The invite's ticket is minted when the mail is sent and voids the user's other unredeemed tickets, so only the newest invite works. |
 | [`POST /api/users/{id}/reset-password`](users.md#post-apiusersidreset-password) | Invalidate a user's password, revoke sessions, and mint a claim ticket for reset. |
 | [`GET /api/avatars/gravatar/{hash}`](users.md#get-apiavatarsgravatarhash) | Serves a user's Gravatar as a 128 px JPEG through the cover service. |
 | [`GET /api/users/{id}/avatar`](users.md#get-apiusersidavatar) | Serves a stored avatar JPEG for any authenticated household member. |
@@ -297,6 +300,9 @@ Channels, routing rules, patron offers, the delivery log, and each user's own no
 | [`GET /api/notifications/offers`](notifications.md#get-apinotificationsoffers) | Lists which notifiers patrons may pick for each patron type. |
 | [`PUT /api/notifications/offers/{type}`](notifications.md#put-apinotificationsofferstype) | Replaces which notifiers patrons may pick for one patron type. |
 | [`GET /api/notifications/deliveries`](notifications.md#get-apinotificationsdeliveries) | Pages the delivery log, newest first. |
+| [`GET /api/notifications/account-mail`](notifications.md#get-apinotificationsaccount-mail) | Reads account mail's settings and whether it can be sent. |
+| [`PUT /api/notifications/account-mail`](notifications.md#put-apinotificationsaccount-mail) | Chooses the notifier instance that sends account mail, or turns it off. Choosing another instance clears the last test. |
+| [`POST /api/notifications/account-mail/test`](notifications.md#post-apinotificationsaccount-mailtest) | Sends a test message to the caller's own email address through the account-mail notifier. Its delivery marks the notifier tested, which self-service password reset requires. |
 | [`GET /api/me/notifications`](notifications.md#get-apimenotifications) | Reads the caller's notification settings: the types they can receive beyond the inbox, what they chose, and their destinations. |
 | [`PUT /api/me/notifications/choices/{type}`](notifications.md#put-apimenotificationschoicestype) | Sets what the caller gets for one patron type, replacing the defaults. |
 | [`DELETE /api/me/notifications/choices/{type}`](notifications.md#delete-apimenotificationschoicestype) | Drops the caller's choice for one type, so the defaults apply again. |
