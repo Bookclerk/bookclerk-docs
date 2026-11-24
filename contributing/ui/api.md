@@ -11709,7 +11709,7 @@ than 2 characters. Language defaults to the browser locale unless
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
 | `q` | `string` | Free-text query (minimum 2 characters after trim). |
-| `opts?` | \{ `allLanguages?`: `boolean`; `cursor?`: `string` \| `null`; `field?`: `"author"` \| `"series"` \| `"narrator"` \| `"genre"`; `filters?`: [`CatalogSearchFilters`](#catalogsearchfilters); `lang?`: `string`; `limit?`: `number`; `page_size?`: `number`; `sort?`: [`CatalogSearchSort`](#catalogsearchsort); `sort_dir?`: [`CatalogSortDir`](#catalogsortdir); \} | Pagination cursor, sort, language, and server-side facet filters. |
+| `opts?` | \{ `allLanguages?`: `boolean`; `cursor?`: `string` \| `null`; `field?`: `"author"` \| `"series"` \| `"narrator"` \| `"genre"`; `filters?`: [`CatalogSearchFilters`](#catalogsearchfilters); `lang?`: `string`; `limit?`: `number`; `page_size?`: `number`; `rank?`: `"store"` \| `"meaning"`; `sort?`: [`CatalogSearchSort`](#catalogsearchsort); `sort_dir?`: [`CatalogSortDir`](#catalogsortdir); \} | Pagination cursor, sort, language, and server-side facet filters. |
 | `opts.allLanguages?` | `boolean` | When true, do not hard-filter by language. |
 | `opts.cursor?` | `string` \| `null` | - |
 | `opts.field?` | `"author"` \| `"series"` \| `"narrator"` \| `"genre"` | - |
@@ -11717,6 +11717,7 @@ than 2 characters. Language defaults to the browser locale unless
 | `opts.lang?` | `string` | - |
 | `opts.limit?` | `number` | **Deprecated** use page_size |
 | `opts.page_size?` | `number` | - |
+| `opts.rank?` | `"store"` \| `"meaning"` | `"store"` keeps the stores' order without asking the embedding model, for suggestions shown while the person types. Default: the server orders a relevance page with its meaning when it can. |
 | `opts.sort?` | [`CatalogSearchSort`](#catalogsearchsort) | - |
 | `opts.sort_dir?` | [`CatalogSortDir`](#catalogsortdir) | - |
 

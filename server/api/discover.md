@@ -4516,6 +4516,7 @@ narrators, series, genres and explicit flag are checked against it.
 - `min_rating` (query) *number (double)* — Minimum overall rating (0–5); missing ratings still pass.
 - `min_length_minutes` (query) *integer (int64)* — Minimum runtime in minutes; values ≤ 0 are ignored.
 - `max_length_minutes` (query) *integer (int64)* — Maximum runtime in minutes; values ≤ 0 are ignored.
+- `rank` (query) *one of `meaning`, `store`* — How a page sorted by relevance is ordered: `meaning` (default) or `store`.
 
 ### Responses
 
