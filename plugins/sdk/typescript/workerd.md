@@ -843,6 +843,12 @@ Re-exports [DeliveredCheckpoint](plugin.md#deliveredcheckpoint)
 
 ***
 
+### DeprovisionRequest
+
+Re-exports [DeprovisionRequest](generated.md#deprovisionrequest)
+
+***
+
 ### Destination
 
 Re-exports [Destination](plugin.md#destination)
@@ -1791,9 +1797,39 @@ Re-exports [provisioned](plugin.md#provisioned)
 
 ***
 
+### Provisioned
+
+Re-exports [Provisioned](generated.md#provisioned)
+
+***
+
+### ProvisionedSecret
+
+Re-exports [ProvisionedSecret](generated.md#provisionedsecret)
+
+***
+
+### ProvisionGrant
+
+Re-exports [ProvisionGrant](generated.md#provisiongrant)
+
+***
+
+### ProvisionGrantKind
+
+Re-exports [ProvisionGrantKind](abi.md#provisiongrantkind)
+
+***
+
 ### ProvisioningEntrypoint
 
 Re-exports [ProvisioningEntrypoint](plugin.md#provisioningentrypoint)
+
+***
+
+### ProvisionRequest
+
+Re-exports [ProvisionRequest](generated.md#provisionrequest)
 
 ***
 
