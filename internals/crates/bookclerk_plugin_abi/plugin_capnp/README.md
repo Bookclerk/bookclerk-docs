@@ -684,6 +684,8 @@ pub enum FetchedFileRole {
     Part = 1,
     Whole = 2,
     Cover = 3,
+    CatalogRecord = 4,
+    Annotations = 5,
 }
 ```
 

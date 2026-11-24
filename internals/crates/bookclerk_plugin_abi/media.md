@@ -20,6 +20,7 @@ checks are sans-IO so the fuzz targets and the host run the same code.
 | [`same_media_support`](#same_media_support) | function | Whether two declarations name the same kinds, ignoring order and repeats: the host requires `describe()` to say what `plugin.toml` says. |
 | [`check_record_kinds`](#check_record_kinds) | function | Checks one record's kinds against the plugin's declaration. |
 | [`validate_plain_fetch`](#validate_plain_fetch) | function | Checks a `fetchTitle` reply against the plugin's declaration. |
+| [`validate_fetched_paths`](#validate_fetched_paths) | function | Checks that every file a `fetchTitle` reply names lies inside the cache directory the host handed the guest, by its spelling alone. |
 | [`decode_plain_fetch_bytes`](#decode_plain_fetch_bytes) | function | Decodes an unpacked single-segment Cap'n Proto message whose root is a `PlainFetch`, with a traversal budget derived from the input size. |
 | [`encode_plain_fetch_bytes`](#encode_plain_fetch_bytes) | function | Encodes `fetch` as an unpacked single-segment Cap'n Proto message, the inverse of `decode_plain_fetch_bytes`. |
 
@@ -69,6 +70,9 @@ pub enum FetchError {
     PartsAndWhole,
     SecondWhole,
     SecondCover,
+    SecondCatalogRecord,
+    SecondAnnotations,
+    OutsideCacheDir { index: usize },
 }
 ```
 
@@ -86,6 +90,11 @@ Why a `fetchTitle` reply ([`PlainFetch`](generated.md#plainfetch)) was refused.
 - `PartsAndWhole`: The reply listed both `part`s and a `whole` file.
 - `SecondWhole`: The reply listed more than one `whole` file.
 - `SecondCover`: The reply listed more than one `cover`.
+- `SecondCatalogRecord`: The reply listed more than one `catalogRecord`.
+- `SecondAnnotations`: The reply listed more than one `annotations` file.
+- `OutsideCacheDir`: A file's path is not a plain absolute path inside the fetch's cache
+  directory (relative, holding `.` or `..`, or elsewhere).
+  - `index`: Index of the file in `files`.
 
 Implements: `Clone`, `Debug`, `Display`, `Eq`, `Error`, `PartialEq`
 
@@ -172,7 +181,8 @@ Checks a `fetchTitle` reply against the plugin's declaration.
 
 The carrier must be one the plugin declared in `fetches`, and the files
 must describe one edition: ordered `part`s or a single `whole` file, plus
-at most one `cover`, each with a role and a path.
+at most one `cover`, one `catalogRecord` and one `annotations` file, each
+with a role and a path.
 
 #### Arguments
 
@@ -183,6 +193,37 @@ at most one `cover`, each with a role and a path.
 
 Returns the first [`FetchError`](#fetcherror) the reply breaks, checking the carrier
 before the files.
+
+### validate_fetched_paths
+
+```rust
+pub fn validate_fetched_paths(
+    fetch: &PlainFetch,
+    cache_dirs: &[&Path],
+) -> Result<(), FetchError>
+```
+
+Checks that every file a `fetchTitle` reply names lies inside the cache
+directory the host handed the guest, by its spelling alone.
+
+A path passes when it is absolute, has no `.` or `..` component, and
+starts with the components of one of `cache_dirs` followed by at least
+one more. The host passes the directory as it sent it and as it resolves
+on disk, since a guest may answer with either spelling (on macOS the
+temporary directory sits behind the `/var` to `/private/var` link). The
+host then resolves each path on disk (following symlinks) and checks it
+again, since a guest can plant a symlink under its own cache directory;
+this check refuses the replies that need no disk to refuse.
+
+#### Arguments
+
+* `fetch` - The guest's reply (untrusted).
+* `cache_dirs` - Spellings of `FetchTitleParams.cacheDir`; a file must
+  lie inside one of them.
+
+#### Errors
+
+Returns [`FetchError::OutsideCacheDir`](#fetcherror) for the first file outside them.
 
 ### decode_plain_fetch_bytes
 

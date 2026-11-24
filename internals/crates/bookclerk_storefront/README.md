@@ -40,6 +40,7 @@ Product narrative: `docs/plugins/README.md`. Style: `docs/contributing/code-docu
 | [`SourceAccount`](#sourceaccount) | struct | Account discovered or created by a content source. |
 | [`SourceConfigOption`](#sourceconfigoption) | struct | One source-native setting a storefront declares for its plugin instance. |
 | [`SourcePurchaseHint`](#sourcepurchasehint) | struct | URL + optional live price for one storefront edition. |
+| [`StoreRecords`](#storerecords) | struct | Store-side files about a fetched title that the host stores beside the audio without parsing. |
 | [`SourceError`](#sourceerror) | enum | Errors from content-source auth, scan, or fetch. |
 | [`AccountMatch`](#accountmatch) | enum | How a scan's account names pick accounts (`ScanOptions::accounts`). |
 | [`CatalogSearchField`](#catalogsearchfield) | enum | Optional role / facet for the host's `ContentSource::search_catalog`. |
@@ -481,6 +482,7 @@ pub struct PlainFetch {
     pub chapters: Vec<(String, u64)>,
     pub chapter_kind: ChapterKind,
     pub pdf_url: Option<String>,
+    pub store_records: StoreRecords,
 }
 ```
 
@@ -496,6 +498,8 @@ return clear media here — the host never sees ciphertext or keys.
 - `chapter_kind`: What `chapters` marks: literary chapters, track boundaries, or
   unknown.
 - `pdf_url`: Companion PDF download URL when the store exposes one.
+- `store_records`: The store's own records of the title the guest handed back, stored
+  beside the audio as they are.
 
 Implements: `Clone`, `Debug`, `From<PlainFetch>`, `TryFrom<PlainFetch>`
 
@@ -739,6 +743,27 @@ pub fn decode_html_entities(self) -> Self
 Decode HTML entities in human-readable fields (no-op when no `&`).
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `From<PurchaseHint>`, `From<SourcePurchaseHint>`, `Serialize`
+
+### StoreRecords
+
+```rust
+pub struct StoreRecords {
+    pub catalog_record: Option<PathBuf>,
+    pub annotations: Option<PathBuf>,
+}
+```
+
+Store-side files about a fetched title that the host stores beside the
+audio without parsing.
+
+**Fields**
+
+- `catalog_record`: The store's catalog record of the title, as JSON
+  (`<name>.metadata.json`), when it was asked for.
+- `annotations`: The account's clips, notes and bookmarks for the title, as JSON
+  (`<name>.clips.json`), when they were asked for.
+
+Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
 
 ## Enums
 

@@ -62,6 +62,7 @@ Product narrative: `docs/plugins/README.md`. Style: `docs/contributing/code-docu
 - [`bookclerk_storefront::SourceError`](../bookclerk_storefront/README.md#sourceerror)
 - [`bookclerk_storefront::SourceFetch`](../bookclerk_storefront/README.md#sourcefetch)
 - [`bookclerk_storefront::SourcePurchaseHint`](../bookclerk_storefront/README.md#sourcepurchasehint)
+- [`bookclerk_storefront::StoreRecords`](../bookclerk_storefront/README.md#storerecords)
 
 ## Modules
 
@@ -860,7 +861,6 @@ pub struct DownloadOptions {
     pub strip_unabridged: bool,
     pub strip_audible_brand_audio: bool,
     pub download_clips_bookmarks: bool,
-    pub retain_aax_file: bool,
     pub download_speed_limit_kbps: u32,
     pub lame: LameConfig,
     pub copies: Vec<OutputCopy>,
@@ -912,7 +912,6 @@ Audible’s download helpers can overlay the plugin bitrate for a single fetch.
 - `strip_unabridged`: When true, strip an "Unabridged" suffix from titles used in naming.
 - `strip_audible_brand_audio`: When true, trim Audible brand intro/outro from the remux window.
 - `download_clips_bookmarks`: When true, download Audible clips/bookmarks sidecars when offered.
-- `retain_aax_file`: When true, keep the encrypted download in storage (`RetainAaxFile`).
 - `download_speed_limit_kbps`: Fetch speed cap in KB/s (`0` = unlimited).
 - `lame`: LAME encoder knobs used when packaging to MP3.
 - `copies`: Further copies of each book beside the one [`Self::format`](#downloadoptions) and

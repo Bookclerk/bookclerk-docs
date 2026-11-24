@@ -519,6 +519,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`media::encode_plain_fetch_bytes`](media.md#encode_plain_fetch_bytes)
 - [`media::media_support_is_empty`](media.md#media_support_is_empty)
 - [`media::same_media_support`](media.md#same_media_support)
+- [`media::validate_fetched_paths`](media.md#validate_fetched_paths)
 - [`media::validate_media_support`](media.md#validate_media_support)
 - [`media::validate_plain_fetch`](media.md#validate_plain_fetch)
 - [`media::FetchError`](media.md#fetcherror)

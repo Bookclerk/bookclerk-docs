@@ -3130,7 +3130,6 @@ instead of being silently truncated on the next write.
 - `strip_unabridged` *boolean*, **required** — Strip an "Unabridged" suffix from titles used in naming.
 - `strip_audible_brand_audio` *boolean*, **required** — Trim Audible brand intro/outro audio.
 - `download_clips_bookmarks` *boolean*, **required** — Download Audible clips/bookmarks sidecars.
-- `retain_aax_file` *boolean*, **required** — Keep the encrypted download.
 - `download_speed_limit_kbps` *integer (int32)*, **required** — Fetch speed cap in KB/s (`0` = unlimited). At least 0.
 - `lame` *[`LameConfig`](#lameconfig)*, **required** — LAME encoder knobs.
 - `max_sample_rate` *integer (int32) or null* — Optional output sample-rate ceiling in Hz. At least 0.

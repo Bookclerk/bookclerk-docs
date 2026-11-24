@@ -120,6 +120,8 @@ pub struct DownloadOptions {
     pub chapter_layout: String,
     pub strip_audible_brand_audio: bool,
     pub download_speed_limit_kbps: u32,
+    pub save_metadata_json: bool,
+    pub download_clips_bookmarks: bool,
 }
 ```
 
@@ -141,6 +143,9 @@ live here.
 - `chapter_layout`: Chapter API layout to request (`tree` or `flat`).
 - `strip_audible_brand_audio`: Trim Audible's brand intro and outro from the remux window.
 - `download_speed_limit_kbps`: Download speed cap in KB/s (`0` = unlimited).
+- `save_metadata_json`: Hand back the account's library record of the title as a
+  `catalogRecord` file.
+- `download_clips_bookmarks`: Hand back the account's clips and bookmarks as an `annotations` file.
 
 #### DownloadOptions::from_host
 

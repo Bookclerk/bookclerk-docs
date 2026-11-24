@@ -1126,7 +1126,6 @@ Status `200`: The `core.output` settings.
     "strip_unabridged": true,
     "strip_audible_brand_audio": false,
     "download_clips_bookmarks": false,
-    "retain_aax_file": false,
     "download_speed_limit_kbps": 0,
     "lame": {
       "target": "quality",
@@ -1240,7 +1239,6 @@ Schema:
             "strip_unabridged",
             "strip_audible_brand_audio",
             "download_clips_bookmarks",
-            "retain_aax_file",
             "download_speed_limit_kbps",
             "lame",
             "creation_time",
@@ -1494,11 +1492,6 @@ Schema:
             "download_clips_bookmarks": {
               "type": "boolean",
               "description": "Download Audible clips/bookmarks sidecars.",
-              "example": false
-            },
-            "retain_aax_file": {
-              "type": "boolean",
-              "description": "Keep the encrypted download.",
               "example": false
             },
             "download_speed_limit_kbps": {
@@ -1816,7 +1809,7 @@ $ curl 'http://127.0.0.1:8787/api/config/domains/core.output' \
     -X PUT \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
-    -d '{"expected_revision": 12, "document": {"format": "enriched_m4b", "widevine": true, "xhe_aac": false, "naming_profile": "audiobookshelf", "download_cover": true, "download_pdf": true, "create_cue": false, "fixup_metadata": true, "chapter_json": "off", "save_metadata_json": false, "cover_size": "1215", "chapter_layout": "tree", "overwrite_existing": false, "multi_destination": "sync_missing", "bad_book_action": "ask", "split_mp3_max_mb": 100, "minimum_file_duration_minutes": 1, "combine_nested_chapter_titles": false, "merge_opening_and_end_credits": true, "strip_unabridged": true, "strip_audible_brand_audio": false, "download_clips_bookmarks": false, "retain_aax_file": false, "download_speed_limit_kbps": 0, "lame": {}, "creation_time": "now", "last_write_time": "now", "path_sanitization": "auto", "replacement_characters": [{"find": ":", "replace": " -"}], "max_filename_length": 255}}'
+    -d '{"expected_revision": 12, "document": {"format": "enriched_m4b", "widevine": true, "xhe_aac": false, "naming_profile": "audiobookshelf", "download_cover": true, "download_pdf": true, "create_cue": false, "fixup_metadata": true, "chapter_json": "off", "save_metadata_json": false, "cover_size": "1215", "chapter_layout": "tree", "overwrite_existing": false, "multi_destination": "sync_missing", "bad_book_action": "ask", "split_mp3_max_mb": 100, "minimum_file_duration_minutes": 1, "combine_nested_chapter_titles": false, "merge_opening_and_end_credits": true, "strip_unabridged": true, "strip_audible_brand_audio": false, "download_clips_bookmarks": false, "download_speed_limit_kbps": 0, "lame": {}, "creation_time": "now", "last_write_time": "now", "path_sanitization": "auto", "replacement_characters": [{"find": ":", "replace": " -"}], "max_filename_length": 255}}'
 ```
 
 ```powershell
@@ -1824,7 +1817,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/domains/core.output' `
     -Method Put `
     -Headers @{ Authorization = 'Bearer <operatorToken>' } `
     -ContentType 'application/json' `
-    -Body '{"expected_revision": 12, "document": {"format": "enriched_m4b", "widevine": true, "xhe_aac": false, "naming_profile": "audiobookshelf", "download_cover": true, "download_pdf": true, "create_cue": false, "fixup_metadata": true, "chapter_json": "off", "save_metadata_json": false, "cover_size": "1215", "chapter_layout": "tree", "overwrite_existing": false, "multi_destination": "sync_missing", "bad_book_action": "ask", "split_mp3_max_mb": 100, "minimum_file_duration_minutes": 1, "combine_nested_chapter_titles": false, "merge_opening_and_end_credits": true, "strip_unabridged": true, "strip_audible_brand_audio": false, "download_clips_bookmarks": false, "retain_aax_file": false, "download_speed_limit_kbps": 0, "lame": {}, "creation_time": "now", "last_write_time": "now", "path_sanitization": "auto", "replacement_characters": [{"find": ":", "replace": " -"}], "max_filename_length": 255}}'
+    -Body '{"expected_revision": 12, "document": {"format": "enriched_m4b", "widevine": true, "xhe_aac": false, "naming_profile": "audiobookshelf", "download_cover": true, "download_pdf": true, "create_cue": false, "fixup_metadata": true, "chapter_json": "off", "save_metadata_json": false, "cover_size": "1215", "chapter_layout": "tree", "overwrite_existing": false, "multi_destination": "sync_missing", "bad_book_action": "ask", "split_mp3_max_mb": 100, "minimum_file_duration_minutes": 1, "combine_nested_chapter_titles": false, "merge_opening_and_end_credits": true, "strip_unabridged": true, "strip_audible_brand_audio": false, "download_clips_bookmarks": false, "download_speed_limit_kbps": 0, "lame": {}, "creation_time": "now", "last_write_time": "now", "path_sanitization": "auto", "replacement_characters": [{"find": ":", "replace": " -"}], "max_filename_length": 255}}'
 ```
 
 ```python
@@ -1833,7 +1826,7 @@ import requests
 response = requests.put(
     "http://127.0.0.1:8787/api/config/domains/core.output",
     headers={"Authorization": "Bearer <operatorToken>"},
-    json={"expected_revision": 12, "document": {"format": "enriched_m4b", "widevine": True, "xhe_aac": False, "naming_profile": "audiobookshelf", "download_cover": True, "download_pdf": True, "create_cue": False, "fixup_metadata": True, "chapter_json": "off", "save_metadata_json": False, "cover_size": "1215", "chapter_layout": "tree", "overwrite_existing": False, "multi_destination": "sync_missing", "bad_book_action": "ask", "split_mp3_max_mb": 100, "minimum_file_duration_minutes": 1, "combine_nested_chapter_titles": False, "merge_opening_and_end_credits": True, "strip_unabridged": True, "strip_audible_brand_audio": False, "download_clips_bookmarks": False, "retain_aax_file": False, "download_speed_limit_kbps": 0, "lame": {}, "creation_time": "now", "last_write_time": "now", "path_sanitization": "auto", "replacement_characters": [{"find": ":", "replace": " -"}], "max_filename_length": 255}},
+    json={"expected_revision": 12, "document": {"format": "enriched_m4b", "widevine": True, "xhe_aac": False, "naming_profile": "audiobookshelf", "download_cover": True, "download_pdf": True, "create_cue": False, "fixup_metadata": True, "chapter_json": "off", "save_metadata_json": False, "cover_size": "1215", "chapter_layout": "tree", "overwrite_existing": False, "multi_destination": "sync_missing", "bad_book_action": "ask", "split_mp3_max_mb": 100, "minimum_file_duration_minutes": 1, "combine_nested_chapter_titles": False, "merge_opening_and_end_credits": True, "strip_unabridged": True, "strip_audible_brand_audio": False, "download_clips_bookmarks": False, "download_speed_limit_kbps": 0, "lame": {}, "creation_time": "now", "last_write_time": "now", "path_sanitization": "auto", "replacement_characters": [{"find": ":", "replace": " -"}], "max_filename_length": 255}},
 )
 print(response.status_code, response.text)
 ```
@@ -1842,7 +1835,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/config/domains/core.output", {
   method: "PUT",
   headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
-  body: JSON.stringify({"expected_revision": 12, "document": {"format": "enriched_m4b", "widevine": true, "xhe_aac": false, "naming_profile": "audiobookshelf", "download_cover": true, "download_pdf": true, "create_cue": false, "fixup_metadata": true, "chapter_json": "off", "save_metadata_json": false, "cover_size": "1215", "chapter_layout": "tree", "overwrite_existing": false, "multi_destination": "sync_missing", "bad_book_action": "ask", "split_mp3_max_mb": 100, "minimum_file_duration_minutes": 1, "combine_nested_chapter_titles": false, "merge_opening_and_end_credits": true, "strip_unabridged": true, "strip_audible_brand_audio": false, "download_clips_bookmarks": false, "retain_aax_file": false, "download_speed_limit_kbps": 0, "lame": {}, "creation_time": "now", "last_write_time": "now", "path_sanitization": "auto", "replacement_characters": [{"find": ":", "replace": " -"}], "max_filename_length": 255}}),
+  body: JSON.stringify({"expected_revision": 12, "document": {"format": "enriched_m4b", "widevine": true, "xhe_aac": false, "naming_profile": "audiobookshelf", "download_cover": true, "download_pdf": true, "create_cue": false, "fixup_metadata": true, "chapter_json": "off", "save_metadata_json": false, "cover_size": "1215", "chapter_layout": "tree", "overwrite_existing": false, "multi_destination": "sync_missing", "bad_book_action": "ask", "split_mp3_max_mb": 100, "minimum_file_duration_minutes": 1, "combine_nested_chapter_titles": false, "merge_opening_and_end_credits": true, "strip_unabridged": true, "strip_audible_brand_audio": false, "download_clips_bookmarks": false, "download_speed_limit_kbps": 0, "lame": {}, "creation_time": "now", "last_write_time": "now", "path_sanitization": "auto", "replacement_characters": [{"find": ":", "replace": " -"}], "max_filename_length": 255}}),
 });
 console.log(response.status, await response.text());
 ```
@@ -1852,7 +1845,7 @@ let client = reqwest::Client::new();
 let response = client
     .put("http://127.0.0.1:8787/api/config/domains/core.output")
     .header("Authorization", "Bearer <operatorToken>")
-    .json(&serde_json::json!({"expected_revision": 12, "document": {"format": "enriched_m4b", "widevine": true, "xhe_aac": false, "naming_profile": "audiobookshelf", "download_cover": true, "download_pdf": true, "create_cue": false, "fixup_metadata": true, "chapter_json": "off", "save_metadata_json": false, "cover_size": "1215", "chapter_layout": "tree", "overwrite_existing": false, "multi_destination": "sync_missing", "bad_book_action": "ask", "split_mp3_max_mb": 100, "minimum_file_duration_minutes": 1, "combine_nested_chapter_titles": false, "merge_opening_and_end_credits": true, "strip_unabridged": true, "strip_audible_brand_audio": false, "download_clips_bookmarks": false, "retain_aax_file": false, "download_speed_limit_kbps": 0, "lame": {}, "creation_time": "now", "last_write_time": "now", "path_sanitization": "auto", "replacement_characters": [{"find": ":", "replace": " -"}], "max_filename_length": 255}}))
+    .json(&serde_json::json!({"expected_revision": 12, "document": {"format": "enriched_m4b", "widevine": true, "xhe_aac": false, "naming_profile": "audiobookshelf", "download_cover": true, "download_pdf": true, "create_cue": false, "fixup_metadata": true, "chapter_json": "off", "save_metadata_json": false, "cover_size": "1215", "chapter_layout": "tree", "overwrite_existing": false, "multi_destination": "sync_missing", "bad_book_action": "ask", "split_mp3_max_mb": 100, "minimum_file_duration_minutes": 1, "combine_nested_chapter_titles": false, "merge_opening_and_end_credits": true, "strip_unabridged": true, "strip_audible_brand_audio": false, "download_clips_bookmarks": false, "download_speed_limit_kbps": 0, "lame": {}, "creation_time": "now", "last_write_time": "now", "path_sanitization": "auto", "replacement_characters": [{"find": ":", "replace": " -"}], "max_filename_length": 255}}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -1908,7 +1901,6 @@ Status `200`: The settings after the change, or a `replayed: true` note with the
     "strip_unabridged": true,
     "strip_audible_brand_audio": false,
     "download_clips_bookmarks": false,
-    "retain_aax_file": false,
     "download_speed_limit_kbps": 0,
     "lame": {
       "target": "quality",
@@ -2024,7 +2016,6 @@ Schema:
                 "strip_unabridged",
                 "strip_audible_brand_audio",
                 "download_clips_bookmarks",
-                "retain_aax_file",
                 "download_speed_limit_kbps",
                 "lame",
                 "creation_time",
@@ -2278,11 +2269,6 @@ Schema:
                 "download_clips_bookmarks": {
                   "type": "boolean",
                   "description": "Download Audible clips/bookmarks sidecars.",
-                  "example": false
-                },
-                "retain_aax_file": {
-                  "type": "boolean",
-                  "description": "Keep the encrypted download.",
                   "example": false
                 },
                 "download_speed_limit_kbps": {

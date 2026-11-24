@@ -4345,7 +4345,13 @@ Absolute path to the file under `cacheDir`.
 ##### role
 
 ```ts
-role: "unspecified" | "part" | "whole" | "cover";
+role: 
+  | "unspecified"
+  | "part"
+  | "whole"
+  | "cover"
+  | "catalogRecord"
+  | "annotations";
 ```
 
 What the file is to the edition.
@@ -4390,7 +4396,8 @@ Cover image size request (`500`, `1215`, or `native`).
 downloadClipsBookmarks: boolean;
 ```
 
-When true, download clips/bookmarks sidecars when offered.
+When true, hand back the account's clips and bookmarks for the title as
+an `annotations` file when the store keeps them.
 
 ##### downloadCover
 
@@ -4422,7 +4429,8 @@ Fetch speed cap in KB/s (`0` = unlimited).
 retainAaxFile: boolean;
 ```
 
-When true, keep the encrypted download in storage.
+Retired: hosts always send false and guests ignore it. A kept encrypted
+download plays only with its keys, which the host does not store.
 
 ##### saveMetadataJson
 
@@ -4430,7 +4438,8 @@ When true, keep the encrypted download in storage.
 saveMetadataJson: boolean;
 ```
 
-When true, persist raw catalog API JSON as `metadata.json`.
+When true, hand back the store's catalog record of the title as a
+`catalogRecord` file.
 
 ##### stripAudibleBrandAudio
 

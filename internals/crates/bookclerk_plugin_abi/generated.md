@@ -1339,10 +1339,13 @@ in-process. Packaging / naming knobs stay host-side.
 - `cover_size`: Cover image size request (`500`, `1215`, or `native`).
 - `chapter_layout`: Preferred chapter API layout when fetching (`tree` or `flat`).
 - `strip_audible_brand_audio`: When true, trim Audible brand intro/outro from the remux window.
-- `download_clips_bookmarks`: When true, download clips/bookmarks sidecars when offered.
-- `retain_aax_file`: When true, keep the encrypted download in storage.
+- `download_clips_bookmarks`: When true, hand back the account's clips and bookmarks for the title as
+  an `annotations` file when the store keeps them.
+- `retain_aax_file`: Retired: hosts always send false and guests ignore it. A kept encrypted
+  download plays only with its keys, which the host does not store.
 - `download_speed_limit_kbps`: Fetch speed cap in KB/s (`0` = unlimited).
-- `save_metadata_json`: When true, persist raw catalog API JSON as `metadata.json`.
+- `save_metadata_json`: When true, hand back the store's catalog record of the title as a
+  `catalogRecord` file.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -4423,6 +4426,8 @@ pub enum FetchedFileRole {
     Part,
     Whole,
     Cover,
+    CatalogRecord,
+    Annotations,
 }
 ```
 
@@ -4435,6 +4440,12 @@ What one fetched file is to the edition it belongs to.
   volume of a set). The host joins parts in list order.
 - `Whole`: The whole edition in one file (an assembled M4B, an EPUB, a PDF).
 - `Cover`: The edition's cover image.
+- `CatalogRecord`: The store's own catalog record of the title, as JSON, when the host asked
+  for it (`FetchOptions.saveMetadataJson`). The host stores it beside the
+  audio as `<name>.metadata.json` and never parses it.
+- `Annotations`: The account's clips, notes and bookmarks for the title, as JSON, when the
+  host asked for them (`FetchOptions.downloadClipsBookmarks`). The host
+  stores it beside the audio as `<name>.clips.json` and never parses it.
 
 #### FetchedFileRole::wire_name
 

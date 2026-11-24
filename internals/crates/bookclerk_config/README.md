@@ -1600,7 +1600,6 @@ pub struct OutputConfig {
     pub strip_unabridged: bool,
     pub strip_audible_brand_audio: bool,
     pub download_clips_bookmarks: bool,
-    pub retain_aax_file: bool,
     pub download_speed_limit_kbps: u32,
     pub lame: LameConfig,
     pub max_sample_rate: Option<u32>,
@@ -1661,7 +1660,6 @@ in `config.toml`.
 - `strip_unabridged`: When true, strip an "Unabridged" suffix from titles used in naming.
 - `strip_audible_brand_audio`: When true, trim Audible brand intro/outro audio from the remux window.
 - `download_clips_bookmarks`: When true, download Audible clips/bookmarks sidecars when the store offers them.
-- `retain_aax_file`: Keep encrypted download in storage (`RetainAaxFile`).
 - `download_speed_limit_kbps`: Fetch speed cap in KB/s (`0` = unlimited).
 - `lame`: LAME encoder knobs used when packaging to MP3.
 - `max_sample_rate`: Optional ceiling for output sample rate in Hz (`None` = leave source rate).

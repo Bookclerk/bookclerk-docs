@@ -4613,7 +4613,7 @@ pub struct OutputSettingsV1 {
     pub strip_unabridged: bool,
     pub strip_audible_brand_audio: bool,
     pub download_clips_bookmarks: bool,
-    pub retain_aax_file: bool,
+    pub retired_retain_aax_file: Option<bool>,
     pub download_speed_limit_kbps: u32,
     pub lame: LameConfig,
     pub max_sample_rate: Option<u32>,
@@ -4671,7 +4671,8 @@ instead of being silently truncated on the next write.
 - `strip_unabridged`: Strip an "Unabridged" suffix from titles used in naming.
 - `strip_audible_brand_audio`: Trim Audible brand intro/outro audio.
 - `download_clips_bookmarks`: Download Audible clips/bookmarks sidecars.
-- `retain_aax_file`: Keep the encrypted download.
+- `retired_retain_aax_file`: The retired `RetainAaxFile` setting. Read, so a document written
+  before it was removed still loads, and never written or used.
 - `download_speed_limit_kbps`: Fetch speed cap in KB/s (`0` = unlimited).
 - `lame`: LAME encoder knobs.
 - `max_sample_rate`: Optional output sample-rate ceiling in Hz.

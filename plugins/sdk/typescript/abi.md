@@ -707,7 +707,7 @@ Media moves through transferred `ByteRange` / `ByteSource` streams (`rpc.streams
 ### FETCHED\_FILE\_ROLES
 
 ```ts
-const FETCHED_FILE_ROLES: readonly ["unspecified", "part", "whole", "cover"];
+const FETCHED_FILE_ROLES: readonly ["unspecified", "part", "whole", "cover", "catalogRecord", "annotations"];
 ```
 
 What one fetched file is to the edition it belongs to.
