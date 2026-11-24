@@ -7332,6 +7332,36 @@ Returns [`LibraryError`](#libraryerror) when a read or write of the answer's row
 fails, including the resolver's own reads and writes; titles before
 the failure may already be stored.
 
+#### LibraryStore::record_catalog_listing_on_edition
+
+```rust
+pub async fn record_catalog_listing_on_edition(
+    &self,
+    listing: &CatalogListing,
+    edition_id: &str,
+) -> Result<Option<String>>
+```
+
+Records `listing` on stored edition `edition_id`, chosen by the
+caller, without the resolver: no work, expression or edition is
+created, and no identifier is added to the edition.
+
+This is the guarded path for a branch's catalog answer that names an
+edition by ISBN only, matched to the one edition of the asked work
+that carries that ISBN (`control_plane::catalog_lookup`). The listing
+row is inserted only while the edition exists and no listing of the
+same store, marketplace and product id is stored; a stored one is
+reused only when it already sells `edition_id`, and is never moved.
+
+##### Returns
+
+The listing id, or `None` when the draft is not a valid listing or a
+listing of that product already sells another edition.
+
+##### Errors
+
+Returns the database error.
+
 #### LibraryStore::record_listing_offers
 
 ```rust

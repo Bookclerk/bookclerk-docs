@@ -274,6 +274,7 @@ bytes.
 | [`MAX_ANCESTRY`](#max_ancestry) | constant | Most library ids an ancestry may list. |
 | [`MAX_CATALOG_BATCH_TITLES`](#max_catalog_batch_titles) | constant | Most titles one `crate::Body::CatalogSync` batch may carry. |
 | [`MAX_CATALOG_CURSOR_BYTES`](#max_catalog_cursor_bytes) | constant | Longest cursor. |
+| [`MAX_CATALOG_FILE_VERSION_BYTES`](#max_catalog_file_version_bytes) | constant | Longest `CatalogFile::version` a title may carry, in bytes. |
 | [`MAX_CATALOG_TITLE_BYTES`](#max_catalog_title_bytes) | constant | Largest serialized title in a batch. |
 | [`MAX_CATALOG_WANTED`](#max_catalog_wanted) | constant | Most titles one answer may say are wanted. |
 | [`MAX_MARKETPLACE_BYTES`](#max_marketplace_bytes) | constant | Longest marketplace. |
@@ -458,6 +459,7 @@ pub struct CatalogFile {
     pub key: String,
     pub size: u64,
     pub content_type: Option<String>,
+    pub version: Option<String>,
 }
 ```
 
@@ -469,6 +471,11 @@ One file of a [`CatalogTitle`](#catalogtitle).
   receiving library).
 - `size`: Size in bytes.
 - `content_type`: MIME type.
+- `version`: An opaque marker that changes when the file's content changes (the
+  branch's storage change signature, entity tag or modification
+  time), at most [`MAX_CATALOG_FILE_VERSION_BYTES`](#max_catalog_file_version_bytes). It is part of the
+  manifest digest, so a file replaced in place under the same key and
+  size is sent again. Left out when the branch's storage reports none.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`
 
@@ -4648,6 +4655,14 @@ pub const MAX_CATALOG_CURSOR_BYTES: usize = 512;
 ```
 
 Longest cursor.
+
+### MAX_CATALOG_FILE_VERSION_BYTES
+
+```rust
+pub const MAX_CATALOG_FILE_VERSION_BYTES: usize = 128;
+```
+
+Longest [`CatalogFile::version`](#catalogfile) a title may carry, in bytes.
 
 ### MAX_CATALOG_TITLE_BYTES
 

@@ -274,7 +274,7 @@ See `docs/adr/control-plane.md`.
 | [`grant_catalog_upload`](#grant_catalog_upload) | function | Opens an upload of one shared title's files, bound to `node_id`'s catalog `fence` and received by `receiving_node_id`. |
 | [`list_branch_titles`](#list_branch_titles) | function | Titles branches share, of one branch or all, by holding id, at most `limit`. |
 | [`listing_from_catalog_title`](#listing_from_catalog_title) | function | The listing a shared title describes, filed under `plugin_key`: its metadata, ASIN scoped to its marketplace, ISBN, and media kind from its content kind. |
-| [`pending_deliveries`](#pending_deliveries) | function | Up to `limit` of `node_id`'s shared titles whose files have not arrived (or changed since), leaving out titles whose edition already has audio here from another writer. |
+| [`pending_deliveries`](#pending_deliveries) | function | Up to `limit` of `node_id`'s shared titles whose files have not arrived (or changed since), leaving out titles whose edition already has audio here from another writer, and titles whose current manifest this library refused for good less than a day ago (a key or folder another title holds here). |
 | [`remove_detached_branch_titles`](#remove_detached_branch_titles) | function | Forgets the files branches left behind (entries "from a branch that left" and the like), of one branch or of every one: the `edition_files` records its catalog uploads wrote for editions nothing here holds any more. Answers how many editions' entries went. The files themselves stay in this library's outputs. |
 | [`parse_members_books_request`](#parse_members_books_request) | function | Parses and validates a `PUT /api/config/branches/members-books` body from its raw bytes, sans IO, the way the route reads it: JSON into `MembersBooksBody`, then `MembersBooksBody::validate`. |
 | [`set_branch_members_books`](#set_branch_members_books) | function | Turns "Acquire all of this branch's members' books" on or off for branch `node_id`. |
@@ -8957,7 +8957,14 @@ pub async fn pending_deliveries(
 
 Up to `limit` of `node_id`'s shared titles whose files have not
 arrived (or changed since), leaving out titles whose edition already
-has audio here from another writer.
+has audio here from another writer, and titles whose current manifest
+this library refused for good less than a day ago (a key or folder
+another title holds here).
+
+A left-out title whose edition's files on record are exactly its own
+manifest, left behind by a branch that no longer holds the title while
+no node holding of that edition is delivered, is recorded as delivered
+by those files, so it can still be passed on after that branch left.
 
 #### Errors
 
