@@ -143,6 +143,7 @@ Schema:
           "ingest_batch",
           "notify_send",
           "chapter_align",
+          "file_probe",
           "invalid"
         ]
       },

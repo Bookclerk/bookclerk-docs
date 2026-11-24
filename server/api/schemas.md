@@ -2025,7 +2025,7 @@ Snapshot of one queued or running control-plane job.
 
 Kind of durable daemon work stored in the `jobs` table.
 
-Type: one of `scan`, `acquire`, `listen_sync`, `integration_scan`, `plugin_copy`, `plugin_scheduled`, `discover_candidates`, `discover_feed`, `discover_request_queue`, `discover_embed`, `cache_sweep`, `search_index_rebuild`, `library_index_rebuild`, `branch_request`, `ingest_batch`, `notify_send`, `chapter_align`, `invalid`
+Type: one of `scan`, `acquire`, `listen_sync`, `integration_scan`, `plugin_copy`, `plugin_scheduled`, `discover_candidates`, `discover_feed`, `discover_request_queue`, `discover_embed`, `cache_sweep`, `search_index_rebuild`, `library_index_rebuild`, `branch_request`, `ingest_batch`, `notify_send`, `chapter_align`, `file_probe`, `invalid`
 
 ## JobState
 
@@ -5808,6 +5808,7 @@ One work in a page of `GET /api/library/works`.
 - `added_at` *string*, **required** — RFC 3339 time of the newest holding.
 - `length_minutes` *integer (int64) or null* — Runtime in minutes of the longest held edition, when known. At least 0.
 - `purchased_at` *string or null* — RFC 3339 time of the newest purchase a store reported.
+- `acquirable_editions` *integer (int64)*, **required** — How many held editions an acquire would still queue: neither acquired, queued nor downloading. The library offers Acquire while it is above 0, even when `acquire_status` is `acquired` (an acquired audio edition beside a held ebook, or a second narration). At least 0.
 
 ## WorkTag
 

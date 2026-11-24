@@ -205,6 +205,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`StoredFeed`](#storedfeed) | struct | One subject's stored, ranked Discover feed. |
 | [`StoredQueueRank`](#storedqueuerank) | struct | One stored queue ranking row. |
 | [`TitleHolding`](#titleholding) | struct | The edition a library title sells and the account holding it is held by: the key its acquire writes are recorded under. |
+| [`UnprobedFile`](#unprobedfile) | struct | An audio file that was never probed, from `LibraryStore::unprobed_audio_files`. |
 | [`UserBookFields`](#userbookfields) | struct | Partial update for user-defined book fields. |
 | [`WishWork`](#wishwork) | struct | The work a wish is for, read from a store listing in the shared pool. |
 | [`NewVector`](#newvector) | struct | One vector to store. |
@@ -4201,6 +4202,7 @@ pub struct LibraryWorkRow {
     pub added_at: String,
     pub length_minutes: Option<u64>,
     pub purchased_at: Option<String>,
+    pub acquirable_editions: u64,
 }
 ```
 
@@ -4222,6 +4224,9 @@ One row of the page index, as list views show it.
 - `added_at`: RFC 3339 time of the newest holding.
 - `length_minutes`: Runtime in minutes of the longest held edition, when known.
 - `purchased_at`: RFC 3339 time of the newest purchase a store reported.
+- `acquirable_editions`: How many held editions an acquire would still queue (neither
+  acquired, queued nor downloading); the list offers Acquire while it
+  is above 0.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
@@ -9329,6 +9334,34 @@ by an edition no claim matches, so it is never taken over.
 
 Returns an error when the read fails.
 
+#### LibraryStore::clear_edition_file_probe
+
+```rust
+pub async fn clear_edition_file_probe(
+    &self,
+    destination: &str,
+    key: &str,
+    owner: &FileOwner,
+) -> Result<bool>
+```
+
+Clears any probe and stream values on `owner`'s row of `key` on
+`destination` and stamps its `written_at` anew, leaving it for the
+next `file_probe` walk.
+
+An acquire whose own probe of a file it just wrote failed calls this:
+a walk on another node sharing the destination may have stored a
+probe of the bytes the write replaced, and only a probe taken after
+the write may stand.
+
+##### Returns
+
+`true` when the row was `owner`'s.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when the write fails.
+
 #### LibraryStore::set_edition_file_probe
 
 ```rust
@@ -9452,6 +9485,87 @@ of each found ([`ProbedAudioFile`](#probedaudiofile)), in destination then key o
 ##### Errors
 
 Returns an error when the read fails.
+
+#### LibraryStore::unprobed_audio_files
+
+```rust
+pub async fn unprobed_audio_files(
+    &self,
+    destinations: &[String],
+    written_before: &str,
+    after: Option<(&str, &str)>,
+    limit: u64,
+) -> Result<Vec<UnprobedFile>>
+```
+
+One page of audio files (primary, parts and chapters) on
+`destinations` that were never probed (`probed_at` is empty): files
+stored before probes were recorded, or whose probe failed. In
+`(destination, storage_key)` order, after `after`.
+
+##### Arguments
+
+* `destinations` - Destination ids whose files the caller can read.
+* `written_before` - Only rows last written before this RFC 3339
+  time: an acquire records a key before it writes the file, so a
+  row written moments ago may still name bytes about to change.
+* `after` - The last `(destination, storage_key)` of the previous
+  page; `None` to start.
+* `limit` - Most rows to return, further capped at the database's
+  result-row limit.
+
+##### Errors
+
+Returns an error when the read fails.
+
+#### LibraryStore::set_backfilled_file_probe
+
+```rust
+pub async fn set_backfilled_file_probe(
+    &self,
+    file: &UnprobedFile,
+    probe: &FileProbe,
+    stream: &AudioStream,
+) -> Result<bool>
+```
+
+Stores what a probe of `file` found, its probe and its audio
+stream, in one update.
+
+The row is changed only while it is still unprobed, `file`'s owner
+still holds the key and the file is the one that was written at
+`file.written_at`, so a file replaced while it was read keeps no
+stale probe. Both results land together: a failed write leaves the
+row unprobed for the next walk.
+
+##### Returns
+
+`true` when the row matched and now carries `probe` and `stream`.
+
+##### Errors
+
+Returns an error when `probe` or `stream` is not well formed or the
+write fails.
+
+#### LibraryStore::sole_store_of_edition
+
+```rust
+pub async fn sole_store_of_edition(&self, edition_id: &str) -> Result<Option<String>>
+```
+
+The one storefront that holds `edition_id`: the plain store id
+(the plugin's alias, `audible`) of its held listings when every
+holding is through the same plugin, else `None` (two plugins, none,
+or no plain id for the one plugin). A probe of a file stored before
+probes were recorded takes its source store from here, since the
+file does not say.
+
+Listings name their plugin by its provenance-qualified key; the
+plain id is the alias the plugin's accounts carry.
+
+##### Errors
+
+Returns an error when a read fails.
 
 #### LibraryStore::edition_file_probe
 
@@ -10510,6 +10624,23 @@ The works an edition belongs to (one, unless it was just moved).
 ##### Errors
 
 Returns [`LibraryError::Orm`](#libraryerror) when the read fails.
+
+#### LibraryStore::held_works_of_editions
+
+```rust
+pub async fn held_works_of_editions(&self, edition_ids: &[String]) -> Result<Vec<String>>
+```
+
+The top-level works of `edition_ids` that are held (their page index
+row counts a holding), in id order: the works whose rows a change to
+those editions' covers or text can show on the library page.
+
+A few chunked lookups for the whole set, so a large catalog answer
+that mostly holds unheld works costs no per-edition reads.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
 
 #### LibraryStore::work_of_listing
 
@@ -14366,6 +14497,33 @@ attempt already queued instead of admitting it again.
 
 Returns [`LibraryError::Orm`](#libraryerror) when the read fails.
 
+#### LibraryStore::job_admitted_in_any_state_since
+
+```rust
+pub async fn job_admitted_in_any_state_since(
+    &self,
+    dedup_key: &str,
+    since: DateTime<Utc>,
+) -> Result<bool>
+```
+
+True when a job with `dedup_key` was admitted at or after `since`,
+whatever became of it (waiting, running, succeeded, failed or
+cancelled).
+
+A periodic job uses this to admit at most one run per interval, so
+a run that failed or was cancelled does not let another start
+before the interval is up.
+
+##### Arguments
+
+* `dedup_key` - The [`JobKind::dedup_key`](#jobkinddedup_key) of the job.
+* `since` - The moment the job must have been admitted after.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when the read fails.
+
 #### LibraryStore::job_is_active
 
 ```rust
@@ -17881,6 +18039,31 @@ by: the key its acquire writes are recorded under.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### UnprobedFile
+
+```rust
+pub struct UnprobedFile {
+    pub destination: String,
+    pub storage_key: String,
+    pub owner: FileOwner,
+    pub written_at: String,
+}
+```
+
+An audio file that was never probed, from
+[`LibraryStore::unprobed_audio_files`](#librarystoreunprobed_audio_files).
+
+**Fields**
+
+- `destination`: Output destination id.
+- `storage_key`: Storage key on that destination.
+- `owner`: The edition the file belongs to.
+- `written_at`: When the file at the key was last written (RFC 3339). A probe is
+  stored only while the row still carries this stamp, so a probe of
+  a file an acquire replaced meanwhile describes nothing.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### UserBookFields
 
 ```rust
@@ -18662,6 +18845,7 @@ pub enum JobKind {
     IngestBatch,
     NotifySend,
     ChapterAlign,
+    FileProbe,
     Invalid,
 }
 ```
@@ -18718,12 +18902,17 @@ Kind of durable daemon work stored in the `jobs` table.
   Any node with a destination holding the copy claims it, since it
   reads the copy's audio from there; it runs only on a node that
   holds the library database.
+- `FileProbe`: Probe the audio files on one node's destinations that were never
+  probed (`file_probe`): files stored before probes were recorded, or
+  whose probe failed. Pinned by [`JobPayload::node_id`](#jobpayload) to the node
+  whose destinations it reads; it runs only on a node that holds the
+  library database.
 - `Invalid`: Terminal placeholder after an unreadable persisted command is rejected.
 
 #### JobKind::ALL
 
 ```rust
-pub const ALL: [Self; 18] = _
+pub const ALL: [Self; 19] = _
 ```
 
 Every kind, in declaration order; the SQL plans derive their kind
@@ -22401,7 +22590,7 @@ appear. Newer events still reach subscribers through delivery.
 ### LIBRARY_INDEX_LAYOUT
 
 ```rust
-pub const LIBRARY_INDEX_LAYOUT: i64 = 2;
+pub const LIBRARY_INDEX_LAYOUT: i64 = 3;
 ```
 
 Layout of `library_work_rows` this binary writes. A library with no
@@ -22411,6 +22600,8 @@ rows are derived needs every row rewritten.
 - 2: every work with an edition names a cover edition, whose cover may
   come from a store listing or the work, so libraries indexed under 1
   (no cover edition unless the edition row had a cover) are rebuilt.
+- 3: rows count the held editions an acquire would still queue
+  (`acquirable_editions`).
 
 ### MAX_WORK_TAGS
 

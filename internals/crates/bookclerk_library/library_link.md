@@ -474,6 +474,7 @@ pub struct CreditBatchParams {
     pub credits: Vec<CreditRow>,
     pub series: Vec<SeriesRow>,
     pub series_entries: Vec<SeriesEntryRow>,
+    pub events: Vec<LinkEvent>,
 }
 ```
 
@@ -488,6 +489,12 @@ batch or an earlier one.
 - `credits`: Credits to insert when missing.
 - `series`: Series to insert when missing.
 - `series_entries`: Series entries to insert when missing.
+- `events`: Events to publish once the rows above are written: the last batch
+  of a link carries one `edition_updated` for the listing's edition,
+  so consumers that derive from credits and series (the library page
+  index, the works search index) refresh after them. Each is
+  published only while some listing of any edition of its edition's
+  work is held.
 
 #### CreditBatchParams::statement_count
 

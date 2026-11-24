@@ -7564,6 +7564,15 @@ however many editions and accounts hold it.
 
 #### Properties
 
+##### acquirable\_editions?
+
+```ts
+acquirable_editions?: number;
+```
+
+Held editions an acquire would still queue (neither acquired, queued
+nor downloading); the row offers Acquire while it is above zero.
+
 ##### acquire\_status
 
 ```ts

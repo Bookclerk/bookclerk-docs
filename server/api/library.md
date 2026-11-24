@@ -24211,7 +24211,8 @@ Status `200`: A page of works.
       "holding_count": 3,
       "added_at": "2026-11-14T09:30:00.000000Z",
       "length_minutes": 1212,
-      "purchased_at": "2024-03-02T18:04:11Z"
+      "purchased_at": "2024-03-02T18:04:11Z",
+      "acquirable_editions": 1
     }
   ],
   "next_cursor": "eyJzb3J0IjoidGl0bGUiLCJrZXkiOiJsZWZ0IGhhbmQiLCJ3b3JrX2lkIjoiMGI4ZiJ9"
@@ -24241,7 +24242,8 @@ Schema:
           "acquire_status",
           "edition_count",
           "holding_count",
-          "added_at"
+          "added_at",
+          "acquirable_editions"
         ],
         "properties": {
           "id": {
@@ -24362,6 +24364,13 @@ Schema:
             ],
             "description": "RFC 3339 time of the newest purchase a store reported.",
             "example": "2024-03-02T18:04:11Z"
+          },
+          "acquirable_editions": {
+            "type": "integer",
+            "format": "int64",
+            "description": "How many held editions an acquire would still queue: neither\nacquired, queued nor downloading. The library offers Acquire while\nit is above 0, even when `acquire_status` is `acquired` (an acquired\naudio edition beside a held ebook, or a second narration).",
+            "example": 1,
+            "minimum": 0
           }
         }
       },
@@ -24977,7 +24986,8 @@ Status `200`: The similar works, or why there are none.
       "holding_count": 3,
       "added_at": "2026-11-14T09:30:00.000000Z",
       "length_minutes": 1212,
-      "purchased_at": "2024-03-02T18:04:11Z"
+      "purchased_at": "2024-03-02T18:04:11Z",
+      "acquirable_editions": 1
     }
   ]
 }
@@ -25016,7 +25026,8 @@ Schema:
           "acquire_status",
           "edition_count",
           "holding_count",
-          "added_at"
+          "added_at",
+          "acquirable_editions"
         ],
         "properties": {
           "id": {
@@ -25137,6 +25148,13 @@ Schema:
             ],
             "description": "RFC 3339 time of the newest purchase a store reported.",
             "example": "2024-03-02T18:04:11Z"
+          },
+          "acquirable_editions": {
+            "type": "integer",
+            "format": "int64",
+            "description": "How many held editions an acquire would still queue: neither\nacquired, queued nor downloading. The library offers Acquire while\nit is above 0, even when `acquire_status` is `acquired` (an acquired\naudio edition beside a held ebook, or a second narration).",
+            "example": 1,
+            "minimum": 0
           }
         }
       },
