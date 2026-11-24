@@ -13,6 +13,7 @@ them to [`build_message`](smtp.md#build_message).
 | --- | --- | --- |
 | [`Envelope`](#envelope) | struct | Who sends one email, and to whom. |
 | [`plain_body`](#plain_body) | function | The plain-text body: the text, then each field on its own line, then the link under its short label when the text does not already hold it, then the footer after a signature separator. |
+| [`worded_for`](#worded_for) | function | The message as this sender words it. An invite's subject names the library by the From name (`Alex has invited you to Riverside Library`) instead of the host's generic `a Bookclerk library`, and its `Invited by` field is left out because the subject already names them. Every other message is returned as it is. |
 | [`plain_footer`](#plain_footer) | function | The footer under every message as plain text: who sent it (the library's home page when the host gave one) and Bookclerk's site. The HTML footer says the same words, which spam filters compare. |
 | [`link_host`](#link_host) | function | The host part of a link (`library.example.com`, with a port when one is given), for the footer's link to the library's home page; `None` when the link has no `scheme://host`. |
 | [`link_label`](#link_label) | function | The label of the link button: short, naming the library it opens (`Open Riverside Library`), or `Open your library` when the From name is just the product's. The plain-text part keeps the full URL beside it. |
@@ -24,6 +25,7 @@ them to [`build_message`](smtp.md#build_message).
 | [`LOGO_PNG`](#logo_png) | constant | The Bookclerk mark the branded HTML shows in the header: a 64-pixel PNG drawn at 32, so it stays sharp on dense screens. |
 | [`LOGO_CONTENT_ID`](#logo_content_id) | constant | The `Content-ID` the HTML names the logo by (`cid:` URL). |
 | [`INVITE_TYPE`](#invite_type) | constant | The notification type the host gives invite mail: its recipient may not know Bookclerk yet, so it carries the introduction. |
+| [`INVITED_BY_FIELD`](#invited_by_field) | constant | The field an invite names the Administrator who sent it in. |
 | [`INTRO_TITLE`](#intro_title) | constant | The introduction's heading, for recipients who may not know Bookclerk. |
 | [`INTRO_TEXT`](#intro_text) | constant | The introduction, in both parts. |
 | [`BOOKCLERK_SITE`](#bookclerk_site) | constant | Bookclerk's own site, linked from every footer. |
@@ -72,6 +74,23 @@ the footer after a signature separator.
 
 * `message` - The rendered message.
 * `sender` - The From name, the library's name in the link's label.
+
+### worded_for
+
+```rust
+pub fn worded_for(message: &NotificationMessage, sender: &str) -> NotificationMessage
+```
+
+The message as this sender words it. An invite's subject names the
+library by the From name (`Alex has invited you to Riverside Library`)
+instead of the host's generic `a Bookclerk library`, and its
+`Invited by` field is left out because the subject already names them.
+Every other message is returned as it is.
+
+#### Arguments
+
+* `message` - The rendered message.
+* `sender` - The From name, which names the library.
 
 ### plain_footer
 
@@ -222,6 +241,14 @@ pub const INVITE_TYPE: &str = "account_invite";
 
 The notification type the host gives invite mail: its recipient may not
 know Bookclerk yet, so it carries the introduction.
+
+### INVITED_BY_FIELD
+
+```rust
+pub const INVITED_BY_FIELD: &str = "Invited by";
+```
+
+The field an invite names the Administrator who sent it in.
 
 ### INTRO_TITLE
 

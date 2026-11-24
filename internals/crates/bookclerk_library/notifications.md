@@ -29,6 +29,7 @@ A paused destination is skipped.
 | Item | Kind | Summary |
 | --- | --- | --- |
 | [`AccountMailSettings`](#accountmailsettings) | struct | The notifier instance administrators chose for account mail. |
+| [`AccountMailRequest`](#accountmailrequest) | struct | A message to queue: what it says, who it is for and who asked for it. |
 | [`AccountMail`](#accountmail) | struct | One account-mail message and where its delivery stands. |
 | [`MintedToken`](#mintedtoken) | struct | The link token an account-mail send mints: the raw value goes into the message once and only its hash is stored. |
 | [`VerifyEmailToken`](#verifyemailtoken) | struct | The token of a verification link, as a patron's browser sends it back: exactly `VERIFY_TOKEN_CHARS` lowercase hex characters. |
@@ -100,6 +101,29 @@ The notifier instance administrators chose for account mail.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### AccountMailRequest
+
+```rust
+pub struct AccountMailRequest<'a> {
+    pub kind: AccountMailKind,
+    pub user_id: i64,
+    pub address: &'a str,
+    pub requested_by: Option<i64>,
+}
+```
+
+A message to queue: what it says, who it is for and who asked for it.
+
+**Fields**
+
+- `kind`: What it says.
+- `user_id`: The user it is for.
+- `address`: The address it goes to.
+- `requested_by`: The Administrator who asked for it, recorded so an invite can name
+  them; `None` when the library sends it on its own.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
 ### AccountMail
 
 ```rust
@@ -111,6 +135,7 @@ pub struct AccountMail {
     pub plugin_instance_id: String,
     pub state: DeliveryState,
     pub attempts: i64,
+    pub requested_by: Option<i64>,
 }
 ```
 
@@ -125,6 +150,8 @@ One account-mail message and where its delivery stands.
 - `plugin_instance_id`: The notifier instance that sends it.
 - `state`: Where it stands.
 - `attempts`: Send attempts made.
+- `requested_by`: The Administrator who asked for an invite, named in its subject;
+  `None` when the library sent it on its own or that user is gone.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 

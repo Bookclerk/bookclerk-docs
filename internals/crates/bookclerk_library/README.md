@@ -7140,9 +7140,7 @@ An error when the write fails.
 ```rust
 pub async fn queue_account_mail_unless_since(
     &self,
-    kind: AccountMailKind,
-    user_id: i64,
-    address: &str,
+    request: AccountMailRequest<'_>,
     plugin_instance_id: &str,
     limits: NotifyQueueLimits,
     since: Option<DateTime<Utc>>,
@@ -7156,7 +7154,8 @@ With `since`, the batch first takes the user's `bookclerk_slots`
 write lock for that kind (`account_mail_slot`), so on every
 database profile (`READ COMMITTED` PostgreSQL included) the guard
 reads what an overlapping request committed, and two overlapping
-requests cannot both pass it.
+requests cannot both pass it. The request's `requested_by` is
+recorded so an invite can name who asked for it.
 
 ##### Returns
 
