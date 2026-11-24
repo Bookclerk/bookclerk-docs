@@ -13,10 +13,6 @@ Product narrative: destination sections in `docs/server/configuration.md`. Style
 | Item | Kind | Summary |
 | --- | --- | --- |
 | [`StorageBackend`](#storagebackend) | trait | Pluggable storage for acquired audio and sidecar files. |
-| [`B2ApplicationKey`](#b2applicationkey) | struct | An application key's secret half. Its `Debug` output never shows it. |
-| [`B2Backend`](#b2backend) | struct | A bucket (and prefix) on Backblaze B2. |
-| [`B2Settings`](#b2settings) | struct | How to reach one bucket. |
-| [`B2ChangeFeed`](#b2changefeed) | struct | The `b2` destination's change feed. |
 | [`FanoutBackend`](#fanoutbackend) | struct | Multiplexes one logical storage key across multiple backends. |
 | [`LocalFsBackend`](#localfsbackend) | struct | Stores objects under a root directory; keys map to relative paths. |
 | [`CloudflareAccountId`](#cloudflareaccountid) | struct | A Cloudflare account id: 32 lowercase hex digits. |
@@ -46,8 +42,6 @@ Product narrative: destination sections in `docs/server/configuration.md`. Style
 | [`is_audio_key`](#is_audio_key) | function | True when `key` ends with a known acquired audio extension. |
 | [`transfer_object`](#transfer_object) | function | Copies `source_key` onto `dest_key`. |
 | [`Result`](#result) | type alias | Result alias for storage backend operations in this crate. |
-| [`B2_AUTHORIZE_URL`](#b2_authorize_url) | constant | Where `b2_authorize_account` lives; every other URL comes from its reply. |
-| [`RULE_RECHECK_SECS`](#rule_recheck_secs) | constant | Seconds between checks that the bucket still holds the destination's rules as written. B2 suspends a rule whose deliveries keep failing, and a suspended rule sends nothing, so the feed looks again this often. |
 | [`MAX_LIST_PAGE`](#max_list_page) | constant | ABI list page ceiling. |
 | [`MAX_SCALAR_OBJECT_BYTES`](#max_scalar_object_bytes) | constant | ABI scalar ceiling. Audiobook bodies must not use `crate::StorageBackend::get` / `crate::StorageBackend::put`. |
 | [`MAX_SUPPORTED_OBJECT_BYTES`](#max_supported_object_bytes) | constant | Largest object this process will upload or server-copy. |
@@ -70,8 +64,6 @@ Product narrative: destination sections in `docs/server/configuration.md`. Style
 
 ## Modules
 
-- [`b2_api`](b2_api.md): Backblaze B2 native API replies, read into checked types.
-- [`b2_events`](b2_events.md): Backblaze B2 event notifications and notification-rule replies, read into checked types.
 - [`cloudflare_api`](cloudflare_api.md): Cloudflare API replies the guided setups of the `r2` destination and the `d1` database read, and the request parts they build.
 - [`fs_kind`](fs_kind.md): What kind of file system a local path lives on, so the local backend only leans on hard links, inode numbers and atomic renames where the file system keeps their promises.
 - [`guest`](guest.md): Serving a backend's intent operations from a storage guest. Serves a `StorageBackend`'s intent operations through a storage guest's `Destination` capability.
@@ -948,143 +940,9 @@ rewrite user-metadata (creates a second full-size version on versioned
 buckets). System `Last-Modified` cannot be set on AWS S3; logical times
 belong in PutObject `x-amz-meta-*` (S3 backends set them at upload only).
 
-Implemented by: `B2Backend`, `FanoutBackend`, `LocalFsBackend`, `S3Backend`
+Implemented by: `FanoutBackend`, `LocalFsBackend`, `S3Backend`
 
 ## Structs
-
-### B2ApplicationKey
-
-```rust
-pub struct B2ApplicationKey(/* private */);
-```
-
-An application key's secret half. Its `Debug` output never shows it.
-
-#### B2ApplicationKey::new
-
-```rust
-pub fn new(secret: impl Into<String>) -> Self
-```
-
-Wraps the secret.
-
-Implements: `Clone`, `Debug`
-
-### B2Backend
-
-```rust
-pub struct B2Backend {
-    /* private fields */
-}
-```
-
-A bucket (and prefix) on Backblaze B2.
-
-#### B2Backend::new
-
-```rust
-pub fn new(settings: B2Settings) -> Result<Self>
-```
-
-A backend for a bucket. Nothing is sent until the first call, which
-signs in, finds the bucket, and checks the key may reach the prefix
-(a key restricted to another bucket or prefix fails that call with
-[`StorageError::InvalidKey`](#storageerror)).
-
-##### Errors
-
-Returns [`StorageError::InvalidKey`](#storageerror) for an empty key id or bucket,
-or a prefix B2 cannot store, and [`StorageError::Remote`](#storageerror) when the
-HTTP client cannot be built.
-
-Implements: `Clone`, `StorageBackend`
-
-### B2Settings
-
-```rust
-pub struct B2Settings {
-    pub key_id: String,
-    pub application_key: B2ApplicationKey,
-    pub bucket: String,
-    pub prefix: String,
-    pub authorize_url: String,
-}
-```
-
-How to reach one bucket.
-
-**Fields**
-
-- `key_id`: The application key's id.
-- `application_key`: The application key.
-- `bucket`: The bucket's name.
-- `prefix`: Prefix under which every key is stored (may be empty).
-- `authorize_url`: Base URL of `b2_authorize_account` ([`B2_AUTHORIZE_URL`](#b2_authorize_url)).
-
-#### B2Settings::new
-
-```rust
-pub fn new(
-    key_id: impl Into<String>,
-    application_key: B2ApplicationKey,
-    bucket: impl Into<String>,
-    prefix: impl Into<String>,
-) -> Self
-```
-
-Settings for `bucket` under `prefix`, signing in at
-[`B2_AUTHORIZE_URL`](#b2_authorize_url).
-
-Implements: `Clone`, `Debug`
-
-### B2ChangeFeed
-
-```rust
-pub struct B2ChangeFeed {
-    /* private fields */
-}
-```
-
-The `b2` destination's change feed.
-
-#### B2ChangeFeed::open
-
-```rust
-pub fn open(
-    backend: B2Backend,
-    hooks: Option<Box<dyn Webhooks>>,
-    webhook: &str,
-    secret: Option<B2SigningSecret>,
-    state_dir: &Path,
-) -> Result<Self>
-```
-
-The feed of `backend`'s bucket and prefix, with its state in
-`state_dir`.
-
-##### Arguments
-
-* `backend` - the destination's backend.
-* `hooks` - the guest's webhook binding (`None` when the host granted
-  none, which turns the feed off).
-* `webhook` - the `[[webhooks]]` row B2 posts to.
-* `secret` - the signing secret the operator set (`None` turns the
-  feed off).
-* `state_dir` - a directory that survives the guest sleeping.
-
-##### Errors
-
-Returns an error when `state_dir` cannot be created.
-
-#### B2ChangeFeed::is_on
-
-```rust
-pub fn is_on(&self) -> bool
-```
-
-Whether the feed is on (a secret and a webhook binding).
-
-Implements: `ChangeSource`
 
 ### FanoutBackend
 
@@ -1964,25 +1822,6 @@ pub type Result<T> = Result<T, StorageError>;
 Result alias for storage backend operations in this crate.
 
 ## Constants
-
-### B2_AUTHORIZE_URL
-
-```rust
-pub const B2_AUTHORIZE_URL: &str = "https://api.backblazeb2.com";
-```
-
-Where `b2_authorize_account` lives; every other URL comes from its
-reply.
-
-### RULE_RECHECK_SECS
-
-```rust
-pub const RULE_RECHECK_SECS: u64 = _;
-```
-
-Seconds between checks that the bucket still holds the destination's
-rules as written. B2 suspends a rule whose deliveries keep failing, and
-a suspended rule sends nothing, so the feed looks again this often.
 
 ### MAX_LIST_PAGE
 

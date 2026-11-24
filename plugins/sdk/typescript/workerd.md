@@ -603,6 +603,12 @@ Re-exports [BookclerkEnv](env.md#bookclerkenv)
 
 ***
 
+### ByteRange
+
+Re-exports [ByteRange](plugin.md#byterange)
+
+***
+
 ### canonicalExecuteRequestHash
 
 Re-exports [canonicalExecuteRequestHash](db-execute.md#canonicalexecuterequesthash)

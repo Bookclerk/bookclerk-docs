@@ -2,15 +2,15 @@
 
 A storage guest's `Destination` capability over an object store.
 
-The `s3` and `r2` destination plugins store through an `S3Backend` and
-the `b2` plugin through a `B2Backend` (each built its own way: endpoint,
-credentials, change feed). They answer the plugin ABI the same way:
+The `s3` and `r2` destination plugins store through an `S3Backend` (each
+built its own way: endpoint, credentials, change feed). They answer the
+plugin ABI the same way:
 streamed writes with optional conditions, staged writes committed by
 token, and the intent operations through [`crate::guest`](guest.md).
 
 | Item | Kind | Summary |
 | --- | --- | --- |
-| [`ChangeSource`](#changesource) | trait | A change feed kept beside the backend rather than in it, for a feed whose calls are not `Send` (one over the guest's own bindings, such as the `b2` destination's webhook feed). |
+| [`ChangeSource`](#changesource) | trait | A change feed kept beside the backend rather than in it, for a feed whose calls are not `Send` (one over the guest's own bindings). |
 | [`ObjectStoreDestination`](#objectstoredestination) | struct | The `Destination` capability of an object-store guest. |
 
 ## Traits
@@ -32,8 +32,7 @@ pub trait ChangeSource {
 ```
 
 A change feed kept beside the backend rather than in it, for a feed
-whose calls are not `Send` (one over the guest's own bindings, such as
-the `b2` destination's webhook feed).
+whose calls are not `Send` (one over the guest's own bindings).
 
 #### ChangeSource::changes
 
@@ -56,8 +55,6 @@ running now (the host lists instead).
 
 Returns [`StorageError::InvalidCursor`](README.md#storageerror) for a cursor the feed does
 not accept, and the feed's other failures.
-
-Implemented by: `B2ChangeFeed`
 
 ## Structs
 

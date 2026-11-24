@@ -3608,7 +3608,7 @@ Re-exports [Brand](generated.md#brand)
 
 ### ByteRange
 
-Re-exports [ByteRange](generated.md#byterange)
+Re-exports [ByteRange](plugin.md#byterange)
 
 ***
 
