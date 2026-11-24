@@ -725,7 +725,7 @@ as an Administrator sets them, in pre-order. An empty list clears them.
 
 ## ChapterEditEntry
 
-One chapter of an edit, as JSON carries it.
+One chapter of an edit, as JSON carries it: an object, never an array.
 
 - `title` *string*, **required** — Chapter title: 1 to 512 bytes, no control characters, no leading or trailing white space.
 - `start_ms` *integer (int64)*, **required** — Start, in milliseconds from the start of the edition's timeline; no earlier than the chapter before it. At least 0.

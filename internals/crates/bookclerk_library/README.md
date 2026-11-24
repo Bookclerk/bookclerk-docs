@@ -123,7 +123,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`ChapterSpan`](#chapterspan) | struct | One chapter as a player seeks between them: where it starts and ends on the edition's timeline (`ChapterList::spans`). |
 | [`EditionChapters`](#editionchapters) | struct | The chapters an edition resolved to. |
 | [`ChapterEditBody`](#chaptereditbody) | struct | `PUT /api/library/editions/{id}/chapters` body: the edition's chapters as an Administrator sets them, in pre-order. An empty list clears them. |
-| [`ChapterEditEntry`](#chaptereditentry) | struct | One chapter of an edit, as JSON carries it. |
+| [`ChapterEditEntry`](#chaptereditentry) | struct | One chapter of an edit, as JSON carries it: an object, never an array. |
 | [`ChapterPinBody`](#chapterpinbody) | struct | `PUT /api/library/editions/{id}/chapters/pin` body: the claim to pin. |
 | [`ChapterPinRequest`](#chapterpinrequest) | struct | A checked pin request. |
 | [`TitleQuery`](#titlequery) | struct | A title someone asks about (a wish, a catalog card): what the resolver needs to say which work it belongs to. |
@@ -5182,7 +5182,7 @@ pub struct ChapterEditEntry {
 }
 ```
 
-One chapter of an edit, as JSON carries it.
+One chapter of an edit, as JSON carries it: an object, never an array.
 
 Implements: `ComposeSchema`, `Debug`, `Deserialize<'de>`, `ToSchema`
 
