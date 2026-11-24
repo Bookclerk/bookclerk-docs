@@ -591,6 +591,14 @@ description?: string | null;
 genres?: string | null;
 ```
 
+##### in\_library?
+
+```ts
+in_library?: LibraryCopy | null;
+```
+
+Whether the library already holds this edition or another edition of the book.
+
 ##### is\_abridged?
 
 ```ts
@@ -7810,6 +7818,19 @@ One value in a plugin instance document.
 
 ***
 
+### LibraryCopy
+
+```ts
+type LibraryCopy = "this_edition" | "other_edition";
+```
+
+How the library holds a catalog search hit: `this_edition` when one of
+the hit's ASIN, ISBN or store products belongs to a held edition,
+`other_edition` when it holds another edition of the book (another
+recording, or this one from another store).
+
+***
+
 ### MeaningState
 
 ```ts
@@ -9752,6 +9773,29 @@ Reads a work's library tags (operator, Owner or Administrator).
 `Promise`\<[`WorkTags`](#worktags)\>
 
 The tags.
+
+***
+
+### inLibraryLabel()
+
+```ts
+function inLibraryLabel(copy): string | null;
+```
+
+The line a search row shows for a title the library already holds.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `copy` | [`LibraryCopy`](#librarycopy) \| `null` \| `undefined` | The hit's `in_library` mark. |
+
+#### Returns
+
+`string` \| `null`
+
+"In your library", "Another edition in your library", or `null`
+  when the library holds neither.
 
 ***
 

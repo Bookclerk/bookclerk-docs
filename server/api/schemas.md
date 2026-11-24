@@ -638,6 +638,7 @@ One autocomplete / results-page hit (possibly spanning multiple storefronts).
 - `price_cents` *integer (int64) or null* — Catalog list/deal price in cents when the storefront provided it.
 - `purchase_hints` *array of [`PurchaseHint`](#purchasehint)* — Buy / open-in-store links with optional member vs list pricing.
 - `available_through` *array of [`BranchAvailability`](#branchavailability)* — Branches of this library that currently list this title, matched through a store listing the library already holds. Filled by the daemon after the search.
+- `in_library` *[`LibraryCopy`](#librarycopy) or null* — Whether the library already holds this edition or another edition of the book; absent when it holds neither. Filled by the daemon after the search.
 
 ## CatalogSearchPage
 
@@ -2108,6 +2109,12 @@ JSON body for `GET /api/config/library-consents`.
 
 - `libraries` *array of [`LibraryLinkView`](#librarylinkview)*, **required** — Every library this install is a branch of.
 - `consents` *array of [`RemoteConsentView`](#remoteconsentview)*, **required** — Every plugin request from those libraries, pending or answered.
+
+## LibraryCopy
+
+How the library holds a catalog search hit.
+
+Type: one of `this_edition`, `other_edition`
 
 ## LibraryFile
 

@@ -53,6 +53,7 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`TitleReviewsQuery`](#titlereviewsquery) | struct | Query for a page of Audible customer reviews. |
 | [`PooledEdition`](#poolededition) | struct | One store edition a wish names, as placed in the shared pool. |
 | [`DiscoverError`](#discovererror) | enum | Errors from embeddings, catalog fan-out, and recommendation pipelines. |
+| [`LibraryCopy`](#librarycopy) | enum | How the library holds a catalog search hit. |
 | [`FeedState`](#feedstate) | enum | How current a stored Discover feed is. |
 | [`FillLookup`](#filllookup) | enum | One storefront catalog-detail lookup a title-meta fill can make. |
 | [`Settlement`](#settlement) | enum | Whether a title-meta answer is final or may change when asked again. |
@@ -87,6 +88,7 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`soft_work_key`](#soft_work_key) | function | Soft key from cleaned title + primary author (exact string match only). |
 | [`work_map_key`](#work_map_key) | function | Best stable map key for a recommendation / candidate. |
 | [`works_match`](#works_match) | function | Whether two titles should be treated as the same work. |
+| [`join_search_library_copies`](#join_search_library_copies) | function | Sets `in_library` on every hit of a catalog search page. |
 | [`enrich_books_from_metadata`](#enrich_books_from_metadata) | function | Fills missing description, subjects, cover and language from the deployed metadata providers. |
 | [`fetch_subject_candidates`](#fetch_subject_candidates) | function | Fetches one subject's storefront candidates and stores them store by store. |
 | [`load_subject_taste`](#load_subject_taste) | function | Loads one subject's taste. |
@@ -496,6 +498,7 @@ pub struct CatalogSearchHit {
     pub price_cents: Option<i64>,
     pub purchase_hints: Vec<PurchaseHint>,
     pub available_through: Vec<BranchAvailability>,
+    pub in_library: Option<LibraryCopy>,
 }
 ```
 
@@ -535,6 +538,9 @@ One autocomplete / results-page hit (possibly spanning multiple storefronts).
 - `available_through`: Branches of this library that currently list this title, matched
   through a store listing the library already holds. Filled by the
   daemon after the search.
+- `in_library`: Whether the library already holds this edition or another edition
+  of the book; absent when it holds neither. Filled by the daemon
+  after the search.
 
 #### CatalogSearchHit::hide_prices_and_links
 
@@ -1763,6 +1769,27 @@ A [`DiscoverError::Message`](#discovererror) variant.
 
 Implements: `Debug`, `Display`, `Error`, `From<EnrichError>`, `From<Error>`, `From<LibraryError>`
 
+### LibraryCopy
+
+```rust
+pub enum LibraryCopy {
+    ThisEdition,
+    OtherEdition,
+}
+```
+
+How the library holds a catalog search hit.
+
+**Variants**
+
+- `ThisEdition`: The library holds this edition: one of the hit's ASIN, ISBN or
+  store products belongs to a held edition.
+- `OtherEdition`: The library holds another edition of the hit's book (another
+  recording, or this recording from another store), but none with the
+  hit's identifiers.
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
+
 ### FeedState
 
 ```rust
@@ -2496,6 +2523,34 @@ Whether two titles should be treated as the same work.
 #### Returns
 
 `true` when the predicate holds.
+
+### join_search_library_copies
+
+```rust
+pub async fn join_search_library_copies(
+    library: &LibraryStore,
+    hits: &mut [CatalogSearchHit],
+    plugin_key_of: impl Fn(&str) -> Option<String>,
+) -> Result<(), DiscoverError>
+```
+
+Sets `in_library` on every hit of a catalog search page.
+
+A hit is this edition when one of its ASIN, ISBN or store products
+belongs to a held edition, and another edition when only its work (from
+the listing pool, or else the library's resolver) is held. A hit the library
+does not hold gets `None`.
+
+#### Arguments
+
+* `library` - The library whose holdings, pool and resolver are read.
+* `hits` - The page's hits.
+* `plugin_key_of` - The PluginKey a storefront id's listings are pooled
+  under, or `None` for a source that is not deployed.
+
+#### Errors
+
+Returns the library read error.
 
 ### enrich_books_from_metadata
 

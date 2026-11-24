@@ -88,6 +88,14 @@ description?: string | null;
 genres?: string | null;
 ```
 
+##### in\_library?
+
+```ts
+in_library?: LibraryCopy | null;
+```
+
+Whether the library already holds this edition or another edition (search hits only).
+
 ##### is\_abridged?
 
 ```ts

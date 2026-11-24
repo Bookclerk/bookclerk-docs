@@ -4627,7 +4627,8 @@ Status `200`: A page of catalog results.
           "store": "audible",
           "product_id": "B002V0QK4C"
         }
-      ]
+      ],
+      "in_library": "this_edition"
     }
   ],
   "page_size": 20,
@@ -5014,6 +5015,21 @@ Schema:
               }
             },
             "description": "Branches of this library that currently list this title, matched\nthrough a store listing the library already holds. Filled by the\ndaemon after the search."
+          },
+          "in_library": {
+            "oneOf": [
+              {
+                "type": "string",
+                "description": "Whether the library already holds this edition or another edition\nof the book; absent when it holds neither. Filled by the daemon\nafter the search.",
+                "enum": [
+                  "this_edition",
+                  "other_edition"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         }
       },
