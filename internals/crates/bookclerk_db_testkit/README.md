@@ -40,6 +40,7 @@ proxy's first-party caps, as on the shipped sqlite adapter.
 - [`adapter::AdapterReport`](adapter.md#adapterreport)
 - [`binding::BindingDatabase`](binding.md#bindingdatabase)
 - [`bookclerk_library::test_support::paging`](../bookclerk_library/test_support/paging.md)
+- [`bookclerk_library::test_support::uncapped`](../bookclerk_library/test_support/README.md#uncapped)
 - [`bookclerk_library::test_support::Profile`](../bookclerk_library/test_support/README.md#profile)
 - [`bookclerk_library::test_support::INTERACTIVE_TRANSACTIONS_REFUSED`](../bookclerk_db_exec/begin_gate.md#interactive_transactions_refused)
 

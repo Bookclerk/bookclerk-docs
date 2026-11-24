@@ -24,6 +24,7 @@ opens it on in-memory SQLite and adds fixtures.
 | [`ProfileStore`](#profilestore) | struct | A library store opened on an engine proxy that behaves like an external database plugin under one `Profile`. |
 | [`Profile`](#profile) | enum | A capability advertisement a database plugin may present to the host. |
 | [`engine_error`](#engine_error) | function | Maps an engine error onto the error the guest would answer with: a typed `limit_exceeded` when the message carries one, `deadline_exceeded` when the batch's deadline elapsed, otherwise the adapter's classification of the failure. |
+| [`uncapped`](#uncapped) | function | Runs `read`, a test's own look at the tables, past the profile's result limits: the store's reads are held to them, but no plugin serves an assertion in production. |
 | [`register_test_node`](#register_test_node) | function | Registers `node_id` as a shared node of the library in `store`, as a daemon does at startup, so a test can record its heartbeats (which are written only for a registered node). |
 
 ## Re-exports
@@ -326,6 +327,18 @@ classification of the failure.
 
 `bookclerk-db-testkit` maps the engine errors of a plugin-owned binding
 database the same way.
+
+### uncapped
+
+```rust
+pub async fn uncapped<F, T>(read: F) -> T
+where
+    F: Future<Output = T>,
+```
+
+Runs `read`, a test's own look at the tables, past the profile's
+result limits: the store's reads are held to them, but no plugin
+serves an assertion in production.
 
 ### register_test_node
 

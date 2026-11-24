@@ -12760,7 +12760,7 @@ The stored rows, ordered by user then work.
 
 ##### Errors
 
-Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+Returns a [`LibraryError`](#libraryerror) when a read fails.
 
 #### LibraryStore::user_title_states_of_works
 
@@ -12787,7 +12787,7 @@ work.
 
 ##### Errors
 
-Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+Returns a [`LibraryError`](#libraryerror) when a read fails.
 
 #### LibraryStore::users_linked_to_account
 
@@ -12814,7 +12814,7 @@ user.
 
 ##### Errors
 
-Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+Returns a [`LibraryError`](#libraryerror) when a read fails.
 
 #### LibraryStore::put_vectors
 
@@ -16437,9 +16437,10 @@ Returns a crate error when the database operation fails or inputs are invalid.
 pub async fn count_works_by_status(&self) -> Result<AcquireStatusCounts>
 ```
 
-Counts the library's held works per acquire status in one grouped
+Counts the library's held works per acquire status in a grouped
 read of the page index (`library_work_rows`), where each work has the
-furthest state any of its editions reached.
+furthest state any of its editions reached; the groups are read in
+pages sized to the database plugin's `maxResultRows`.
 
 ##### Returns
 
