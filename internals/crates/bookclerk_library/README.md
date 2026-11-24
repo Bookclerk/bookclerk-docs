@@ -258,6 +258,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`RecordPruneStep`](#recordprunestep) | enum | One delete of `LibraryStore::prune_record_step`, in run order. |
 | [`FieldEdit`](#fieldedit) | enum | One field of a `UserStateEdit`. |
 | [`SplitOutcome`](#splitoutcome) | enum | What `LibraryStore::split_work` did. |
+| [`CopyHolder`](#copyholder) | enum | What already holds a key a copy is about to write (`LibraryStore::key_held_by_another_copy`). |
 | [`CopyState`](#copystate) | enum | Where an edition's copy at one destination stands. |
 | [`DiscoverSubject`](#discoversubject) | enum | Whose Discover shelves a stored row belongs to. |
 | [`EnrichAttemptOutcome`](#enrichattemptoutcome) | enum | How a gap-fill attempt that left an edition's gaps open ended (`edition_enrich_attempts.outcome`). |
@@ -268,6 +269,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`NodeHoldingSelection`](#nodeholdingselection) | enum | Which holdings of one branch (node) a removal takes. |
 | [`RecordedFile`](#recordedfile) | enum | What recording a key an acquire run is about to write did (`LibraryStore::record_run_edition_file`). |
 | [`SeedScope`](#seedscope) | enum | Which seeds a subject's candidates and feed were built from. |
+| [`UnlabelledAudio`](#unlabelledaudio) | enum | Whether an audio file of an edition recorded with no library copy (a host upload's, or a destination sync's) holds its key against a copy (`LibraryStore::key_held_by_another_copy`). |
 | [`migrate_library_backend`](#migrate_library_backend) | function | Copy the whole library from `source` into `dest`. |
 | [`restore_backup_unit`](#restore_backup_unit) | function | Destructively replaces one logical database with `unit`. Never merges. |
 | [`library_ddl_for_schema_state`](#library_ddl_for_schema_state) | function | Library DDL that matches `state`, not necessarily this binary's latest pack. |
@@ -9216,6 +9218,43 @@ True when a live edition other than `edition` holds `key` on
 A key that is unrecorded, recorded for `edition`, or recorded for an
 edition no longer in the library is free. With `edition` `None`
 (the title has no edition here), any live edition's record counts.
+
+##### Errors
+
+Returns an error when the read fails.
+
+#### LibraryStore::key_held_by_another_copy
+
+```rust
+pub async fn key_held_by_another_copy(
+    &self,
+    owner: &FileOwner,
+    key: &str,
+    copy: &OutputCopy,
+    guarded: &[OutputCopy],
+    unlabelled: UnlabelledAudio,
+) -> Result<Option<CopyHolder>>
+```
+
+Which other copy of `owner` already has a file at `key`, on any
+destination; `None` when none does.
+
+The library finds a copy's files by key across destinations, so a
+copy written where another copy of the same edition sits would let
+it take one copy's file for the other's. The copies in `guarded`
+other than `copy` count (the ones the library still makes): a key a
+copy the library no longer makes left behind may be written again.
+An audio file recorded with no copy (a host upload's, or a
+destination sync's) counts only when `unlabelled` is
+[`UnlabelledAudio::Guarded`](#unlabelledaudio).
+
+##### Arguments
+
+* `owner` - The edition the files belong to.
+* `key` - The storage key about to be written.
+* `copy` - The copy about to write it.
+* `guarded` - The copies whose files `copy` must not replace.
+* `unlabelled` - Whether audio recorded with no copy is guarded too.
 
 ##### Errors
 
@@ -19804,6 +19843,25 @@ What [`LibraryStore::split_work`](#librarystoresplit_work) did.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### CopyHolder
+
+```rust
+pub enum CopyHolder {
+    Copy(OutputCopy),
+    Unlabelled,
+}
+```
+
+What already holds a key a copy is about to write
+([`LibraryStore::key_held_by_another_copy`](#librarystorekey_held_by_another_copy)).
+
+**Variants**
+
+- `Copy`: Another library copy's file.
+- `Unlabelled`: An audio file of the edition recorded with no copy.
+
+Implements: `Clone`, `Debug`, `Display`, `Eq`, `PartialEq`
+
 ### CopyState
 
 ```rust
@@ -20200,6 +20258,28 @@ pub fn parse(text: &str) -> Option<Self>
 ```
 
 Parses [`Self::as_str`](#seedscopeas_str) text; anything else is `None`.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
+### UnlabelledAudio
+
+```rust
+pub enum UnlabelledAudio {
+    Replaceable,
+    Guarded,
+}
+```
+
+Whether an audio file of an edition recorded with no library copy
+(a host upload's, or a destination sync's) holds its key against a copy
+([`LibraryStore::key_held_by_another_copy`](#librarystorekey_held_by_another_copy)).
+
+**Variants**
+
+- `Replaceable`: A copy may write over it: an acquire's main output replaces the
+  edition's earlier file at its own key.
+- `Guarded`: No copy may write over it: a convert adds a copy beside the files
+  the edition has and never replaces one.
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
